@@ -6,7 +6,7 @@ metadata:
   author: github.com/vuejs-ai
   version: "17.0.0"
 allowed-tools: 
-disable: true
+disable: false
 ---
 
 Vue 3 best practices, common gotchas, and performance optimization.

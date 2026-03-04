@@ -5,7 +5,7 @@ version: 1.0.0
 license: MIT
 author: github.com/vuejs-ai
 allowed-tools: 
-disable: true
+disable: false
 ---
 
 Pinia best practices, common gotchas, and state management patterns.

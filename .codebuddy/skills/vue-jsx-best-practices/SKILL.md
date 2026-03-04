@@ -5,7 +5,7 @@ version: 2.0.0
 license: MIT
 author: github.com/vuejs-ai
 allowed-tools: 
-disable: true
+disable: false
 ---
 
 Vue JSX best practices and differences from React JSX.

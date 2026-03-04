@@ -1,0 +1,296 @@
+# task_P10 - 辅助模块
+
+## 任务目标
+
+实现 Dashboard 首页、个人中心、消息中心、用户管理、系统配置和日志审计等辅助管理功能。
+
+## 前置依赖
+
+- P3.5 Notification Store 已完成
+- P4.3 布局组件已完成
+- P5-P9 核心功能模块已完成
+
+---
+
+## 子任务清单
+
+### P10.1 首页 Dashboard（4h）
+
+- [ ] 创建 `src/views/dashboard/DashboardView.vue`
+  - 根据用户角色展示不同 Dashboard 内容
+  - **提交人角色（submitter）**：
+    - 我的申请单统计卡片（4个）：总计/待审批/传输中/已完成
+    - 最近申请单列表（5条，可跳转）
+    - 快速操作区：「新建申请单」大按钮 + 7种传输类型快捷卡片
+    - 待处理事项提示（草稿数量、待上传数量）
+  - **审批人角色（approver1/2/3）**：
+    - 审批统计卡片（4个）：待审批/今日已审批/本月已审批/总审批数
+    - 待审批列表（5条，可跳转审批详情）
+    - 审批趋势图（近7天，a-chart 折线图）
+  - **管理员角色（admin）**：
+    - 系统总览统计卡片（6个）：总申请单/传输中/已完成/今日新增/用户总数/存储使用量
+    - 传输中列表（5条，可跳转）
+    - 系统活动日志（最近10条）
+    - 存储使用趋势图（近30天）
+  - 欢迎语：「您好，${姓名}！今天是 ${日期}`
+- [ ] 创建 `src/composables/useDashboard.ts`
+  - `role` - 当前用户角色
+  - `stats` - 统计数据
+  - `recentList` - 最近数据列表
+  - `fetchStats()` - 获取统计数据
+  - `fetchRecentList()` - 获取最近数据
+- [ ] 样式文件 `src/views/dashboard/dashboard.scss`
+  - 统计卡片样式（阴影、圆角、图标）
+  - 快速操作区网格布局
+
+### P10.2 个人中心（2h）
+
+- [ ] 创建 `src/views/user/ProfileView.vue`
+  - 个人信息展示：
+    - 头像（a-avatar，首字母生成）
+    - 姓名、用户名、邮箱、手机号
+    - 所属部门、角色标签
+  - 编辑个人信息：
+    - 姓名（a-input）
+    - 邮箱（a-input）
+    - 手机号（a-input）
+    - 保存按钮
+  - 修改密码区域：
+    - 当前密码、新密码、确认新密码
+    - 密码强度指示器
+    - 保存按钮
+  - 通知偏好设置：
+    - 邮件通知（a-switch）
+    - 短信通知（a-switch）
+    - 站内信通知（a-switch）
+- [ ] 创建 `src/composables/useProfile.ts`
+  - `profileData` - 个人信息数据
+  - `passwordForm` - 密码表单
+  - `notifyPreference` - 通知偏好
+  - `handleUpdateProfile()` - 更新个人信息
+  - `handleChangePassword()` - 修改密码
+  - `handleUpdateNotifyPreference()` - 更新通知偏好
+- [ ] 样式文件 `src/views/user/profile.scss`
+
+### P10.3 消息中心（3h）
+
+- [ ] 创建 `src/views/notification/NotificationListView.vue`
+  - 页面标题：「消息中心」+ 未读数量徽标
+  - Tab 切换：全部 / 未读 / 系统通知 / 审批通知 / 传输通知
+  - 操作栏：全部已读 / 清空已读
+  - 消息列表：
+    - 每条消息展示：
+      - 消息类型图标（不同类型不同颜色）
+      - 消息标题（未读加粗）
+      - 消息内容（截断，展开查看）
+      - 相关申请单号（可点击跳转）
+      - 时间（相对时间，hover展示完整时间）
+      - 操作：标记已读、删除
+    - 未读消息背景色浅蓝
+  - 无限滚动加载（useIntersectionObserver）
+- [ ] 创建 `src/composables/useNotificationList.ts`
+  - `listData` - 消息列表
+  - `unreadCount` - 未读数量
+  - `loading` - 加载状态
+  - `hasMore` - 是否有更多
+  - `activeTab` - 当前 Tab
+  - `fetchList()` - 获取消息列表
+  - `handleTabChange(tab)` - 切换 Tab
+  - `handleMarkRead(id)` - 标记单条已读
+  - `handleMarkAllRead()` - 全部已读
+  - `handleDelete(id)` - 删除消息
+  - `handleClearRead()` - 清空已读
+  - `loadMore()` - 加载更多（无限滚动）
+- [ ] 样式文件 `src/views/notification/notification-list.scss`
+
+### P10.4 用户管理（管理员）（4h）
+
+- [ ] 创建 `src/views/admin/UserManageView.vue`
+  - 页面标题：「用户管理」
+  - 顶部操作栏：新建用户按钮
+  - 筛选区域：
+    - 用户名/姓名（a-input）
+    - 角色（a-select）
+    - 部门（DepartmentSelector）
+    - 状态（a-select：启用/禁用）
+    - 查询按钮 + 重置按钮
+  - 数据表格（a-table）：
+    - 列：用户名、姓名、邮箱、部门、角色、状态、创建时间、操作
+    - 角色列：使用 `a-tag` 展示不同颜色
+    - 状态列：使用 `a-switch`（在线切换）
+    - 操作列：编辑、重置密码、禁用/启用、删除
+  - 分页器（a-pagination）
+- [ ] 创建 `src/views/admin/UserManageModal.vue`（新增/编辑用户弹窗）
+  - 表单字段：用户名、姓名、邮箱、手机号、所属部门、角色（多选）、初始密码（新增时）
+  - 表单校验
+- [ ] 创建 `src/composables/useUserManage.ts`
+  - `listData` - 列表数据
+  - `loading` - 加载状态
+  - `pagination` - 分页参数
+  - `filters` - 筛选条件
+  - `modalVisible` - 弹窗显示状态
+  - `editingUser` - 正在编辑的用户
+  - `fetchList()` - 获取列表数据
+  - `handleCreate()` - 新建用户
+  - `handleEdit(user)` - 编辑用户
+  - `handleDelete(id)` - 删除用户
+  - `handleToggleStatus(id, status)` - 切换用户状态
+  - `handleResetPassword(id)` - 重置密码
+- [ ] 样式文件 `src/views/admin/user-manage.scss`
+
+### P10.5 系统配置（管理员）（3h）
+
+- [ ] 创建 `src/views/admin/SystemConfigView.vue`
+  - 使用 `a-tabs` 分组展示配置项
+  - **Tab1：传输配置**：
+    - 单申请单最大文件大小（GB，默认50）
+    - 最大文件数量（默认20）
+    - 文件分片大小（MB，默认5）
+    - 最大并发传输数（默认3）
+    - 上传有效期默认值（天，默认7）
+    - 下载有效期默认值（天，默认30）
+  - **Tab2：审批配置**：
+    - 各传输类型的审批层级配置（表格形式）
+    - 审批超时时间（小时，默认48）
+    - 超时自动驳回（a-switch）
+  - **Tab3：通知配置**：
+    - 邮件服务配置（SMTP 服务器、端口、发件人）
+    - 短信服务配置（服务商、模板）
+    - 通知触发事件配置（a-checkbox-group）
+  - **Tab4：存储配置**：
+    - 草稿有效期（天，默认30）
+    - 存储清理周期（天）
+  - 保存按钮（每个 Tab 独立保存）
+- [ ] 创建 `src/composables/useSystemConfig.ts`
+  - `configData` - 配置数据
+  - `loading` - 加载状态
+  - `fetchConfig()` - 获取配置
+  - `handleSave(tab)` - 保存配置
+- [ ] 样式文件 `src/views/admin/system-config.scss`
+
+### P10.6 日志审计（管理员）（3h）
+
+- [ ] 创建 `src/views/admin/AuditLogView.vue`
+  - 页面标题：「日志审计」
+  - 筛选区域：
+    - 操作类型（a-select：登录/申请单/文件/审批/传输/系统配置）
+    - 操作用户（a-input）
+    - 操作时间范围（a-range-picker）
+    - IP地址（a-input）
+    - 查询按钮 + 重置按钮
+  - 数据表格（a-table）：
+    - 列：操作时间、操作类型、操作用户、IP地址、操作详情、关联资源、操作结果
+    - 操作类型列：使用 `a-tag` 展示不同颜色
+    - 操作结果列：成功（绿色）/失败（红色）
+    - 操作详情列：文字截断，可点击展开查看完整内容
+  - 分页器（a-pagination）
+  - 导出按钮（导出 CSV，仅 Mock 数据）
+- [ ] 创建 `src/composables/useAuditLog.ts`
+  - `listData` - 列表数据
+  - `loading` - 加载状态
+  - `pagination` - 分页参数
+  - `filters` - 筛选条件
+  - `fetchList()` - 获取日志列表
+  - `handleSearch()` - 搜索
+  - `handleReset()` - 重置筛选
+  - `handlePageChange()` - 翻页
+  - `handleExport()` - 导出 CSV
+- [ ] 样式文件 `src/views/admin/audit-log.scss`
+
+---
+
+## 技术要点
+
+### Dashboard 统计卡片组件
+```vue
+<!-- src/components/business/StatCard.vue -->
+<template>
+  <a-card class="stat-card" :bordered="false">
+    <div class="stat-card__content">
+      <div class="stat-card__icon" :style="{ background: iconBg }">
+        <component :is="icon" :size="24" />
+      </div>
+      <div class="stat-card__info">
+        <div class="stat-card__value">{{ value }}</div>
+        <div class="stat-card__label">{{ label }}</div>
+      </div>
+    </div>
+    <div v-if="trend" class="stat-card__trend">
+      <icon-arrow-rise v-if="trend > 0" style="color: #00b42a" />
+      <icon-arrow-fall v-else style="color: #f53f3f" />
+      <span :class="trend > 0 ? 'up' : 'down'">{{ Math.abs(trend) }}%</span>
+      <span class="period">较上月</span>
+    </div>
+  </a-card>
+</template>
+```
+
+### 无限滚动实现
+```typescript
+// 使用 VueUse 的 useIntersectionObserver
+import { useIntersectionObserver } from '@vueuse/core'
+
+const loadMoreRef = ref<HTMLElement>()
+
+useIntersectionObserver(loadMoreRef, ([{ isIntersecting }]) => {
+  if (isIntersecting && hasMore.value && !loading.value) {
+    loadMore()
+  }
+})
+```
+
+### CSV 导出工具
+```typescript
+// src/utils/export.ts
+export const exportToCsv = (data: any[], filename: string) => {
+  if (!data.length) return
+
+  const headers = Object.keys(data[0]).join(',')
+  const rows = data.map(row => Object.values(row).join(','))
+  const csvContent = [headers, ...rows].join('\n')
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${filename}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+```
+
+---
+
+## 验收标准
+
+1. Dashboard：
+   - 不同角色展示对应 Dashboard 内容
+   - 统计数据正常加载
+   - 快速操作跳转正常
+2. 个人中心：
+   - 个人信息展示和编辑正常
+   - 密码修改校验（新密码不能与旧密码相同）
+3. 消息中心：
+   - 消息列表正常加载
+   - 未读消息有视觉区分
+   - 已读/全部已读/删除操作正常
+   - 无限滚动正常触发
+4. 用户管理（管理员）：
+   - 列表加载、筛选、分页正常
+   - 新增/编辑用户弹窗正常
+   - 状态切换、重置密码操作正常
+5. 系统配置（管理员）：
+   - 各 Tab 配置项正常展示和保存
+6. 日志审计（管理员）：
+   - 列表加载、筛选、分页正常
+   - CSV 导出正常
+
+---
+
+## 单元测试要求
+
+- `useDashboard.ts`：测试角色判断、数据加载
+- `useNotificationList.ts`：测试消息操作、未读统计
+- `useUserManage.ts`：测试 CRUD 操作
+- `useAuditLog.ts`：测试列表加载、导出
+- `exportToCsv` 工具函数：测试 CSV 生成

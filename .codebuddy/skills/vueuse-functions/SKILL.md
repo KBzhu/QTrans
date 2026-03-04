@@ -7,7 +7,7 @@ metadata:
     version: "1.1"
 compatibility: Requires Vue 3 (or above) or Nuxt 3 (or above) project
 allowed-tools: 
-disable: true
+disable: false
 ---
 
 # VueUse Functions
