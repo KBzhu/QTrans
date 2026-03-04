@@ -1,0 +1,9 @@
+
+> qtrans-frontend@0.0.0 lint D:\VibeCoding\QTrans-0302new\qtrans-frontend
+> eslint .
+
+[@antfu/eslint-config] Detected running in editor, some rules are disabled.
+[?25l│
+◆  Package is required for this config: eslint-plugin-format. Do you want to install them?
+│  ● Yes / ○ No
+└
