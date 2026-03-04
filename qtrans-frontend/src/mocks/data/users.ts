@@ -1,0 +1,80 @@
+import type { User } from '@/types'
+
+export interface MockUser extends User {
+  password: string
+}
+
+const now = new Date().toISOString()
+
+export const users: MockUser[] = [
+  {
+    id: 'u_submitter',
+    username: 'submitter',
+    password: '123456',
+    name: '张提交',
+    email: 'submitter@qtrans.demo',
+    phone: '13800000001',
+    department: 'dept-rd',
+    departmentName: '研发部',
+    roles: ['submitter'],
+    status: 'enabled',
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'u_approver1',
+    username: 'approver1',
+    password: '123456',
+    name: '王审批一',
+    email: 'approver1@qtrans.demo',
+    phone: '13800000002',
+    department: 'dept-security',
+    departmentName: '安全部',
+    roles: ['approver1'],
+    status: 'enabled',
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'u_approver2',
+    username: 'approver2',
+    password: '123456',
+    name: '李审批二',
+    email: 'approver2@qtrans.demo',
+    phone: '13800000003',
+    department: 'dept-tech',
+    departmentName: '技术部',
+    roles: ['approver2'],
+    status: 'enabled',
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'u_approver3',
+    username: 'approver3',
+    password: '123456',
+    name: '赵审批三',
+    email: 'approver3@qtrans.demo',
+    phone: '13800000004',
+    department: 'dept-management',
+    departmentName: '管理部',
+    roles: ['approver3'],
+    status: 'enabled',
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: 'u_admin',
+    username: 'admin',
+    password: '123456',
+    name: '系统管理员',
+    email: 'admin@qtrans.demo',
+    phone: '13800000005',
+    department: 'dept-it',
+    departmentName: 'IT部',
+    roles: ['admin'],
+    status: 'enabled',
+    createdAt: now,
+    updatedAt: now,
+  },
+]

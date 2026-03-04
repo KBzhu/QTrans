@@ -23,8 +23,9 @@ requestClient.interceptors.response.use(
     if (code !== 200)
       return Promise.reject(new Error(message || '请求失败'))
 
-    return data
+    return data as unknown as AxiosResponse
   },
+
   (error: AxiosError) => {
     const status = error.response?.status
 

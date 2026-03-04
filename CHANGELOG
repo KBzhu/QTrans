@@ -1,0 +1,44 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on Keep a Changelog.
+
+## [Unreleased]
+
+## [2026-03-04]
+### Added
+- 完成 P2.1：新增 `qtrans-frontend/src/mocks/db.ts`（Dexie 数据库与 `fileChunks`/`fileMetas` 表）。
+- 完成 P2.1：新增 `qtrans-frontend/src/composables/useFileChunk.ts`（分片计算、切片、SHA-256 哈希）。
+- 完成 P2.2：新增 Mock 数据文件 `users.ts`、`departments.ts`、`cities.ts`、`applications.ts`、`index.ts`、`demo-init.ts`。
+- 完成 P2.3：新增 MSW 启动与拦截实现 `src/mocks/browser.ts`、`src/mocks/handlers/*`。
+- 完成 P2.3：生成 `qtrans-frontend/public/mockServiceWorker.js`。
+- 完成 P2.4：新增 `qtrans-frontend/src/composables/useFileUpload.ts` 与 `useTransferSimulator.ts`。
+
+### Changed
+- 更新 `qtrans-frontend/src/main.ts`：开发环境按 `VITE_MOCK_ENABLED` 条件启动 MSW。
+- 更新 `qtrans-frontend/tsconfig.app.json`：补充 `baseUrl` 与 `@/*` 路径别名。
+- 更新 `qtrans-frontend/src/utils/request.ts`：修正响应拦截器返回类型以通过 TypeScript 构建。
+- 更新 `qtrans-frontend/package.json`：记录 `msw.workerDirectory`。
+- 更新 `docs/tasks/task_P2.md`：已执行子任务由 `[ ]` 勾选为 `[√]`。
+
+### Fixed
+- 修复 `src/mocks/handlers/application.ts`、`src/mocks/handlers/user.ts` 在 `strict + noUncheckedIndexedAccess` 下的类型错误。
+
+## [2026-03-03]
+### Added
+- 完成 P1.1：新增类型定义文件 `src/types/common.ts`、`user.ts`、`application.ts`、`file.ts`、`approval.ts`、`notification.ts`、`index.ts`。
+- 完成 P1.2：新增工具函数文件 `src/utils/format.ts`、`validate.ts`、`storage.ts`、`file.ts`、`index.ts` 及对应单测。
+- 完成 P1.3：新增 `src/utils/constants.ts`，统一维护业务常量与字面量类型。
+- 完成 P1.4：新增 Axios 请求封装 `src/utils/request.ts`，并在 `src/api/auth.ts` 完成首个业务接口接入。
+
+### Fixed
+- 修复 `src/utils/__tests__/format.spec.ts` 与 `src/utils/format.ts` 在文件大小格式断言上的不一致问题（`1 KB/1 MB`）。
+
+## [2026-03-02]
+### Added
+- 完成 P0：初始化 `Vue3 + TypeScript + Vite` 项目骨架，并配置 `@` 路径别名与严格模式。
+- 完成 P0：新增基础目录结构（`src/api`、`src/components`、`src/composables`、`src/mocks`、`src/router`、`src/stores`、`src/types`、`src/utils`、`src/views/*`）。
+- 完成 P0：新增工程化能力（ESLint/Prettier/Husky/lint-staged）与环境变量文件（`.env.development`、`.env.production`、`src/env.d.ts`）。
+
+
