@@ -26,6 +26,14 @@
   - 错误信息：msw cli 默认 cwd 指向 `d:\VibeCoding\QTrans-0302new`，读取 `package.json` 失败（ENOENT）。
 - 2026-03-04 P2 构建校验失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
   - 错误信息：首次构建出现 TypeScript 类型错误（路径别名缺失、handlers 严格类型报错），后续已通过补充 `tsconfig.app.json` 路径别名与修复 handlers 类型问题解决。
+- 2026-03-04 P3 测试执行失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run test -- src/stores/__tests__`
+  - 错误信息：Vitest `vi.mock` 提升导致 `Cannot access 'xxxMock' before initialization`（后续已改为 `vi.hoisted` 解决）。
+- 2026-03-04 P3 构建校验失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
+  - 错误信息：`pinia-plugin-persistedstate` 类型定义不接受 `paths`，报 TS2353，后续改为 `pick` 解决。
+
+
+
+
 
 
 

@@ -1,4 +1,5 @@
 export * from './auth'
 export * from './application'
+export * from './file'
 export * from './approval'
 export * from './notification'

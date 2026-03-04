@@ -6,7 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- 完成 P3：新增状态管理与接口层文件 `src/stores/auth.ts`、`application.ts`、`file.ts`、`approval.ts`、`notification.ts`、`src/stores/index.ts`。
+- 完成 P3：新增业务 API 文件 `src/api/application.ts`、`approval.ts`、`notification.ts`，并更新 `src/api/index.ts` 聚合导出。
+- 完成 P3：新增 Store 单元测试 `src/stores/__tests__/auth.spec.ts`、`application.spec.ts`、`file.spec.ts`、`approval.spec.ts`、`notification.spec.ts`。
+- 新增 P3 快速上手文档 `docs/P3_Store_quickStart.md`，用于指导状态管理层接入与使用。
+
+
+### Changed
+- 更新 `qtrans-frontend/src/main.ts`：注册 `pinia` 与 `pinia-plugin-persistedstate`。
+- 更新 `docs/tasks/task_P3.md`：子任务勾选与完成标志更新为 `[√]`。
+
 ## [2026-03-04]
+
 ### Added
 - 完成 P2.1：新增 `qtrans-frontend/src/mocks/db.ts`（Dexie 数据库与 `fileChunks`/`fileMetas` 表）。
 - 完成 P2.1：新增 `qtrans-frontend/src/composables/useFileChunk.ts`（分片计算、切片、SHA-256 哈希）。
