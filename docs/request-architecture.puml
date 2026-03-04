@@ -1,0 +1,55 @@
+@startuml
+title QTrans 前端请求层架构图（当前实现）
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+left to right direction
+
+actor "页面/Store/业务模块" as UI
+
+package "src/api" {
+    component "index.ts\n(聚合导出)" as ApiIndex
+    component "auth.ts\n(authApi)" as AuthApi
+}
+
+package "src/utils" {
+    component "index.ts\n(工具聚合导出)" as UtilsIndex
+    component "request.ts\n(requestClient + 拦截器)" as RequestLayer
+    component "constants.ts\n(STORAGE_KEYS)" as Constants
+}
+
+package "src/types" {
+    component "index.ts\n(类型聚合导出)" as TypesIndex
+    component "common.ts\n(ApiResponse<T>)" as CommonTypes
+}
+
+component "axios" as Axios
+component "@arco-design/web-vue\nMessage" as ArcoMessage
+database "Mock/后端接口\n(VITE_API_BASE_URL)" as Backend
+
+UI --> AuthApi : 调用 authApi.login/logout/\nrefreshToken/getProfile
+ApiIndex --> AuthApi : export *
+AuthApi --> UtilsIndex : import { request }
+AuthApi --> TypesIndex : import LoginRequest/LoginResponse/User
+
+UtilsIndex --> RequestLayer : export * from './request'
+RequestLayer --> Axios : axios.create(...)
+RequestLayer --> Constants : 读取 AUTH_TOKEN
+RequestLayer --> CommonTypes : ApiResponse<T> 解包
+RequestLayer --> ArcoMessage : 500/网络异常提示
+RequestLayer --> Backend : HTTP 请求
+TypesIndex --> CommonTypes : export *
+
+note right of RequestLayer
+请求拦截：
+- 从 localStorage 读取 token
+- 注入 Authorization: Bearer {token}
+
+响应拦截：
+- code != 200 -> reject
+- 401 -> 清 token 并跳转 /login
+- 403 -> 跳转 /403
+- 500 -> Message.error
+end note
+
+@enduml

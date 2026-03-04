@@ -2,7 +2,7 @@
 description: 
 alwaysApply: true
 enabled: true
-updatedAt: 2026-03-04T11:13:38.193Z
+updatedAt: 2026-03-04T14:14:22.239Z
 provider: 
 ---
 
@@ -11,3 +11,4 @@ provider:
 3.在第二步的md中，分解子任务时，前方增加[ ]，每执行完一步及立即将该步骤的[]改为[ √ ]
 4.遇到错误时，将错误信息写入failedLog.md中
 5.不可修改task_xxx.md中已执行完步骤的内容
+6.根目录生成 CHANGELOG，所有重要变更均记录在此文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)

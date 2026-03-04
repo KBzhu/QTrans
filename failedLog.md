@@ -12,6 +12,12 @@
   - 错误信息：ESLint 需要安装 `jiti` 才能加载 `eslint.config.ts`。
 - 2026-03-04 P0 验收命令失败：`cd /d D:\VibeCoding\QTrans-0302new\qtrans-frontend && corepack pnpm lint -- --fix`
   - 错误信息：脚本参数传递导致 ESLint 将 `--fix` 识别为文件模式。
+- 2026-03-04 P1 执行命令失败：`cd /d D:\VibeCoding\QTrans-0302new\qtrans-frontend && corepack pnpm install`
+  - 错误信息：`package.json` 格式错误（scripts 结束后缺少逗号）。
+- 2026-03-04 P1 单测失败：`cd /d D:\VibeCoding\QTrans-0302new\qtrans-frontend && corepack pnpm test:coverage`
+  - 错误信息：`formatFileSize` 输出 `1.0 KB` / `1.0 MB` 与断言 `1 KB` / `1 MB` 不一致。
+
+
 
 
 

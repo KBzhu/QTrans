@@ -1,0 +1,56 @@
+@startuml
+title QTrans 请求层时序图（以 authApi.login 为例）
+
+autonumber
+
+actor "页面/Store" as UI
+participant "authApi\n(src/api/auth.ts)" as AuthApi
+participant "request\n(src/utils/request.ts)" as Request
+participant "requestClient\n(axios instance)" as AxiosClient
+participant "Request Interceptor" as ReqInterceptor
+participant "Mock/后端接口" as Backend
+participant "Response Interceptor" as ResInterceptor
+participant "Arco Message" as Message
+participant "Browser Router" as Router
+database "localStorage" as LS
+
+UI -> AuthApi: login(payload)
+AuthApi -> Request: request.post<LoginResponse>('/auth/login', payload)
+Request -> AxiosClient: post(url, data)
+
+AxiosClient -> ReqInterceptor: 执行请求拦截
+ReqInterceptor -> LS: getItem(STORAGE_KEYS.AUTH_TOKEN)
+LS --> ReqInterceptor: token/null
+ReqInterceptor --> AxiosClient: 注入 Authorization(如有)
+
+AxiosClient -> Backend: HTTP POST /auth/login
+Backend --> AxiosClient: ApiResponse<LoginResponse>
+
+AxiosClient -> ResInterceptor: 执行响应拦截
+
+alt code == 200
+    ResInterceptor --> Request: 返回 data（已解包）
+    Request --> AuthApi: LoginResponse
+    AuthApi --> UI: 登录结果
+else code != 200
+    ResInterceptor --> Request: Promise.reject(Error(message))
+    Request --> AuthApi: reject
+    AuthApi --> UI: 业务失败
+end
+
+alt HTTP 401
+    ResInterceptor -> LS: removeItem(AUTH_TOKEN)
+    ResInterceptor -> Router: location.href = '/login'
+    ResInterceptor --> Request: reject(error)
+else HTTP 403
+    ResInterceptor -> Router: location.href = '/403'
+    ResInterceptor --> Request: reject(error)
+else HTTP 500
+    ResInterceptor -> Message: error('服务器异常，请稍后重试')
+    ResInterceptor --> Request: reject(error)
+else 其他网络错误
+    ResInterceptor -> Message: error(error.message || '网络异常')
+    ResInterceptor --> Request: reject(error)
+end
+
+@enduml
