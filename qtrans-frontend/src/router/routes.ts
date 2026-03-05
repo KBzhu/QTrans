@@ -74,6 +74,32 @@ export const routes: RouteRecordRaw[] = [
     } as AppRouteMeta,
   },
   {
+    path: '/application/select-type',
+    name: 'SelectType',
+    component: () => import('@/views/application/SelectTypeView.vue'),
+    meta: {
+      title: '选择传输类型',
+      icon: 'icon-swap',
+      layout: 'default',
+      requiresAuth: true,
+      roles: authRoles,
+      hidden: true,
+    } as AppRouteMeta,
+  },
+  {
+    path: '/application/create',
+    name: 'CreateApplication',
+    component: () => import('@/views/applications/index.vue'),
+    meta: {
+      title: '创建申请单',
+      icon: 'icon-plus',
+      layout: 'default',
+      requiresAuth: true,
+      roles: authRoles,
+      hidden: true,
+    } as AppRouteMeta,
+  },
+  {
     path: '/approvals',
     name: 'ApprovalList',
     component: () => import('@/views/approvals/index.vue'),

@@ -7,6 +7,16 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- 完成 P6.1：新增选择传输类型页面 `src/views/application/SelectTypeView.vue`，按 Figma 3971_812 还原（Tab 分组 + 传输类型卡片 + 安全域渐变图标 + 审批层级标签 + hover 上浮效果）。
+- 完成 P6.1：新增独立样式文件 `src/views/application/select-type.scss`，玻璃拟态卡片 + 响应式 3→2→1 列布局。
+- Figma 资源同步：`public/figma/3971_812/`（19 个 SVG 文件）。
+- 新增 `docs/diff/P6_Figma_Doc_Diff.md`：P6.1 Figma 与文档差异记录（7 项差异）。
+- 新增 `docs/exec/task_P6_exec.md`：P6 执行记录。
+
+### Changed
+- 更新 `src/router/routes.ts`：新增 `/application/select-type`（选择传输类型）和 `/application/create`（创建申请单）路由。
+
+### Added
 - 完成 P5.1：新增登录页面 `src/views/auth/LoginView.vue`，按 Figma 3971_1023 还原（居中卡片 + Logo + 渐变标题 + Arco 表单 + Demo 快速体验表格）。
 - 完成 P5.1：新增独立样式文件 `src/views/auth/login.scss`，复用 mixin。
 - 完成 P5.2：新增 `src/composables/useLogin.ts`（表单校验 / 登录 / 快速登录 / 记住我 / 角色跳转）。

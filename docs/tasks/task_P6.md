@@ -16,7 +16,7 @@
 
 ### P6.1 选择传输类型页面（2h）
 
-- [ ] 创建 `src/views/application/SelectTypeView.vue`
+- [√] 创建 `src/views/application/SelectTypeView.vue`
   - 页面标题：「选择传输类型」
   - 7种传输类型卡片网格布局（3列，响应式）
     1. 绿区传到绿区（免审批）
@@ -33,7 +33,7 @@
     - 简短说明（1-2句话）
     - 点击后跳转到创建申请单页面，携带 `type` query 参数
   - 卡片 hover 效果：阴影加深、轻微上浮
-- [ ] 样式文件 `src/views/application/select-type.scss`
+- [√] 样式文件 `src/views/application/select-type.scss`
   - 卡片间距、圆角、阴影
   - 安全域色块样式（绿/黄/红）
 

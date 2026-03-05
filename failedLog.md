@@ -36,6 +36,23 @@
   - 错误信息：`AppSidebar.vue` 模板调用了未定义的 `routeMeta`，以及 `AppRouteMeta` 索引签名不兼容，后续已修复。
 - 2026-03-04 P4 构建校验三次失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
   - 错误信息：`routes.ts` 中 `RouteMeta` 未正确导入（TS2552）并引发连锁类型报错，补充导入后已解决。
+- 2026-03-05 P6.1 构建验证命令失败：`cd d:\VibeCoding\QTrans-0302new\qtrans-frontend && npx vue-tsc --noEmit 2>&1 | cat`
+  - 错误信息：`'cat' 不是内部或外部命令，也不是可运行的程序或批处理文件。`（Windows 环境无 `cat` 命令，属于 shell 兼容性问题）
+  - 处理：改用不带管道的命令执行。
+- 2026-03-05 P6.1 构建验证命令异常：`npx vue-tsc --noEmit`
+  - 错误信息：`npx vue-tsc` 解析到了全局 `tsc`（TypeScript 5.9.3）而非 `vue-tsc`，输出了 tsc 帮助信息而非类型检查结果。原因是 `node_modules` 不存在，npx 回退到全局。
+  - 处理：发现 node_modules 缺失，改用 pnpm 安装依赖。
+- 2026-03-05 P6.1 依赖安装失败：`npm install --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend`
+  - 错误信息：`npm error code EUNSUPPORTEDPROTOCOL - Unsupported URL Type "workspace:": workspace:*`（项目使用 pnpm workspace 协议，npm 不支持）。
+  - 处理：改用 `pnpm install --dir` 安装依赖，成功。
+- 2026-03-05 P6.1 依赖安装失败：`cd d:\VibeCoding\QTrans-0302new\qtrans-frontend && npm install`
+  - 错误信息：`npm error code ENOENT - Could not read package.json: d:\VibeCoding\QTrans-0302new\package.json`（根目录存在空的 `package-lock.json` 导致 npm 向上查找到根目录）。
+  - 处理：使用 `pnpm install --dir` 指定目录绕过。
+- 2026-03-05 P6.1 vite build 命令异常：`node node_modules/.bin/vite.js build` / `node node_modules/vite/bin/vite.js build`
+  - 错误信息：`Error: Cannot find module` — node_modules 尚未安装时尝试直接调用 vite 二进制。
+  - 处理：先完成 pnpm install，再通过 `pnpm run build` 执行构建，最终成功。
+
+
 
 
 

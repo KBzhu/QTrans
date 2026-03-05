@@ -1,0 +1,202 @@
+@use '../../assets/styles/mixins.scss' as mixins;
+
+/* ===== 选择传输类型页面 ===== */
+
+.select-type {
+  display: grid;
+  gap: clamp(12px, 1.1vw, 20px);
+}
+
+/* ----- Tab 栏 ----- */
+.select-type__tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--q-card-border);
+}
+
+.select-type__tab {
+  border: none;
+  background: transparent;
+  color: #1e40af;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: 'PingFang SC', sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(21, 93, 252, 0.08);
+  }
+
+  &.active {
+    color: #fff;
+    background: #155dfc;
+  }
+}
+
+/* ----- 卡片网格 ----- */
+.select-type__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* ----- 传输类型卡片 ----- */
+.type-card {
+  border-radius: 14px;
+  border: 1px solid var(--q-card-border);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.12);
+  padding: clamp(20px, 1.6vw, 32px);
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s;
+  outline: 1px solid rgba(255, 255, 255, 0.2);
+  outline-offset: -1px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(31, 38, 135, 0.22);
+  }
+}
+
+/* ----- 图标区域 ----- */
+.type-card__icons {
+  @include mixins.flex-center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.type-card__icon-box {
+  width: clamp(60px, 4.5vw, 80px);
+  height: clamp(60px, 4.5vw, 80px);
+  border-radius: 12px;
+  @include mixins.flex-center;
+  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  img {
+    width: clamp(32px, 2.5vw, 48px);
+    height: clamp(32px, 2.5vw, 48px);
+  }
+}
+
+.type-card__arrow {
+  width: 63px;
+  height: 24px;
+  border-radius: 12px;
+  background: #e7f5ef;
+  @include mixins.flex-center;
+
+  img {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* 安全域渐变色 */
+.zone-green {
+  background: linear-gradient(135deg, #00bba7 0%, #00c950 100%);
+}
+
+.zone-yellow {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.zone-red {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+}
+
+.zone-cross {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+}
+
+/* ----- 卡片标题按钮 ----- */
+.type-card__title {
+  background: #dbeafe;
+  border: 1px solid #155dfc;
+  border-radius: 8px;
+  text-align: center;
+  color: #193cb8;
+  padding: 10px 6px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+/* ----- 审批标签 ----- */
+.type-card__level {
+  @include mixins.flex-center;
+  margin-top: 10px;
+  gap: 6px;
+}
+
+.level-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--free {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  &--l1 {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  &--l2 {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  &--l3 {
+    background: #ede9fe;
+    color: #7c3aed;
+  }
+}
+
+/* ----- 卡片描述 ----- */
+.type-card__desc {
+  margin-top: 8px;
+  text-align: center;
+  color: #4a5565;
+  font-size: 12px;
+}
+
+/* ----- 例行申请双列大卡片 ----- */
+.select-type__grid--routine {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.type-card--routine {
+  padding: clamp(28px, 2vw, 40px);
+
+  .type-card__icons {
+    margin-bottom: 28px;
+  }
+
+  .type-card__icon-box {
+    width: clamp(68px, 5vw, 80px);
+    height: clamp(68px, 5vw, 80px);
+  }
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 1200px) {
+  .select-type__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .select-type__grid {
+    grid-template-columns: 1fr;
+  }
+}
