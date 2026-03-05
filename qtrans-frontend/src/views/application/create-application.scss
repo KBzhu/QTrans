@@ -45,14 +45,14 @@
   box-shadow: 0 8px 32px rgb(31 38 135 / 15%);
 }
 
-.create-application-page__steps-card :deep(.arco-steps-item-active .arco-steps-item-node),
-.create-application-page__steps-card :deep(.arco-steps-item-process .arco-steps-item-node) {
+.create-application-page__steps-card .arco-steps-item-active .arco-steps-item-node,
+.create-application-page__steps-card .arco-steps-item-process .arco-steps-item-node {
   background: #155dfc;
   border-color: #155dfc;
 }
 
-.create-application-page__steps-card :deep(.arco-steps-item-active .arco-steps-item-title),
-.create-application-page__steps-card :deep(.arco-steps-item-process .arco-steps-item-title) {
+.create-application-page__steps-card .arco-steps-item-active .arco-steps-item-title,
+.create-application-page__steps-card .arco-steps-item-process .arco-steps-item-title {
   color: #155dfc;
 }
 
@@ -89,7 +89,11 @@
 }
 
 .module-card__title {
+  display: inline-flex;
+  align-items: center;
   font-size: 18px;
+  line-height: 26px;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   color: #1e293b;
   font-weight: 500;
 }
@@ -122,25 +126,52 @@
 }
 
 .apply-form {
-  :deep(.arco-form-item-label-col .arco-form-item-label) {
+  .arco-form-item-label-col .arco-form-item-label {
     color: #475569;
     font-weight: 500;
   }
 
-  :deep(.arco-input-wrapper),
-  :deep(.arco-select-view),
-  :deep(.arco-picker),
-  :deep(.arco-textarea-wrapper),
-  :deep(.arco-cascader .arco-input-wrapper) {
-    background: #fff;
+  .arco-input-wrapper,
+  .arco-select-view,
+  .arco-picker,
+  .arco-textarea-wrapper,
+  .arco-cascader .arco-input-wrapper,
+  .arco-select-view-single,
+  .arco-select-view-multiple {
+    background-color: #fff !important;
     border-radius: 8px;
     border-color: rgb(148 163 184 / 40%);
   }
 
-  :deep(.arco-input-wrapper:hover),
-  :deep(.arco-select-view:hover),
-  :deep(.arco-picker:hover),
-  :deep(.arco-textarea-wrapper:hover) {
+  .arco-input,
+  .arco-select-view-value,
+  .arco-select-view-input,
+  .arco-textarea,
+  .arco-cascader-view .arco-input {
+    background: #fff !important;
+  }
+
+  .arco-checkbox-icon,
+  .arco-radio-icon {
+    background: #fff;
+    border-color: #94a3b8;
+  }
+
+  .arco-checkbox-checked .arco-checkbox-icon,
+  .arco-checkbox-indeterminate .arco-checkbox-icon,
+  .arco-radio-checked .arco-radio-icon {
+    background: rgb(var(--primary-6));
+    border-color: rgb(var(--primary-6));
+  }
+
+  .arco-radio-checked .arco-radio-icon::after {
+    background: #fff;
+  }
+
+  .arco-input-wrapper:hover,
+  .arco-select-view:hover,
+  .arco-picker:hover,
+  .arco-textarea-wrapper:hover {
     border-color: #94a3b8;
   }
 }
@@ -162,11 +193,11 @@
   gap: 8px;
 }
 
-.department-trigger :deep(.arco-input-wrapper) {
+.department-trigger .arco-input-wrapper {
   cursor: pointer;
 }
 
-.department-modal :deep(.arco-tree) {
+.department-modal .arco-tree {
   max-height: 360px;
   overflow-y: auto;
 }
@@ -277,6 +308,150 @@
   font-size: 13px;
 }
 
+// Step 2: 上传文件页样式
+.upload-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.upload-step__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.upload-step__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  :deep(.arco-checkbox) {
+    font-size: 14px;
+    color: #1e293b;
+  }
+}
+
+.privacy-link {
+  color: #155dfc;
+  font-size: 14px;
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upload-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.upload-section__title {
+  margin: 0;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.upload-section__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .arco-btn-text {
+    font-size: 13px;
+  }
+}
+
+.upload-table-wrapper {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+
+  .arco-table {
+    background: transparent;
+  }
+
+  .arco-table-th {
+    background: rgba(255, 255, 255, 0.4);
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .arco-table-td {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .arco-table-tr:hover .arco-table-td {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.file-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.file-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.file-name-text {
+  color: #1e293b;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-name-link {
+  color: #155dfc;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.file-progress {
+  .arco-progress-line-bar {
+    background: linear-gradient(180deg, #155dfc 0%, #10b981 100%);
+  }
+
+  .arco-progress-line-text {
+    display: none;
+  }
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.sha256-text {
+  color: #94a3b8;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
 .upload-panel {
   display: flex;
   flex-direction: column;
@@ -308,7 +483,7 @@
   display: flex;
   width: 100%;
   box-sizing: border-box;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
   margin-top: auto;
   padding: 12px 16px;

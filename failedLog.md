@@ -63,6 +63,10 @@
 - 2026-03-05 P6.2 三次补齐样式替换失败：`create-application.scss`
   - 错误信息：`replace_in_file` 未命中目标片段（The string to replace was not found）。
   - 处理：重新读取文件并按最新内容二次替换，已成功应用样式修复。
+- 2026-03-05 P6.2 样式校验命令失败：`cd d:\VibeCoding\QTrans-0302new\qtrans-frontend && npm run build`
+  - 错误信息：PowerShell 环境下 `&&` 未生效，npm 在根目录 `d:\VibeCoding\QTrans-0302new` 查找 `package.json` 失败（ENOENT）。
+  - 处理：改用 `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 指定工作目录执行。
+
 
 
 

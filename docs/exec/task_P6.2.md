@@ -81,6 +81,148 @@
 - [ √ ] T4：修复吸底操作栏左右/底部留白
 - [ √ ] T5：更新记录并完成校验
 
+## 2026-03-05 Step2 上传文件页重构（基于 Figma 3883_5466）
+
+### 一、补充需求（基于 Figma 高保真）
+- [ √ ] 移除原有拖拽上传区域与单一上传表格，改为双表格展示。
+- [ √ ] 顶部新增「上传按钮」「上传完毕后自动提交」开关、隐私政策链接。
+- [ √ ] 第一表格「传输任务」：展示正在上传的文件列表，包含实时进度条、批量暂停/继续/删除操作。
+- [ √ ] 第二表格「已上传文件列表」：展示上传成功的文件，支持刷新/上层目录/删除操作。
+- [ √ ] 表格列定义：传输任务表包含「文件名称/文件大小/失败次数/使用时间/剩余时间/操作」；已上传文件表包含「文件名称/文件大小/文件类型/最后修改时间/服务器sha256/操作」。
+- [ √ ] 每行文件支持独立暂停/继续/删除操作，支持批量全选操作。
+- [ √ ] 底部操作栏保持三按钮：取消/上一步/提交，其中提交为主按钮（蓝底白字）。
+
+### 二、补充设计（实现约束）
+- [ √ ] 数据结构：`useApplicationForm` 新增 `uploadingFiles`（传输任务）与 `uploadedFiles`（已上传文件）两个状态数组，每个文件对象包含 Figma 对应列所需字段。
+- [ √ ] 上传交互：点击「上传」按钮打开文件选择器，选中文件后加入 `uploadingFiles` 并模拟进度条动画（Mock 环境）；上传完成后移入 `uploadedFiles`。
+- [ √ ] Mock 进度模拟：使用 `setInterval` 每秒增加进度百分比，完成后自动转移到已上传列表。
+- [ √ ] 批量操作：传输任务表提供全选 checkbox 并支持批量暂停/继续/删除；已上传文件表支持批量删除。
+- [ √ ] 文件类型图标：根据文件扩展名（.doc/.xls/.zip/.pptx等）显示对应 SVG 图标（复用 Figma 资源目录中的图标）。
+- [ √ ] 样式拆分：继续在 `create-application.scss` 中新增 Step2 相关样式类，表格采用白底半透明卡片，进度条使用渐变色（#155DFC -> #10B981）。
+- [ √ ] 响应式：表格在窄屏时列宽自适应，操作列优先保持可见。
+
+### 三、本次增量任务拆分
+- [ √ ] T1：补充执行文档（需求/设计/任务拆分）
+- [ √ ] T2：在 `useApplicationForm` 添加上传文件状态与 Mock 上传逻辑
+- [ √ ] T3：重构 Step2 视图为双表格结构并实现批量操作
+- [ √ ] T4：补充上传进度条动画与文件图标映射
+- [ √ ] T5：对齐 Figma 样式（表格、按钮、进度条、背景渐变）
+- [ √ ] T6：更新记录并完成校验
+
+## 2026-03-05 CreateApplicationView 组件拆分重构
+
+### 一、补充需求（基于代码可维护性）
+- [ √ ] 拆分 `CreateApplicationView.vue` 单文件组件（768 行），将三个步骤独立为子组件。
+- [ √ ] 抽取 Step1（发起申请/基本信息）为 `StepOneBasicInfo.vue`。
+- [ √ ] 抽取 Step2（上传文件）为 `StepTwoUploadFile.vue`。
+- [ √ ] 抽取 Step3（提交成功）为 `StepThreeSubmitSuccess.vue`。
+- [ √ ] 修复 Figma 3883_5466 SVG 图标路径问题（图标未正确渲染）。
+
+### 二、补充设计（实现约束）
+- [ √ ] 组件拆分遵循单一职责原则，每个子组件仅负责一个步骤的展示与交互。
+- [ √ ] 子组件通过 Props 接收状态，通过 Emits 向父组件传递事件。
+- [ √ ] 样式继承：所有子组件样式继续复用 `create-application.scss`，避免样式重复。
+- [ √ ] 图标路径修复：从 `assets/CodeBubbyAssets/3883_5466/` 复制 SVG 文件到 `public/figma/3883_5466/`。
+- [ √ ] 主组件职责：仅负责步骤流转、路由守卫、数据协调，不包含具体业务表单逻辑。
+
+### 三、本次增量任务拆分
+- [ √ ] T1：复制 Figma SVG 图标到 public 目录（修复图标渲染问题）
+- [ √ ] T2：创建 `StepOneBasicInfo.vue` 组件（基本信息 + 申请信息 + 右侧面板）
+- [ √ ] T3：创建 `StepTwoUploadFile.vue` 组件（双表格 + 批量操作 + 进度条）
+- [ √ ] T4：创建 `StepThreeSubmitSuccess.vue` 组件（成功提示 + 申请详情）
+- [ √ ] T5：重构 `CreateApplicationView.vue` 使用子组件并修复类型错误
+- [ √ ] T6：更新执行文档和 CHANGELOG
+
+## 执行产出清单
+- `src/views/application/components/StepOneBasicInfo.vue`（新增）
+- `src/views/application/components/StepTwoUploadFile.vue`（新增）
+- `src/views/application/components/StepThreeSubmitSuccess.vue`（新增）
+- `src/views/application/CreateApplicationView.vue`（重构，从 768 行精简至 231 行）
+- `public/figma/3883_5466/*.svg`（新增 47 个图标文件）
+- `docs/exec/task_P6.2.md`（更新）
+- `CHANGELOG`（更新）
+
+## 2026-03-05 Step1 样式回归修复（重构后）
+
+### 一、问题
+- [ √ ] `CreateApplicationView.vue` 重构后保留了 `<style scoped>`，导致 `create-application.scss` 的 Step1 样式无法作用于子组件 `StepOneBasicInfo.vue`，页面出现“仅结构无样式”问题。
+
+### 二、修复
+- [ √ ] 将 `CreateApplicationView.vue` 的样式引入从 `scoped` 改为非 `scoped`，恢复 `create-application.scss` 对拆分后子组件的样式覆盖。
+- [ √ ] 保持现有组件拆分结构不变，仅修复作用域策略，避免大范围回滚。
+
+### 三、校验
+- [ √ ] Step1 页面视觉恢复（布局、间距、卡片、表单样式与 Figma 3883_4645 对齐）。
+- [ √ ] 相关文件 lint 校验通过。
+
+## 2026-03-05 Step1 细节样式修复（标题/选框/底栏）
+
+### 一、问题
+- [ √ ] 「基本信息」「申请信息」标题字体表现不一致。
+- [ √ ] 申请信息表单内的选择类控件底色非白色，与 Figma 不一致。
+- [ √ ] 底部操作栏按钮整体右对齐，与 Figma 左对齐不一致。
+
+### 二、修复
+- [ √ ] 统一 `.module-card__title` 字体族、字号、行高与字重，消除标题视觉差异。
+- [ √ ] 为 `a-input/a-select/a-cascader/a-textarea` 及 checkbox/radio 图标补充白底样式，确保默认态为白色。
+- [ √ ] 移除 Step1 的 `a-radio-group type=\"button\"`，改为普通单选，贴合 Figma 样式。
+- [ √ ] 将 `.create-application-page__actions` 从 `justify-content: flex-end` 调整为 `flex-start`，使按钮左对齐。
+
+### 三、校验
+- [ √ ] 相关 Vue/SCSS 文件 lint 通过。
+
+## 2026-03-05 Step1 样式继承链路修复（样式未挂载）
+
+### 一、问题
+- [ √ ] 拆分后依赖父组件 `<style src>` 注入样式，页面运行中出现 Step1 样式未稳定挂载场景（DevTools 未命中标题/表单样式）。
+- [ √ ] `create-application.scss` 中大量 `:deep(...)` 选择器在当前非 scoped 链路下不可用，导致表单/步骤条等样式命中异常。
+
+### 二、修复
+- [ √ ] 在 `CreateApplicationView.vue` 脚本中显式 `import './create-application.scss'`，移除底部 `<style src>`，确保样式稳定注入。
+- [ √ ] 将 `create-application.scss` 中 Step1/Step2 相关 `:deep(...)` 改为普通后代选择器（`.arco-*`），恢复样式命中。
+- [ √ ] 保留并生效标题字体统一、表单默认白底、底栏左对齐等前序修复。
+
+### 三、校验
+- [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
+- [ √ ] 相关文件 lint 通过。
+
+## 2026-03-05 Step1 表单状态回归修复（校验/选中态）
+
+### 一、问题
+- [ √ ] 数据传出/传入国家城市选择后，校验仍提示“请选择源国家/城市”。
+- [ √ ] 「包含客户网络数据」单选有联动但未显示选中填充态。
+- [ √ ] 「申请人通知选项」复选框勾选后未显示勾选态。
+
+### 二、修复
+- [ √ ] 为两个 `a-cascader` 启用 `path-mode`，并在 `@change` 中统一将值收敛为数组，确保与 `formRules` 的 `type: 'array'` 校验一致。
+- [ √ ] 修正 `.apply-form` 中 radio/checkbox 的样式覆盖：保留默认白底未选中态，同时为 `.arco-radio-checked`、`.arco-checkbox-checked`、`.arco-checkbox-indeterminate` 显式恢复主色填充与边框。
+
+### 三、校验
+- [ √ ] `StepOneBasicInfo.vue` 与 `create-application.scss` lint 通过。
+- [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
+
+## 2026-03-05 Step1 国家/城市校验补充修复（值归一化）
+
+### 一、问题
+- [ √ ] 在部分交互路径下，`a-cascader` 的 `@change` 返回值不是数组，导致之前 `Array.isArray(val) ? val : []` 将有效选择误置空，提交时持续触发“请选择源国家/城市”。
+
+### 二、修复
+- [ √ ] 在 `StepOneBasicInfo.vue` 增加 `normalizeCityValue`，统一将 `string | number | array` 归一化为 `string[]`。
+- [ √ ] `sourceCity/targetCity` 的 `@change` 改为使用 `normalizeCityValue(val)` 回填表单，确保规则 `type: 'array'` 稳定命中。
+
+### 三、校验
+- [ √ ] `StepOneBasicInfo.vue` lint 通过。
+- [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
+
+
+
+
+
+
+
+
+
+
 
 
 

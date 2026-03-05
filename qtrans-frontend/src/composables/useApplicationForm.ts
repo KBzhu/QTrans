@@ -7,14 +7,26 @@ import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
 
 type SecurityArea = 'green' | 'yellow' | 'red'
 
-interface UploadedFileState {
+interface UploadingFileState {
   uid: string
   name: string
   size: number
   progress: number
-  status: 'pending' | 'uploading' | 'completed' | 'failed'
+  status: 'uploading' | 'paused'
+  failedCount: number
+  usedTime: number
+  remainingTime: number
   raw?: File
-  fileId?: string
+}
+
+interface UploadedFileState {
+  uid: string
+  name: string
+  size: number
+  fileType: string
+  lastModified: string
+  sha256: string
+  raw?: File
 }
 
 export interface ApplicationFormData {
@@ -144,8 +156,14 @@ export function useApplicationForm(initialTransferType?: string) {
   const currentStep = ref(0)
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
+  const uploadingFiles = ref<UploadingFileState[]>([])
   const uploadedFiles = ref<UploadedFileState[]>([])
   const lastSavedSnapshot = ref(JSON.stringify(formData.value))
+  const selectedUploadingUids = ref<string[]>([])
+  const selectedUploadedUids = ref<string[]>([])
+  const autoSubmitAfterUpload = ref(true)
+
+  const uploadTimers = new Map<string, number>()
 
   const showCustomerDataFields = computed(() => formData.value.containsCustomerData === 'yes')
   const transferTypeLabel = computed(() => transferTypeLabelMap[formData.value.transferType])
@@ -154,7 +172,8 @@ export function useApplicationForm(initialTransferType?: string) {
       return false
 
     return JSON.stringify(formData.value) !== lastSavedSnapshot.value
-      || uploadedFiles.value.some(item => item.status !== 'completed')
+      || uploadingFiles.value.length > 0
+      || uploadedFiles.value.length > 0
   })
 
   const formRules: Record<string, any[]> = {
@@ -205,20 +224,132 @@ export function useApplicationForm(initialTransferType?: string) {
     if (invalidCount > 0)
       Message.warning(`有 ${invalidCount} 个文件超过 50GB，已忽略`)
 
-    const nextItems = validFiles.map(file => ({
+    const newUploadingFiles = validFiles.map(file => ({
       uid: `${Date.now()}-${file.name}-${Math.random().toString(16).slice(2)}`,
       name: file.name,
       size: file.size,
-      progress: 100,
-      status: 'completed' as const,
+      progress: 0,
+      status: 'uploading' as const,
+      failedCount: 0,
+      usedTime: 0,
+      remainingTime: 0,
       raw: file,
     }))
 
-    uploadedFiles.value = [...uploadedFiles.value, ...nextItems]
+    uploadingFiles.value = [...uploadingFiles.value, ...newUploadingFiles]
+
+    // 开始模拟上传进度
+    newUploadingFiles.forEach(file => startUploadSimulation(file.uid))
+  }
+
+  function startUploadSimulation(uid: string) {
+    const file = uploadingFiles.value.find(f => f.uid === uid)
+    if (!file || file.status === 'paused')
+      return
+
+    const timer = window.setInterval(() => {
+      const currentFile = uploadingFiles.value.find(f => f.uid === uid)
+      if (!currentFile || currentFile.status === 'paused') {
+        window.clearInterval(timer)
+        uploadTimers.delete(uid)
+        return
+      }
+
+      // 模拟进度增长（每秒增加 5-15%）
+      const increment = Math.floor(Math.random() * 10) + 5
+      currentFile.progress = Math.min(100, currentFile.progress + increment)
+      currentFile.usedTime += 1
+      currentFile.remainingTime = Math.max(0, Math.ceil((100 - currentFile.progress) / increment))
+
+      // 上传完成，移到已上传列表
+      if (currentFile.progress >= 100) {
+        window.clearInterval(timer)
+        uploadTimers.delete(uid)
+        
+        const uploadedFile: UploadedFileState = {
+          uid: currentFile.uid,
+          name: currentFile.name,
+          size: currentFile.size,
+          fileType: currentFile.name.split('.').pop() || 'unknown',
+          lastModified: new Date().toISOString(),
+          sha256: `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}...`,
+          raw: currentFile.raw,
+        }
+
+        uploadedFiles.value = [...uploadedFiles.value, uploadedFile]
+        uploadingFiles.value = uploadingFiles.value.filter(f => f.uid !== uid)
+
+        // 如果开启自动提交且所有文件上传完成
+        if (autoSubmitAfterUpload.value && uploadingFiles.value.length === 0) {
+          Message.success('所有文件上传完成')
+        }
+      }
+    }, 1000)
+
+    uploadTimers.set(uid, timer)
+  }
+
+  function pauseUploadFile(uid: string) {
+    const file = uploadingFiles.value.find(f => f.uid === uid)
+    if (!file)
+      return
+
+    file.status = 'paused'
+    const timer = uploadTimers.get(uid)
+    if (timer) {
+      window.clearInterval(timer)
+      uploadTimers.delete(uid)
+    }
+  }
+
+  function resumeUploadFile(uid: string) {
+    const file = uploadingFiles.value.find(f => f.uid === uid)
+    if (!file)
+      return
+
+    file.status = 'uploading'
+    startUploadSimulation(uid)
+  }
+
+  function removeUploadingFile(uid: string) {
+    const timer = uploadTimers.get(uid)
+    if (timer) {
+      window.clearInterval(timer)
+      uploadTimers.delete(uid)
+    }
+    uploadingFiles.value = uploadingFiles.value.filter(f => f.uid !== uid)
+    selectedUploadingUids.value = selectedUploadingUids.value.filter(id => id !== uid)
   }
 
   function removeUploadFile(uid: string) {
     uploadedFiles.value = uploadedFiles.value.filter(item => item.uid !== uid)
+    selectedUploadedUids.value = selectedUploadedUids.value.filter(id => id !== uid)
+  }
+
+  function batchPauseUploading() {
+    selectedUploadingUids.value.forEach(uid => pauseUploadFile(uid))
+    Message.success('已暂停选中的文件')
+  }
+
+  function batchResumeUploading() {
+    selectedUploadingUids.value.forEach(uid => resumeUploadFile(uid))
+    Message.success('已继续上传选中的文件')
+  }
+
+  function batchRemoveUploading() {
+    selectedUploadingUids.value.forEach(uid => removeUploadingFile(uid))
+    selectedUploadingUids.value = []
+    Message.success('已删除选中的文件')
+  }
+
+  function batchRemoveUploaded() {
+    selectedUploadedUids.value.forEach(uid => removeUploadFile(uid))
+    selectedUploadedUids.value = []
+    Message.success('已删除选中的文件')
+  }
+
+  function refreshUploadedList() {
+    Message.success('已刷新文件列表')
   }
 
   function buildPayload(status: Application['status'] = 'draft'): Partial<Application> {
@@ -266,8 +397,13 @@ export function useApplicationForm(initialTransferType?: string) {
       }
     }
 
-    if (currentStep.value === 1 && uploadedFiles.value.length === 0) {
+    if (currentStep.value === 1 && uploadedFiles.value.length === 0 && uploadingFiles.value.length === 0) {
       Message.error('请至少上传一个文件')
+      return false
+    }
+
+    if (currentStep.value === 1 && uploadingFiles.value.length > 0) {
+      Message.error('请等待所有文件上传完成')
       return false
     }
 
@@ -324,6 +460,11 @@ export function useApplicationForm(initialTransferType?: string) {
     autoSaveTimer = null
   }
 
+  function cleanupUploadTimers() {
+    uploadTimers.forEach(timer => window.clearInterval(timer))
+    uploadTimers.clear()
+  }
+
   function loadDraft(draftId: string) {
     const draft = applicationStore.drafts.find(item => item.id === draftId)
     if (!draft)
@@ -359,14 +500,21 @@ export function useApplicationForm(initialTransferType?: string) {
 
   watchCustomerDataField()
   onMounted(() => autoSaveDraft())
-  onUnmounted(() => stopAutoSaveDraft())
+  onUnmounted(() => {
+    stopAutoSaveDraft()
+    cleanupUploadTimers()
+  })
 
   return {
     formData,
     currentStep,
     currentDraftId,
     submittedApplication,
+    uploadingFiles,
     uploadedFiles,
+    selectedUploadingUids,
+    selectedUploadedUids,
+    autoSubmitAfterUpload,
     formRules,
     showCustomerDataFields,
     transferTypeLabel,
@@ -380,6 +528,14 @@ export function useApplicationForm(initialTransferType?: string) {
     watchCustomerDataField,
     setCustomerAuthFile,
     addUploadFiles,
+    removeUploadingFile,
     removeUploadFile,
+    pauseUploadFile,
+    resumeUploadFile,
+    batchPauseUploading,
+    batchResumeUploading,
+    batchRemoveUploading,
+    batchRemoveUploaded,
+    refreshUploadedList,
   }
 }

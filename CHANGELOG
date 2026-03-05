@@ -57,7 +57,20 @@ The format is based on Keep a Changelog.
 - 完成 P6.2：新增 `CreateApplicationView` 三步创建流程与 `useApplicationForm`（自动草稿、条件字段、离开确认、提交成功态），并按 Figma `3960_2183` 对齐成功页样式。
 - 完成 P6.2 增量补齐（Figma `3879_3344` / `3883_4645`）：Step1 拆分“基本信息/申请信息”、基本信息只读化、补充抄送人与右侧“注意事项/最近传输选择（一键复制）”、并对齐发起申请高亮进度与表单样式。
 - 完成 P6.2 二次补齐：接入 P2.2 部门树 Mock 到发起申请部门选择器；布局改为固定顶栏+固定侧栏+内容区独立滚动；申请页底部操作横栏改为固定吸底并修正背景填充色。
-- 完成 P6.2 三次补齐：修复步骤条首步高亮命中（active/process 双选择器）；将部门选择改为点击弹窗树选择并回填；吸底操作栏通过抵消容器内边距贴齐页面底部与左侧边缘。
+- 完成 P6.2 三次补齐：修复步骤条首步高亮命中（active/process 双选择器）；将部门选择改为点击弹窗树选择并回填；吸底操作栏通过 `width: 100%` + `box-sizing: border-box` 贴齐页面底部与左侧边缘。
+- 完成 P6.2 Step2 重构（基于 Figma 3883_5466）：双表格展示「传输任务」与「已上传文件列表」，支持实时进度条动画、批量暂停/继续/删除、文件类型图标映射、Mock 上传模拟，样式对齐 Figma 表格卡片与渐变进度条。
+- 完成 P6.2 组件拆分重构：将 `CreateApplicationView.vue`（768 行）拆分为三个独立子组件 `StepOneBasicInfo.vue`（基本信息+申请信息）、`StepTwoUploadFile.vue`（双表格上传）、`StepThreeSubmitSuccess.vue`（提交成功），主组件精简至 231 行，提升可维护性。
+- 修复 Figma 3883_5466 图标渲染问题：从 `assets/CodeBubbyAssets/3883_5466/` 复制 47 个 SVG 文件到 `public/figma/3883_5466/`，确保所有按钮与文件类型图标正确显示。
+- 修复 P6.2 Step1 样式回归：`CreateApplicationView.vue` 改为非 `scoped` 引入 `create-application.scss`，恢复拆分后子组件（`StepOneBasicInfo.vue`）的布局与表单样式。
+- 修复 P6.2 Step1 细节样式：统一「基本信息/申请信息」标题字体、恢复申请信息选择类控件默认白底、底部操作栏按钮改为左对齐，并将「包含客户网络数据」从按钮单选改回普通单选以对齐 Figma。
+- 修复 P6.2 Step1 样式继承链路：`CreateApplicationView.vue` 改为脚本显式引入 `create-application.scss`，并将样式中的 `:deep(...)` 批量替换为普通后代选择器，恢复标题、表单控件与步骤条样式命中。
+- 修复 P6.2 Step1 表单状态回归：为国家城市级联选择器启用 `path-mode` 并规范化数组值，解决选择后仍触发“请选择源国家/城市”；同时恢复 radio/checkbox 的 checked 填充态与勾选态显示。
+- 修复 P6.2 Step1 国家/城市校验残留问题：补充 `a-cascader` 返回值归一化逻辑（兼容 string/number/array），避免有效选择被错误置空后重复触发“请选择源国家/城市”。
+
+
+
+
+
 
 
 
