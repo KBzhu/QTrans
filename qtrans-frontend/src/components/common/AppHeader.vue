@@ -1,21 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore, useNotificationStore } from '@/stores'
 import type { UserRole } from '@/types'
+import RoleSwitcher from './RoleSwitcher.vue'
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
-
-const roleSwitcherOptions = [
-  { label: '提交人', value: 'submitter' },
-  { label: '一级审批', value: 'approver1' },
-  { label: '二级审批', value: 'approver2' },
-  { label: '三级审批', value: 'approver3' },
-  { label: '管理员', value: 'admin' },
-] as const
 
 const roleNameMap: Record<UserRole, string> = {
   submitter: '普通用户（申请者）',
@@ -45,13 +37,6 @@ const roleTag = computed(() => {
   return roleNameMap[role] || '普通用户（申请者）'
 })
 
-async function switchDemoRole(role: string) {
-  await authStore.login(role, '123456')
-
-  if (route.path === '/login')
-    router.push('/dashboard')
-}
-
 async function goProfile() {
   await router.push('/profile')
 }
@@ -80,14 +65,7 @@ onMounted(async () => {
     </div>
 
     <div class="app-header__right">
-      <div class="role-switcher">
-        <span class="role-switcher__label">Demo切换</span>
-        <select :value="activeRole" class="role-switch" @change="switchDemoRole(($event.target as HTMLSelectElement).value)">
-          <option v-for="option in roleSwitcherOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
+      <RoleSwitcher />
 
       <button class="notify-btn" @click="goNotifications">
         <img src="/figma/3971_1105/5.svg" alt="通知" />

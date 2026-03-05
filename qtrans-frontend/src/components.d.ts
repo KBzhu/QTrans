@@ -11,11 +11,22 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AAlert: typeof import('@arco-design/web-vue')['Alert']
+    AButton: typeof import('@arco-design/web-vue')['Button']
+    ACheckbox: typeof import('@arco-design/web-vue')['Checkbox']
+    ADoption: typeof import('@arco-design/web-vue')['Doption']
     ADropdown: typeof import('@arco-design/web-vue')['Dropdown']
+    AForm: typeof import('@arco-design/web-vue')['Form']
+    AFormItem: typeof import('@arco-design/web-vue')['FormItem']
+    AInput: typeof import('@arco-design/web-vue')['Input']
+    AInputPassword: typeof import('@arco-design/web-vue')['InputPassword']
     AppHeader: typeof import('./components/common/AppHeader.vue')['default']
     AppSidebar: typeof import('./components/common/AppSidebar.vue')['default']
+    ASpin: typeof import('@arco-design/web-vue')['Spin']
+    ATable: typeof import('@arco-design/web-vue')['Table']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     PageContainer: typeof import('./components/common/PageContainer.vue')['default']
+    RoleSwitcher: typeof import('./components/common/RoleSwitcher.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ViewPlaceholder: typeof import('./components/common/ViewPlaceholder.vue')['default']

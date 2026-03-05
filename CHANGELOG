@@ -7,6 +7,22 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- 完成 P5.1：新增登录页面 `src/views/auth/LoginView.vue`，按 Figma 3971_1023 还原（居中卡片 + Logo + 渐变标题 + Arco 表单 + Demo 快速体验表格）。
+- 完成 P5.1：新增独立样式文件 `src/views/auth/login.scss`，复用 mixin。
+- 完成 P5.2：新增 `src/composables/useLogin.ts`（表单校验 / 登录 / 快速登录 / 记住我 / 角色跳转）。
+- 完成 P5.3：新增 `src/components/common/RoleSwitcher.vue` 角色切换器组件（仅开发环境渲染，a-dropdown + 角色标签颜色区分）。
+- 完成 P5.3：新增 `src/components/common/styles/role-switcher.scss` 独立样式。
+- Figma 资源同步：`public/figma/3971_1023/`（1.svg / 2.svg / 3.svg）。
+
+### Changed
+- 更新 `src/router/routes.ts`：登录页组件指向 `auth/LoginView.vue`。
+- 更新 `src/components/common/AppHeader.vue`：将旧的 Demo select 切换器替换为 `RoleSwitcher` 组件。
+- 更新 `src/components/common/styles/app-header.scss`：移除旧 `.role-switcher` / `.role-switch` 样式。
+- 重组 `docs/` 目录结构：新增 `design/`（设计文档+UML）、`diff/`（Figma/文档差异）、`exec/`（执行记录）、`guides/`（quickStart 指南）四个子目录，原有散落文件归档至对应目录。
+- 新增 `docs/diff/P5_Figma_Doc_Diff.md`：P5 登录模块 Figma 与文档差异记录。
+- 新增 `docs/exec/task_P5_exec.md`：P5 执行记录（进度/验收/产出清单）。
+
+### Added
 - 完成 P3：新增状态管理与接口层文件 `src/stores/auth.ts`、`application.ts`、`file.ts`、`approval.ts`、`notification.ts`、`src/stores/index.ts`。
 - 完成 P3：新增业务 API 文件 `src/api/application.ts`、`approval.ts`、`notification.ts`，并更新 `src/api/index.ts` 聚合导出。
 - 完成 P3：新增 Store 单元测试 `src/stores/__tests__/auth.spec.ts`、`application.spec.ts`、`file.spec.ts`、`approval.spec.ts`、`notification.spec.ts`。

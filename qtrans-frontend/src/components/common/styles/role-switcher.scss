@@ -1,0 +1,81 @@
+@use '../../../assets/styles/mixins.scss' as mixins;
+
+.role-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-switcher__trigger {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 0 10px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: #165dff;
+  }
+}
+
+.role-switcher__label {
+  color: #334155;
+  font-size: 13px;
+}
+
+.role-switcher__arrow {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s;
+}
+
+.role-switcher__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.role-switcher__item-name {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.role-switcher__item-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+
+  &--submitter {
+    background: #dbeafe;
+    color: #165dff;
+  }
+
+  &--approver {
+    background: #fff7e6;
+    color: #ff7d00;
+  }
+
+  &--admin {
+    background: #ffece8;
+    color: #f53f3f;
+  }
+}
+
+.role-switcher__spin {
+  margin-left: 4px;
+}
+
+@media (max-width: 1024px) {
+  .role-switcher__label {
+    display: none;
+  }
+}

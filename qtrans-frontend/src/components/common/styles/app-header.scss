@@ -40,24 +40,6 @@
   color: transparent;
 }
 
-.role-switcher {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.role-switcher__label {
-  color: #334155;
-  font-size: 13px;
-}
-
-.role-switch {
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  padding: 0 8px;
-  background: #fff;
-}
 
 .notify-btn {
   position: relative;
@@ -186,14 +168,6 @@
 }
 
 @media (max-width: 1024px) {
-  .role-switcher__label {
-    display: none;
-  }
-
-  .role-switch {
-    width: 120px;
-  }
-
   .name {
     max-width: 88px;
   }

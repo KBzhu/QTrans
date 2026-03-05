@@ -27,7 +27,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/login/index.vue'),
+    component: () => import('@/views/auth/LoginView.vue'),
     meta: {
       title: '登录',
       icon: 'icon-lock',
