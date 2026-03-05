@@ -1,0 +1,206 @@
+@use '../../../assets/styles/mixins.scss' as mixins;
+
+.app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(12px, 1.4vw, 20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.app-header__left,
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  @include mixins.flex-center;
+  background: linear-gradient(135deg, #ad46ff 0%, #00bba7 100%);
+}
+
+.logo-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.title {
+  font-size: clamp(16px, 1.3vw, 20px);
+  font-weight: 700;
+  background: linear-gradient(180deg, #9810fa 0%, #009689 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.role-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-switcher__label {
+  color: #334155;
+  font-size: 13px;
+}
+
+.role-switch {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 0 8px;
+  background: #fff;
+}
+
+.notify-btn {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  @include mixins.flex-center;
+  background: linear-gradient(135deg, #ad46ff 0%, #00bba7 50%, #2b7fff 100%);
+}
+
+.notify-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+.badge {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  background: #ef4444;
+  color: #fff;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+}
+
+.user-name-btn {
+  height: 24px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.name {
+  color: #101828;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 140px;
+  @include mixins.ellipsis;
+}
+
+.name-arrow {
+  width: 16px;
+  height: 16px;
+}
+
+.user-dropdown {
+  width: 224px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 8px 10px -6px rgb(0 0 0 / 10%), 0 20px 25px -5px rgb(0 0 0 / 10%);
+}
+
+.user-dropdown__main {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(90deg, #faf5ff 0%, #eff6ff 100%);
+}
+
+.user-dropdown__name {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  @include mixins.ellipsis;
+}
+
+.user-dropdown__sub {
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 4px;
+  @include mixins.ellipsis;
+}
+
+.user-dropdown__role {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: #dbeafe;
+  color: #1447e6;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.user-dropdown__action {
+  width: 100%;
+  height: 40px;
+  border: none;
+  background: #fff;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  padding: 0 16px;
+}
+
+.user-dropdown__action:hover {
+  background: #f8fafc;
+}
+
+.user-dropdown__action--logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logout-icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 1024px) {
+  .role-switcher__label {
+    display: none;
+  }
+
+  .role-switch {
+    width: 120px;
+  }
+
+  .name {
+    max-width: 88px;
+  }
+}
+
+@media (max-width: 768px) {
+  .title {
+    display: none;
+  }
+}

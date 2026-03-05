@@ -1,0 +1,75 @@
+@use '../../../assets/styles/mixins.scss' as mixins;
+
+.app-sidebar {
+  width: 224px;
+  padding: 14px 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  transition: width 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar.collapsed {
+  width: 72px;
+}
+
+.app-sidebar__menu {
+  flex: 1;
+}
+
+.menu-item {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+}
+
+.menu-item.active {
+  color: #fff;
+  background: linear-gradient(90deg, #ad46ff 0%, #00bba7 100%);
+}
+
+.menu-icon {
+  font-size: 16px;
+  opacity: 0.92;
+}
+
+.menu-title {
+  @include mixins.ellipsis;
+}
+
+.app-sidebar__footer {
+  @include mixins.flex-center;
+  padding-top: 12px;
+}
+
+.collapse-trigger {
+  @include mixins.flex-center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 64px;
+    bottom: 0;
+    z-index: 20;
+  }
+}

@@ -1,0 +1,9 @@
+---
+description: 
+alwaysApply: true
+enabled: true
+updatedAt: 2026-03-05T01:52:58.657Z
+provider: 
+---
+
+组件设计时，要考虑到css的可复用性，并且每个组件的css文件最好用单独的.less文件或者.css文件承载，然后可复用的样式用less的mixin来实现复用，vue组件中只写必要的，独立的样式

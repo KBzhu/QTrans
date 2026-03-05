@@ -2,14 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore, useNotificationStore } from '@/stores'
-
-defineProps<{
-  collapsed: boolean
-}>()
-
-const emit = defineEmits<{
-  toggleSidebar: []
-}>()
+import type { UserRole } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,8 +17,33 @@ const roleSwitcherOptions = [
   { label: '管理员', value: 'admin' },
 ] as const
 
+const roleNameMap: Record<UserRole, string> = {
+  submitter: '普通用户（申请者）',
+  approver1: '一级审批人',
+  approver2: '二级审批人',
+  approver3: '三级审批人',
+  admin: '管理员',
+  partner: '合作方',
+  vendor: '供应商',
+  subsidiary: '子公司',
+}
+
 const activeRole = computed(() => authStore.currentUser?.roles?.[0] || 'submitter')
 const displayName = computed(() => authStore.currentUser?.name || authStore.currentUser?.username || '访客')
+const accountText = computed(() => {
+  const user = authStore.currentUser
+  if (!user)
+    return '--'
+
+  return `${user.username} ${user.id}`
+})
+const departmentText = computed(() => {
+  return authStore.currentUser?.departmentName || authStore.currentUser?.department || '--'
+})
+const roleTag = computed(() => {
+  const role = activeRole.value as UserRole
+  return roleNameMap[role] || '普通用户（申请者）'
+})
 
 async function switchDemoRole(role: string) {
   await authStore.login(role, '123456')
@@ -55,7 +73,6 @@ onMounted(async () => {
 <template>
   <header class="app-header">
     <div class="app-header__left">
-      <button class="icon-btn" @click="emit('toggleSidebar')">☰</button>
       <div class="logo-box">
         <img src="/figma/3830_3/4.svg" alt="logo" class="logo-icon" />
       </div>
@@ -63,156 +80,46 @@ onMounted(async () => {
     </div>
 
     <div class="app-header__right">
+      <div class="role-switcher">
+        <span class="role-switcher__label">Demo切换</span>
+        <select :value="activeRole" class="role-switch" @change="switchDemoRole(($event.target as HTMLSelectElement).value)">
+          <option v-for="option in roleSwitcherOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
       <button class="notify-btn" @click="goNotifications">
-        <img src="/figma/3830_3/5.svg" alt="通知" />
+        <img src="/figma/3971_1105/5.svg" alt="通知" />
         <span v-if="notificationStore.unreadCount > 0" class="badge">{{ notificationStore.unreadCount }}</span>
       </button>
 
-      <select :value="activeRole" class="role-switch" @change="switchDemoRole(($event.target as HTMLSelectElement).value)">
-        <option v-for="option in roleSwitcherOptions" :key="option.value" :value="option.value">
-          Demo切换：{{ option.label }}
-        </option>
-      </select>
+      <a-dropdown trigger="click" position="br">
+        <button class="user-name-btn">
+          <span class="name">{{ accountText }}</span>
+          <img src="/figma/3971_1105/6.svg" alt="展开" class="name-arrow" />
+        </button>
 
-      <div class="user-block">
-        <span class="name">{{ displayName }}</span>
-        <button class="text-btn" @click="goProfile">个人中心</button>
-        <button class="text-btn danger" @click="handleLogout">退出</button>
-      </div>
+        <template #content>
+          <div class="user-dropdown">
+            <div class="user-dropdown__main">
+              <div class="user-dropdown__name">{{ displayName }}</div>
+              <div class="user-dropdown__sub">{{ accountText }}</div>
+              <div class="user-dropdown__sub">{{ departmentText }}</div>
+              <div class="user-dropdown__role">{{ roleTag }}</div>
+            </div>
+            <button class="user-dropdown__action" @click="goProfile">
+              个人中心
+            </button>
+            <button class="user-dropdown__action user-dropdown__action--logout" @click="handleLogout">
+              <img src="/figma/3971_1105/29.svg" alt="退出" class="logout-icon" />
+              <span>退出登录</span>
+            </button>
+          </div>
+        </template>
+      </a-dropdown>
     </div>
   </header>
 </template>
 
-<style scoped>
-.app-header {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 clamp(12px, 1.4vw, 20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(8px);
-}
-
-.app-header__left,
-.app-header__right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.icon-btn {
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.logo-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #ad46ff 0%, #00bba7 100%);
-}
-
-.logo-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.title {
-  font-size: clamp(16px, 1.3vw, 20px);
-  font-weight: 700;
-  background: linear-gradient(180deg, #9810fa 0%, #009689 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.notify-btn {
-  position: relative;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  background: linear-gradient(135deg, #ad46ff 0%, #00bba7 50%, #2b7fff 100%);
-}
-
-.notify-btn img {
-  width: 18px;
-  height: 18px;
-}
-
-.badge {
-  position: absolute;
-  top: -6px;
-  right: -8px;
-  background: #ef4444;
-  color: #fff;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  font-size: 11px;
-  display: grid;
-  place-items: center;
-  padding: 0 4px;
-}
-
-.role-switch {
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  padding: 0 8px;
-  background: #fff;
-}
-
-.user-block {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.name {
-  color: #0f172a;
-  font-weight: 600;
-}
-
-.text-btn {
-  border: none;
-  border-radius: 6px;
-  padding: 4px 8px;
-  background: #e2e8f0;
-  color: #0f172a;
-  cursor: pointer;
-}
-
-.text-btn.danger {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-@media (max-width: 1024px) {
-  .role-switch {
-    width: 140px;
-  }
-
-  .name {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .title {
-    display: none;
-  }
-
-  .user-block .text-btn:first-of-type {
-    display: none;
-  }
-}
-</style>
+<style scoped src="./styles/app-header.scss"></style>

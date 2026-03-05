@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ADropdown: typeof import('@arco-design/web-vue')['Dropdown']
     AppHeader: typeof import('./components/common/AppHeader.vue')['default']
     AppSidebar: typeof import('./components/common/AppSidebar.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']

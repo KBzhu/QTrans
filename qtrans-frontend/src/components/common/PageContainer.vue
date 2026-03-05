@@ -18,7 +18,7 @@ const pageTitle = computed(() => String(route.meta.title || 'QTrans'))
 
 <template>
   <section class="page-container">
-    <div class="page-container__breadcrumb" v-if="breadcrumbItems.length">
+    <div v-if="breadcrumbItems.length" class="page-container__breadcrumb">
       <span
         v-for="(item, idx) in breadcrumbItems"
         :key="item.path"
@@ -37,38 +37,4 @@ const pageTitle = computed(() => String(route.meta.title || 'QTrans'))
   </section>
 </template>
 
-<style scoped>
-.page-container {
-  flex: 1;
-  min-width: 0;
-  padding: clamp(12px, 1.2vw, 20px);
-}
-
-.page-container__breadcrumb {
-  margin-bottom: 8px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.crumb {
-  margin-right: 4px;
-}
-
-.sep {
-  margin-left: 4px;
-}
-
-.page-container__header {
-  margin-bottom: 12px;
-}
-
-.page-container__header h1 {
-  margin: 0;
-  font-size: clamp(18px, 1.5vw, 24px);
-  color: var(--q-text-primary);
-}
-
-.page-container__content {
-  min-height: calc(100vh - 170px);
-}
-</style>
+<style scoped src="./styles/page-container.scss"></style>

@@ -22,6 +22,10 @@ The format is based on Keep a Changelog.
 ### Changed
 - 更新 `qtrans-frontend/src/main.ts`：注册 `pinia` 与 `pinia-plugin-persistedstate`。
 - 更新 `docs/tasks/task_P3.md`：子任务勾选与完成标志更新为 `[√]`。
+- 更新 P4 布局细节：`AppSidebar` 修复图标渲染并将折叠按钮下沉至侧栏底部，`AppHeader` 调整为 `Demo切换 -> 通知 -> 姓名下拉`，并将样式拆分为独立 `scss` 文件复用 mixin。
+- 更新头部用户区样式：按 Figma `3971_1105` 重构右上用户名与下拉面板样式，并将 `PageContainer.vue` 样式拆分至独立 `scss` 文件并复用 mixin。
+
+
 
 ## [2026-03-04]
 

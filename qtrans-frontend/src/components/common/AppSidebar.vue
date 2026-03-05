@@ -1,6 +1,20 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  IconApps,
+  IconCheckCircle,
+  IconFile,
+  IconFolder,
+  IconHome,
+  IconList,
+  IconMenuFold,
+  IconMenuUnfold,
+  IconSend,
+  IconSettings,
+  IconUserGroup,
+} from '@arco-design/web-vue/es/icon'
 import type { UserRole } from '@/types'
 import { menuRoutes, type AppRouteMeta } from '@/router/routes'
 import { useAuthStore } from '@/stores'
@@ -9,12 +23,34 @@ const props = defineProps<{
   collapsed: boolean
 }>()
 
+const emit = defineEmits<{
+  toggleSidebar: []
+}>()
+
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
+const iconMap: Record<string, Component> = {
+  'icon-home': IconHome,
+  'icon-file': IconFile,
+  'icon-check-circle': IconCheckCircle,
+  'icon-send': IconSend,
+  'icon-folder': IconFolder,
+  'icon-user-group': IconUserGroup,
+  'icon-settings': IconSettings,
+  'icon-list': IconList,
+}
+
 function routeMeta(meta: unknown): AppRouteMeta {
   return (meta || {}) as AppRouteMeta
+}
+
+function resolveIcon(icon?: string): Component {
+  if (!icon)
+    return IconApps
+
+  return iconMap[icon] || IconApps
 }
 
 const menuItems = computed(() => {
@@ -36,7 +72,7 @@ function jump(path: string) {
 
 <template>
   <aside class="app-sidebar" :class="{ collapsed: props.collapsed }">
-    <nav>
+    <nav class="app-sidebar__menu">
       <button
         v-for="item in menuItems"
         :key="String(item.name)"
@@ -44,64 +80,17 @@ function jump(path: string) {
         :class="{ active: route.path === item.path }"
         @click="jump(item.path)"
       >
-        <span class="menu-icon">{{ String(routeMeta(item.meta).icon || '•') }}</span>
+        <component :is="resolveIcon(routeMeta(item.meta).icon)" class="menu-icon" />
         <span v-if="!props.collapsed" class="menu-title">{{ String(routeMeta(item.meta).title) }}</span>
       </button>
     </nav>
+
+    <div class="app-sidebar__footer">
+      <button class="collapse-trigger" @click="emit('toggleSidebar')">
+        <component :is="props.collapsed ? IconMenuUnfold : IconMenuFold" class="menu-icon" />
+      </button>
+    </div>
   </aside>
 </template>
 
-<style scoped>
-.app-sidebar {
-  width: 224px;
-  padding: 14px 10px;
-  border-right: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(6px);
-  transition: width 0.2s;
-}
-
-.app-sidebar.collapsed {
-  width: 72px;
-}
-
-.menu-item {
-  width: 100%;
-  height: 42px;
-  border: none;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  background: transparent;
-  color: #334155;
-  cursor: pointer;
-}
-
-.menu-item.active {
-  color: #fff;
-  background: linear-gradient(90deg, #ad46ff 0%, #00bba7 100%);
-}
-
-.menu-icon {
-  font-size: 12px;
-  opacity: 0.9;
-}
-
-.menu-title {
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .app-sidebar {
-    position: fixed;
-    left: 0;
-    top: 64px;
-    bottom: 0;
-    z-index: 20;
-  }
-}
-</style>
+<style scoped src="./styles/app-sidebar.scss"></style>

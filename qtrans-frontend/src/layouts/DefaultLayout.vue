@@ -13,9 +13,9 @@ function toggleSidebar() {
 
 <template>
   <div class="default-layout">
-    <AppHeader :collapsed="collapsed" @toggle-sidebar="toggleSidebar" />
+    <AppHeader />
     <div class="default-layout__body">
-      <AppSidebar :collapsed="collapsed" />
+      <AppSidebar :collapsed="collapsed" @toggle-sidebar="toggleSidebar" />
       <PageContainer>
         <slot />
       </PageContainer>
