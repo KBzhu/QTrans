@@ -11,6 +11,12 @@ The format is based on Keep a Changelog.
 - 完成 P3：新增业务 API 文件 `src/api/application.ts`、`approval.ts`、`notification.ts`，并更新 `src/api/index.ts` 聚合导出。
 - 完成 P3：新增 Store 单元测试 `src/stores/__tests__/auth.spec.ts`、`application.spec.ts`、`file.spec.ts`、`approval.spec.ts`、`notification.spec.ts`。
 - 新增 P3 快速上手文档 `docs/P3_Store_quickStart.md`，用于指导状态管理层接入与使用。
+- 完成 P4：新增路由与守卫实现 `src/router/routes.ts`、`src/router/index.ts`、`src/router/guards.ts` 与守卫单测 `src/router/__tests__/guards.spec.ts`。
+- 完成 P4：新增布局与公共组件 `src/layouts/BlankLayout.vue`、`src/layouts/DefaultLayout.vue`、`src/components/common/AppHeader.vue`、`AppSidebar.vue`、`PageContainer.vue`。
+- 完成 P4：新增页面实现 `src/views/dashboard/index.vue`（Figma 还原）及 `login/applications/approvals/transfer/transfers/users/settings/logs/profile/notifications/error` 页面文件。
+- 完成 P4：新增权限指令 `src/directives/permission.ts`，并在 `src/main.ts` 注册 `v-permission` 与 `v-role`。
+- 新增 P4 文档与高保真差异记录 `docs/P4_Figma_Doc_Diff.md`。
+
 
 
 ### Changed

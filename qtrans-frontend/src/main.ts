@@ -1,8 +1,10 @@
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
-import './style.css'
 import App from './App.vue'
+import router from './router'
+import { permissionDirective, roleDirective } from './directives/permission'
+import './assets/styles/index.scss'
 
 async function bootstrap() {
   if (import.meta.env.DEV && import.meta.env.VITE_MOCK_ENABLED === 'true') {
@@ -22,6 +24,11 @@ async function bootstrap() {
   pinia.use(piniaPluginPersistedstate)
 
   app.use(pinia)
+  app.use(router)
+
+  app.directive('permission', permissionDirective)
+  app.directive('role', roleDirective)
+
   app.mount('#app')
 }
 

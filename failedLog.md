@@ -30,6 +30,24 @@
   - 错误信息：Vitest `vi.mock` 提升导致 `Cannot access 'xxxMock' before initialization`（后续已改为 `vi.hoisted` 解决）。
 - 2026-03-04 P3 构建校验失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
   - 错误信息：`pinia-plugin-persistedstate` 类型定义不接受 `paths`，报 TS2353，后续改为 `pick` 解决。
+- 2026-03-04 P4 构建校验失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
+  - 错误信息：路由 `meta` 类型与 `RouteMeta` 不兼容（TS2322/TS2352），已通过 `AppRouteMeta` 继承 `RouteMeta` 与侧边栏 `meta` 类型收敛修复。
+- 2026-03-04 P4 构建校验二次失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
+  - 错误信息：`AppSidebar.vue` 模板调用了未定义的 `routeMeta`，以及 `AppRouteMeta` 索引签名不兼容，后续已修复。
+- 2026-03-04 P4 构建校验三次失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
+  - 错误信息：`routes.ts` 中 `RouteMeta` 未正确导入（TS2552）并引发连锁类型报错，补充导入后已解决。
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

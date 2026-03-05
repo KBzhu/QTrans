@@ -16,12 +16,12 @@
 
 ### P4.1 路由配置（2h）
 
-- [ ] 创建 `src/router/routes.ts` - 完整路由表（按 Design 5.1 章节实现）
+- [√] 创建 `src/router/routes.ts` - 完整路由表（按 Design 5.1 章节实现）
   - 所有路由配置 `meta.requiresAuth`, `meta.roles`, `meta.title`, `meta.icon`
   - 所有页面组件使用 `() => import(...)` 懒加载
   - 覆盖全部页面：login / dashboard / transfer / applications / approvals / transfers / users / settings / logs / profile / notifications / 403 / 404
-- [ ] 创建 `src/router/index.ts` - 创建路由实例（history 模式）
-- [ ] 在 `src/main.ts` 中注册路由
+- [√] 创建 `src/router/index.ts` - 创建路由实例（history 模式）
+- [√] 在 `src/main.ts` 中注册路由
 
 **验收标准：** 访问 `/login` 渲染登录页，访问 `/dashboard` 渲染首页占位符
 
@@ -29,14 +29,14 @@
 
 ### P4.2 路由守卫（2h）
 
-- [ ] 创建 `src/router/guards.ts`
-- [ ] 实现全局前置守卫 `setupRouterGuards(router)`：
+- [√] 创建 `src/router/guards.ts`
+- [√] 实现全局前置守卫 `setupRouterGuards(router)`：
   - 未登录访问需认证路由 → 跳转 `/login?redirect=xxx`
   - 无角色权限 → 跳转 `/403`
   - 已登录访问 `/login` → 跳转 `/dashboard`
   - 动态设置 `document.title`
-- [ ] 实现全局后置钩子（记录页面访问日志到 Notification Store）
-- [ ] 在 `src/router/index.ts` 中调用 `setupRouterGuards`
+- [√] 实现全局后置钩子（记录页面访问日志到 Notification Store）
+- [√] 在 `src/router/index.ts` 中调用 `setupRouterGuards`
 
 **验收标准：** 未登录访问 `/dashboard` 自动跳转 `/login`；`submitter` 访问 `/users` 跳转 `/403`
 
@@ -44,21 +44,21 @@
 
 ### P4.3 布局组件（3h）
 
-- [ ] 创建 `src/layouts/BlankLayout.vue` - 仅渲染 `<router-view />`（登录页用）
-- [ ] 创建 `src/layouts/DefaultLayout.vue` - 左侧菜单 + 顶栏 + 内容区
-- [ ] 创建 `src/components/common/AppHeader.vue`
+- [√] 创建 `src/layouts/BlankLayout.vue` - 仅渲染 `<router-view />`（登录页用）
+- [√] 创建 `src/layouts/DefaultLayout.vue` - 左侧菜单 + 顶栏 + 内容区
+- [√] 创建 `src/components/common/AppHeader.vue`
   - Logo + 系统名称
   - 通知铃铛（显示未读数角标）
   - 用户头像下拉（显示姓名、角色，点击个人中心/退出登录）
   - Demo 模式角色快速切换下拉
-- [ ] 创建 `src/components/common/AppSidebar.vue`
+- [√] 创建 `src/components/common/AppSidebar.vue`
   - 根据当前用户角色动态渲染可见菜单项
   - 支持菜单折叠/展开
   - 高亮当前激活路由
-- [ ] 创建 `src/components/common/PageContainer.vue`
+- [√] 创建 `src/components/common/PageContainer.vue`
   - 面包屑导航（根据路由 meta 自动生成）
   - 主内容区域 `<slot />`
-- [ ] 在 `src/App.vue` 中根据路由 meta.layout 动态切换布局
+- [√] 在 `src/App.vue` 中根据路由 meta.layout 动态切换布局
 
 **菜单权限规则：**
 | 菜单项 | 可见角色 |
@@ -77,11 +77,11 @@
 
 ### P4.4 权限指令（1h）
 
-- [ ] 创建 `src/directives/permission.ts`
+- [√] 创建 `src/directives/permission.ts`
   - `v-permission="'action:create_application'"` - 操作权限控制
   - `v-role="'admin'"` - 角色控制
   - 无权限时移除 DOM 节点
-- [ ] 在 `src/main.ts` 中全局注册 `v-permission`, `v-role` 指令
+- [√] 在 `src/main.ts` 中全局注册 `v-permission`, `v-role` 指令
 
 **验收标准：** `v-role="'admin'"` 在非 admin 账号下不渲染对应按钮
 
@@ -112,7 +112,7 @@ describe('RouterGuards', () => {
 
 ## 完成标志
 
-- [ ] 所有子任务勾选完毕
-- [ ] 路由守卫测试通过
-- [ ] 不同角色登录后菜单渲染正确
-- [ ] 布局组件展示正常（有头部、侧边栏、内容区）
+- [√] 所有子任务勾选完毕
+- [√] 路由守卫测试通过
+- [√] 不同角色登录后菜单渲染正确
+- [√] 布局组件展示正常（有头部、侧边栏、内容区）
