@@ -1,6 +1,11 @@
 @use '../../../assets/styles/mixins.scss' as mixins;
 
 .app-sidebar {
+  position: fixed;
+  top: 64px;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
   width: 224px;
   padding: 14px 10px;
   border-right: 1px solid rgba(255, 255, 255, 0.8);
@@ -9,7 +14,9 @@
   transition: width 0.2s;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
+
 
 .app-sidebar.collapsed {
   width: 72px;
@@ -66,10 +73,7 @@
 
 @media (max-width: 768px) {
   .app-sidebar {
-    position: fixed;
-    left: 0;
-    top: 64px;
-    bottom: 0;
-    z-index: 20;
+    z-index: 50;
   }
 }
+

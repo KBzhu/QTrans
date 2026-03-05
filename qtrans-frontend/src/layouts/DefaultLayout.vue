@@ -14,23 +14,52 @@ function toggleSidebar() {
 <template>
   <div class="default-layout">
     <AppHeader />
-    <div class="default-layout__body">
+    <div class="default-layout__body" :class="{ 'is-collapsed': collapsed }">
       <AppSidebar :collapsed="collapsed" @toggle-sidebar="toggleSidebar" />
-      <PageContainer>
-        <slot />
-      </PageContainer>
+      <div class="default-layout__content">
+        <PageContainer>
+          <slot />
+        </PageContainer>
+      </div>
     </div>
   </div>
+
 </template>
 
 <style scoped>
 .default-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--q-bg-main);
 }
 
 .default-layout__body {
   display: flex;
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  margin-top: 64px;
+  min-height: 0;
+}
+
+.default-layout__content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  margin-left: 224px;
+  transition: margin-left 0.2s;
+}
+
+.default-layout__body.is-collapsed .default-layout__content {
+  margin-left: 72px;
+}
+
+@media (max-width: 768px) {
+  .default-layout__content {
+    margin-left: 224px;
+  }
+
+  .default-layout__body.is-collapsed .default-layout__content {
+    margin-left: 72px;
+  }
 }
 </style>
+

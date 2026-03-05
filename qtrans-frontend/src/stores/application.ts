@@ -25,7 +25,9 @@ function createDraft(data: Partial<Application>): Application {
     targetCountry: data.targetCountry || '中国',
     targetCity: data.targetCity || [],
     downloaderAccounts: data.downloaderAccounts || [],
+    ccAccounts: data.ccAccounts || [],
     containsCustomerData: data.containsCustomerData || false,
+
     customerAuthFile: data.customerAuthFile,
     srNumber: data.srNumber,
     minDeptSupervisor: data.minDeptSupervisor,

@@ -18,7 +18,8 @@ export type ApplicationStatus =
 
 export type UrgencyLevel = 'low' | 'normal' | 'high' | 'urgent'
 
-export type NotifyChannel = 'email' | 'sms' | 'in_app'
+export type NotifyChannel = 'email' | 'sms' | 'in_app' | 'w3_todo' | 'download_email'
+
 
 export interface Application {
   id: string
@@ -32,7 +33,9 @@ export interface Application {
   targetCountry: string
   targetCity: string[]
   downloaderAccounts: string[]
+  ccAccounts?: string[]
   containsCustomerData: boolean
+
   customerAuthFile?: string
   srNumber?: string
   minDeptSupervisor?: string

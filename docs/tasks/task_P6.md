@@ -39,7 +39,8 @@
 
 ### P6.2 创建申请单页面（6h）
 
-- [ ] 创建 `src/views/application/CreateApplicationView.vue`
+- [√] 创建 `src/views/application/CreateApplicationView.vue`
+
   - 页面标题：「创建申请单」+ 传输类型标签
   - 使用 `a-form` + `a-steps` 分步表单（3步）
     - Step 1：基本信息
@@ -86,7 +87,8 @@
   - `autoSaveDraft()` - 自动保存草稿（30秒定时器）
   - `loadDraft(draftId)` - 加载草稿数据
   - `watchCustomerDataField()` - 监听"包含客户网络数据"字段，动态显示/隐藏条件字段
-- [ ] 样式文件 `src/views/application/create-application.scss`
+- [√] 样式文件 `src/views/application/create-application.scss`
+
 
 ### P6.3 申请单列表页面（4h）
 

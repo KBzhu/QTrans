@@ -1,6 +1,11 @@
 @use '../../../assets/styles/mixins.scss' as mixins;
 
 .app-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 60;
   height: 64px;
   display: flex;
   align-items: center;
@@ -10,6 +15,7 @@
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(8px);
 }
+
 
 .app-header__left,
 .app-header__right {

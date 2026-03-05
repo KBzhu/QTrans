@@ -89,7 +89,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/application/create',
     name: 'CreateApplication',
-    component: () => import('@/views/applications/index.vue'),
+    component: () => import('@/views/application/CreateApplicationView.vue'),
     meta: {
       title: '创建申请单',
       icon: 'icon-plus',
@@ -99,6 +99,7 @@ export const routes: RouteRecordRaw[] = [
       hidden: true,
     } as AppRouteMeta,
   },
+
   {
     path: '/approvals',
     name: 'ApprovalList',

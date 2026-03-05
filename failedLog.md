@@ -51,6 +51,25 @@
 - 2026-03-05 P6.1 vite build 命令异常：`node node_modules/.bin/vite.js build` / `node node_modules/vite/bin/vite.js build`
   - 错误信息：`Error: Cannot find module` — node_modules 尚未安装时尝试直接调用 vite 二进制。
   - 处理：先完成 pnpm install，再通过 `pnpm run build` 执行构建，最终成功。
+- 2026-03-05 P6.2 构建校验失败：`npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build`
+  - 错误信息：`useApplicationForm.ts` 从 `@arco-design/web-vue` 导入 `FormRule` 失败（TS2614）。
+  - 处理：移除该类型导入并改为本地宽类型规则声明，后续已修复。
+- 2026-03-05 P6.2 页面改造 lint 失败：`CreateApplicationView.vue`
+  - 错误信息：递归函数 `walk` 缺失显式返回类型，触发 TS7023 / TS7024（隐式 `any`）。
+  - 处理：补充 `DepartmentTreeOption` 类型与 `walk(nodes: DepartmentNode[]): DepartmentTreeOption[]` 返回类型声明，问题已修复。
+- 2026-03-05 P6.2 页面改造 lint 二次失败：`CreateApplicationView.vue`
+  - 错误信息：`Cannot find name 'DepartmentNode'`（TS2552），原因是仅更新了类型使用，未同步补充 type import。
+  - 处理：将部门数据导入改为 `import { departments, type DepartmentNode } ...`，问题已修复。
+- 2026-03-05 P6.2 三次补齐样式替换失败：`create-application.scss`
+  - 错误信息：`replace_in_file` 未命中目标片段（The string to replace was not found）。
+  - 处理：重新读取文件并按最新内容二次替换，已成功应用样式修复。
+
+
+
+
+
+
+
 
 
 
