@@ -36,9 +36,11 @@ const summaryRows = computed(() => {
 
 <template>
   <div class="submit-success">
-    <div class="submit-success__icon">
-      <img src="/figma/3960_2183/3.svg" alt="success" />
+    <div class="submit-success__icon" aria-hidden="true">
+      <img src="/figma/3960_2183/3.svg" alt="" class="submit-success__icon-bg" />
+      <img src="/figma/3960_2183/4.svg" alt="" class="submit-success__icon-check" />
     </div>
+
     <h2>申请已提交成功！</h2>
     <p class="submit-success__no">申请单号：{{ submittedApplication?.applicationNo || '--' }}</p>
     <p class="submit-success__desc">您的申请已经提交成功，等待审批中...</p>

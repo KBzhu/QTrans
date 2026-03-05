@@ -169,7 +169,8 @@ onBeforeRouteLeave(() => {
     </div>
 
     <div class="create-application-page__steps-card">
-      <a-steps :current="currentStep" size="large">
+      <a-steps :current="currentStep + 1" size="large">
+
         <a-step title="发起申请" />
         <a-step title="上传文件" />
         <a-step title="提交" />
