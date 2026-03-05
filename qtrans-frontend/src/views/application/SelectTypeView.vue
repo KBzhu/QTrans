@@ -25,8 +25,8 @@ interface TransferType {
   key: string
   title: string
   desc: string
-  fromZone: 'green' | 'yellow' | 'red' | 'cross'
-  toZone: 'green' | 'yellow' | 'red' | 'cross'
+  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
+  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
   fromIcon: string
   toIcon: string
   arrowIcon: string
@@ -39,12 +39,12 @@ const transferTypes: TransferType[] = [
   {
     key: 'green-to-green',
     title: '绿区传到绿区',
-    desc: '同安全域内传输，无需审批',
+    desc: '非研发到非研发',
     fromZone: 'green',
     toZone: 'green',
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/9.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/8.svg',
     level: 'free',
     levelText: '免审批',
     tabGroup: 'green',
@@ -52,27 +52,53 @@ const transferTypes: TransferType[] = [
   {
     key: 'green-to-yellow',
     title: '绿区传到黄区',
-    desc: '跨安全域传输，需部门主管审批',
+    desc: '非研发到研发',
     fromZone: 'green',
     toZone: 'yellow',
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/10.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/11.svg',
     level: 'l1',
     levelText: '一级审批',
     tabGroup: 'green',
   },
   {
-    key: 'green-to-red',
-    title: '绿区传到红区',
-    desc: '高安全域传输，需二级审批',
+    key: 'green-to-external',
+    title: '绿区传到外网',
+    desc: '非研发到外网',
     fromZone: 'green',
-    toZone: 'red',
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
+    toZone: 'external',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/14.svg',
     level: 'l2',
     levelText: '二级审批',
+    tabGroup: 'green',
+  },
+  {
+    key: 'green-to-red',
+    title: '绿区传到红区',
+    desc: '非研发到红区',
+    fromZone: 'green',
+    toZone: 'red',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/17.svg',
+    level: 'l2',
+    levelText: '二级审批',
+    tabGroup: 'green',
+  },
+  {
+    key: 'green-to-hisilicon',
+    title: '绿区传到海思红区',
+    desc: '非研发到海思红区',
+    fromZone: 'green',
+    toZone: 'hisilicon',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/20.svg',
+    level: 'l3',
+    levelText: '三级审批',
     tabGroup: 'green',
   },
   {
@@ -137,8 +163,8 @@ interface RoutineCard {
   fromIcon: string
   toIcon: string
   arrowIcon: string
-  fromZone: 'green' | 'yellow' | 'red' | 'cross'
-  toZone: 'green' | 'yellow' | 'red' | 'cross'
+  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
+  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
 }
 
 const routineCards: RoutineCard[] = [

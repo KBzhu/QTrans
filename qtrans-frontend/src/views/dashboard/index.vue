@@ -1,13 +1,5 @@
 <script setup lang="ts">
-const transferTabs = ['绿区传出', '黄区传出', '红区传出', '外网传入', '例行申请']
-
-const transferCards = [
-  { title: '绿区传到绿区', desc: '非研发到非研发', fromIcon: '/figma/3830_3/7.svg', toIcon: '/figma/3830_3/9.svg', arrowIcon: '/figma/3830_3/8.svg' },
-  { title: '绿区传到黄区', desc: '非研发到非研发', fromIcon: '/figma/3830_3/10.svg', toIcon: '/figma/3830_3/12.svg', arrowIcon: '/figma/3830_3/11.svg' },
-  { title: '绿区传到外网', desc: '非研发到非研发', fromIcon: '/figma/3830_3/13.svg', toIcon: '/figma/3830_3/15.svg', arrowIcon: '/figma/3830_3/14.svg' },
-  { title: '绿区传到红区', desc: '非研发到非研发', fromIcon: '/figma/3830_3/16.svg', toIcon: '/figma/3830_3/18.svg', arrowIcon: '/figma/3830_3/17.svg' },
-  { title: '绿区传到海思红区', desc: '非研发到非研发', fromIcon: '/figma/3830_3/19.svg', toIcon: '/figma/3830_3/21.svg', arrowIcon: '/figma/3830_3/20.svg' },
-]
+import SelectTypeView from '@/views/application/SelectTypeView.vue'
 
 const notices = [
   {
@@ -39,28 +31,7 @@ const helpDocs = [
 
 <template>
   <section class="dashboard">
-    <div class="dashboard__tabs">
-      <button
-        v-for="(tab, idx) in transferTabs"
-        :key="tab"
-        class="tab"
-        :class="{ active: idx === 0 }"
-      >
-        {{ tab }}
-      </button>
-    </div>
-
-    <div class="transfer-grid">
-      <article v-for="card in transferCards" :key="card.title" class="transfer-card">
-        <div class="icons">
-          <div class="icon-box"><img :src="card.fromIcon" :alt="card.title" /></div>
-          <div class="arrow-box"><img :src="card.arrowIcon" :alt="`${card.title}-arrow`" /></div>
-          <div class="icon-box to"><img :src="card.toIcon" :alt="`${card.title}-to`" /></div>
-        </div>
-        <div class="card-title">{{ card.title }}</div>
-        <div class="card-desc">{{ card.desc }}</div>
-      </article>
-    </div>
+    <SelectTypeView />
 
     <div class="dashboard__bottom">
       <section class="glass-panel notices">
@@ -103,87 +74,6 @@ const helpDocs = [
 .dashboard {
   display: grid;
   gap: clamp(12px, 1.1vw, 20px);
-}
-
-.dashboard__tabs {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 4px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.35);
-  border: 1px solid var(--q-card-border);
-}
-
-.tab {
-  border: none;
-  background: transparent;
-  color: #1e40af;
-  padding: 8px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.tab.active {
-  color: #fff;
-  background: #155dfc;
-}
-
-.transfer-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.transfer-card {
-  border-radius: 14px;
-  border: 1px solid var(--q-card-border);
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 8px 24px rgba(31, 38, 135, 0.15);
-  padding: 20px 16px;
-}
-
-.icons {
-  display: grid;
-  grid-template-columns: 1fr 24px 1fr;
-  align-items: center;
-  gap: 8px;
-}
-
-.icon-box {
-  height: clamp(54px, 4.2vw, 80px);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #00bba7 0%, #00c950 100%);
-}
-
-.icon-box.to {
-  background: linear-gradient(135deg, #2b7fff 0%, #00bba7 100%);
-}
-
-.icon-box img,
-.arrow-box img {
-  width: clamp(28px, 2.3vw, 48px);
-  height: clamp(28px, 2.3vw, 48px);
-}
-
-.card-title {
-  margin-top: 16px;
-  background: #dbeafe;
-  border: 1px solid #155dfc;
-  border-radius: 8px;
-  text-align: center;
-  color: #193cb8;
-  padding: 10px 6px;
-}
-
-.card-desc {
-  margin-top: 10px;
-  text-align: center;
-  color: #475569;
-  font-size: 12px;
 }
 
 .dashboard__bottom {
@@ -290,27 +180,13 @@ const helpDocs = [
   font-size: 11px;
 }
 
-@media (max-width: 1440px) {
-  .transfer-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 1024px) {
   .dashboard__bottom {
     grid-template-columns: 1fr;
   }
-
-  .transfer-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 768px) {
-  .transfer-grid {
-    grid-template-columns: 1fr;
-  }
-
   .helps li {
     grid-template-columns: 20px 1fr;
   }

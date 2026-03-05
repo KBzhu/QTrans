@@ -14,6 +14,10 @@ The format is based on Keep a Changelog.
 - 新增 `docs/exec/task_P6_exec.md`：P6 执行记录。
 
 ### Changed
+- P6.1 补齐：按 Figma 3830_3 补充绿区传出缺失的 2 个传输类型（绿区传到外网、绿区传到海思红区），绿区传出 Tab 现有 5 种类型。
+- P6.1 补齐：图标资源统一切换到 `public/figma/3830_3/`，描述文案对齐 Figma（非研发到非研发/研发/外网/红区/海思红区）。
+- P6.1 补齐：渐变色对齐 Figma 3830_3（黄区 `#F2B313→#EE7214`、红区 `#FF6900→#FB2C36`），新增外网渐变 `#2B7FFF→#00BBA7`、海思红区渐变 `#AD46FF→#F6339A`。
+- P6.1 补齐：网格布局从 3 列调整为 5 列（≥1400px），新增 1400px 响应式断点。
 - 更新 `src/router/routes.ts`：新增 `/application/select-type`（选择传输类型）和 `/application/create`（创建申请单）路由。
 
 ### Added
