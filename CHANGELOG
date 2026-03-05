@@ -66,6 +66,10 @@ The format is based on Keep a Changelog.
 - 修复 P6.2 Step1 样式继承链路：`CreateApplicationView.vue` 改为脚本显式引入 `create-application.scss`，并将样式中的 `:deep(...)` 批量替换为普通后代选择器，恢复标题、表单控件与步骤条样式命中。
 - 修复 P6.2 Step1 表单状态回归：为国家城市级联选择器启用 `path-mode` 并规范化数组值，解决选择后仍触发“请选择源国家/城市”；同时恢复 radio/checkbox 的 checked 填充态与勾选态显示。
 - 修复 P6.2 Step1 国家/城市校验残留问题：补充 `a-cascader` 返回值归一化逻辑（兼容 string/number/array），避免有效选择被错误置空后重复触发“请选择源国家/城市”。
+- 修复 P6.2 Step2 按钮图标未渲染：`StepTwoUploadFile.vue` 显式引入 Arco Icon 组件并替换 `icon-*` 标签，恢复上传按钮与表格操作列按钮图标显示。
+- 修复 P6.2 Step3 视觉问题：成功态图标改为 `3.svg + 4.svg` 叠加显示对号；步骤条 `current` 改为 `currentStep + 1` 并补齐 `finish/process/active` 高亮；成功页底部按钮样式对齐 Figma（圆角、字体、色值与宽度）。
+
+
 
 
 

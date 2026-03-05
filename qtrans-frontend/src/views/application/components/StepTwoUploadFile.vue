@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { IconDelete, IconFile, IconFolder, IconPauseCircle, IconPlayCircle, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
 import { formatFileSize } from '@/utils'
 import dayjs from 'dayjs'
+
 
 interface UploadingFileState {
   uid: string
@@ -97,7 +99,7 @@ function formatTime(seconds: number): string {
       <div class="upload-step__actions">
         <a-button type="primary" @click="emit('selectUploadFiles')">
           <template #icon>
-            <icon-upload />
+            <IconUpload />
           </template>
           上传
         </a-button>
@@ -110,10 +112,11 @@ function formatTime(seconds: number): string {
       </div>
       <a-button type="text" class="privacy-link">
         <template #icon>
-          <icon-file />
+          <IconFile />
         </template>
         隐私政策
       </a-button>
+
     </div>
 
     <!-- 传输任务表格 -->
@@ -128,8 +131,9 @@ function formatTime(seconds: number): string {
             @click="emit('batchPauseUploading')"
           >
             <template #icon>
-              <icon-pause-circle />
+              <IconPauseCircle />
             </template>
+
             批量暂停
           </a-button>
           <a-button
@@ -140,8 +144,9 @@ function formatTime(seconds: number): string {
             @click="emit('batchResumeUploading')"
           >
             <template #icon>
-              <icon-play-circle />
+              <IconPlayCircle />
             </template>
+
             批量继续
           </a-button>
           <a-button
@@ -152,7 +157,7 @@ function formatTime(seconds: number): string {
             @click="emit('batchRemoveUploading')"
           >
             <template #icon>
-              <icon-delete />
+              <IconDelete />
             </template>
             批量删除
           </a-button>
@@ -207,7 +212,7 @@ function formatTime(seconds: number): string {
                     @click="emit('pauseUploadFile', record.uid)"
                   >
                     <template #icon>
-                      <icon-pause-circle />
+                      <IconPauseCircle />
                     </template>
                   </a-button>
                   <a-button
@@ -218,7 +223,7 @@ function formatTime(seconds: number): string {
                     @click="emit('resumeUploadFile', record.uid)"
                   >
                     <template #icon>
-                      <icon-play-circle />
+                      <IconPlayCircle />
                     </template>
                   </a-button>
                   <a-button
@@ -228,7 +233,7 @@ function formatTime(seconds: number): string {
                     @click="emit('removeUploadingFile', record.uid)"
                   >
                     <template #icon>
-                      <icon-delete />
+                      <IconDelete />
                     </template>
                   </a-button>
                 </div>
@@ -246,13 +251,13 @@ function formatTime(seconds: number): string {
         <div class="upload-section__toolbar">
           <a-button type="text" size="small" status="success" @click="emit('refreshUploadedList')">
             <template #icon>
-              <icon-refresh />
+              <IconRefresh />
             </template>
             刷新
           </a-button>
           <a-button type="text" size="small">
             <template #icon>
-              <icon-folder />
+              <IconFolder />
             </template>
             上层目录
           </a-button>
@@ -264,10 +269,11 @@ function formatTime(seconds: number): string {
             @click="emit('batchRemoveUploaded')"
           >
             <template #icon>
-              <icon-delete />
+              <IconDelete />
             </template>
             删除文件
           </a-button>
+
         </div>
       </div>
 
@@ -314,9 +320,10 @@ function formatTime(seconds: number): string {
                   @click="emit('removeUploadFile', record.uid)"
                 >
                   <template #icon>
-                    <icon-delete />
+                    <IconDelete />
                   </template>
                 </a-button>
+
               </template>
             </a-table-column>
           </template>

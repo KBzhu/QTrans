@@ -214,6 +214,37 @@
 - [ √ ] `StepOneBasicInfo.vue` lint 通过。
 - [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
 
+## 2026-03-05 Step2 按钮图标渲染修复（上传/操作列）
+
+### 一、问题
+- [ √ ] Step2 上传按钮与表格操作列按钮图标未渲染（页面显示空白图标位）。
+
+### 二、修复
+- [ √ ] 在 `StepTwoUploadFile.vue` 显式引入 `@arco-design/web-vue/es/icon` 的 `IconUpload/IconPauseCircle/IconPlayCircle/IconDelete/IconFile/IconRefresh/IconFolder`。
+- [ √ ] 将模板中的 `icon-*` 标签统一替换为对应的 `Icon*` 组件，恢复上传按钮、批量操作按钮、表格操作列按钮图标渲染。
+
+### 三、校验
+- [ √ ] `StepTwoUploadFile.vue` lint 通过。
+- [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
+
+## 2026-03-05 Step3 视觉修复（成功图标/步骤条/按钮）
+
+### 一、问题
+- [ √ ] Step3 成功态绿色圆圈中缺少对号。
+- [ √ ] 进入 Step3 后顶部步骤条第 3 步未处于激活态。
+- [ √ ] 成功页底部按钮圆角与字体样式与 Figma 不一致。
+
+### 二、修复
+- [ √ ] `StepThreeSubmitSuccess.vue` 成功图标改为叠加 `3.svg + 4.svg`，补齐对号。
+- [ √ ] `CreateApplicationView.vue` 中 `a-steps` 的 `current` 调整为 `currentStep + 1`，确保 Step3 激活。
+- [ √ ] `create-application.scss` 补齐步骤条 `finish/process/active` 统一高亮与连线颜色，并调整成功页按钮高度、圆角、字体、色值与宽度。
+
+### 三、校验
+- [ √ ] `StepThreeSubmitSuccess.vue`、`CreateApplicationView.vue`、`create-application.scss` lint 通过。
+- [ √ ] `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run build` 通过。
+
+
+
 
 
 
