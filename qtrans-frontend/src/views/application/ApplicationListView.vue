@@ -7,9 +7,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { formatDateTime } from '@/utils'
 import { useApplicationList } from '@/composables/useApplicationList'
+import { useFileStore } from '@/stores'
 import './application-list.scss'
 
 const router = useRouter()
+const fileStore = useFileStore()
 const selectedRowKeys = ref<string[]>([])
 
 const {
@@ -68,7 +70,9 @@ const tableRowSelection = computed(() => ({
 function getFileCount(record: Application): number {
   if (record.status === 'draft')
     return 0
-  return Math.max(1, Math.min(9, Math.ceil(record.storageSize / 1024)))
+
+  const realCount = fileStore.getFilesByApplicationId(record.id).length
+  return realCount
 }
 
 function getStatusClass(status: ApplicationStatus) {

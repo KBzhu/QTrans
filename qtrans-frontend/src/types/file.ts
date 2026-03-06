@@ -24,6 +24,7 @@ export interface FileInfo {
   uploadStatus: FileStatus
   uploadProgress: number
   uploadedAt?: string
+  fileBlob?: Blob
 }
 
 export interface FileChunk {

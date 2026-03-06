@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 import { formatFileSize } from '@/utils/format'
 import { MAX_CONCURRENT_UPLOADS, MAX_FILE_SIZE } from '@/utils/constants'
 import { useFileStore } from '@/stores'
-import { useFileUpload, generateFileId } from '@/composables/useFileUpload'
+import { useFileUpload } from '@/composables/useFileUpload'
 import './file-upload.scss'
 
 interface Props {
@@ -187,6 +187,7 @@ async function uploadFile(item: UploadFileItem) {
       uploadStatus: 'completed',
       uploadProgress: 100,
       uploadedAt: new Date().toISOString(),
+      fileBlob: item.file,
     })
 
     emit('upload-success', item.file, fileId)

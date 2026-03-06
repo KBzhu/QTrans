@@ -51,5 +51,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'qtrans:auth:token',
   USER_INFO: 'qtrans:auth:user',
   DRAFTS: 'qtrans:application:drafts',
+  APPLICATIONS: 'qtrans:application:list',
+  FILE_METAS: 'qtrans:file:metas',
   NOTIFICATIONS: 'qtrans:notification:list',
 } as const

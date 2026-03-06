@@ -68,9 +68,19 @@ export const useApplicationStore = defineStore('application', () => {
         transferType: params.transferType,
       }
       const page = await applicationApi.getList(query)
-      applications.value = page.list
-      total.value = page.total
-      return page
+
+      const remoteMap = new Map(page.list.map(item => [item.id, item]))
+      const localOnly = applications.value.filter(item => !remoteMap.has(item.id))
+      const merged = [...page.list, ...localOnly]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+      applications.value = merged
+      total.value = merged.length
+      return {
+        ...page,
+        list: merged,
+        total: merged.length,
+      }
     }
     finally {
       loading.value = false
@@ -158,7 +168,7 @@ export const useApplicationStore = defineStore('application', () => {
   }
 }, {
   persist: {
-    pick: ['drafts'],
+    pick: ['drafts', 'applications'],
   },
 })
 

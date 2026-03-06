@@ -42,26 +42,7 @@ function fileInfoToDetailFileItem(fileInfo: FileInfo): DetailFileItem {
   }
 }
 
-function buildMockFileList(record: Application): DetailFileItem[] {
-  const size = Math.max(1024 * 1024, Math.round((record.storageSize || 1) * 1024 * 0.38))
 
-  return [
-    {
-      id: `${record.id}-file-1`,
-      fileName: '部署包v2.3.zip',
-      fileSize: size,
-      uploadedAt: record.updatedAt || record.createdAt,
-      sha256: `89abc123def456ghi789jkl012mno345p${record.id.slice(-2)}`,
-    },
-        {
-      id: `${record.id}-file-2`,
-      fileName: '审批附件汇总.zip',
-      fileSize: size,
-      uploadedAt: record.updatedAt || record.createdAt,
-      sha256: `89abc1212343456ghi789jkl012mno345p${record.id.slice(-2)}`,
-    },
-  ]
-}
 
 export function useApplicationDetail() {
   const router = useRouter()
@@ -125,14 +106,8 @@ export function useApplicationDetail() {
     if (!detailData.value)
       return []
 
-    // 优先从 fileStore 获取真实上传的文件
     const realFiles = fileStore.getFilesByApplicationId(detailData.value.id)
-    if (realFiles.length > 0) {
-      return realFiles.map(fileInfoToDetailFileItem)
-    }
-
-    // 如果没有真实文件，返回模拟数据（用于演示）
-    return buildMockFileList(detailData.value)
+    return realFiles.map(fileInfoToDetailFileItem)
   })
 
   async function fetchDetail(id: string) {
@@ -200,14 +175,32 @@ export function useApplicationDetail() {
     })
   }
 
-  function handleDownloadFile(file: DetailFileItem) {
-    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
+  function triggerBrowserDownload(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = file.fileName
+    link.download = fileName
+    link.style.display = 'none'
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(link)
+
+    // 延迟释放，避免浏览器尚未完成写盘就撤销 URL 导致 .crdownload 残留
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
+  function handleDownloadFile(file: DetailFileItem) {
+    const realFile = fileStore.files.get(file.id)
+
+    if (realFile?.fileBlob) {
+      triggerBrowserDownload(realFile.fileBlob, realFile.fileName)
+      Message.success(`开始下载：${realFile.fileName}`)
+      return
+    }
+
+    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
+    triggerBrowserDownload(blob, file.fileName)
+    Message.warning('当前文件缺少二进制内容，已回退为模拟下载')
   }
 
   function handleBatchDownload(fileIds: string[]) {

@@ -2,7 +2,7 @@ import type { Application, NotifyChannel, TransferType } from '@/types'
 import { Message } from '@arco-design/web-vue'
 
 import dayjs from 'dayjs'
-import { useApplicationStore, useAuthStore } from '@/stores'
+import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
 
 type SecurityArea = 'green' | 'yellow' | 'red'
@@ -151,6 +151,7 @@ function cloneFormData(data: ApplicationFormData): ApplicationFormData {
 export function useApplicationForm(initialTransferType?: string) {
   const applicationStore = useApplicationStore()
   const authStore = useAuthStore()
+  const fileStore = useFileStore()
 
   const formData = ref<ApplicationFormData>(defaultFormData(initialTransferType))
   const currentStep = ref(0)
@@ -426,8 +427,26 @@ export function useApplicationForm(initialTransferType?: string) {
     return draft
   }
 
+  function bindUploadedFilesToApplication(applicationId: string) {
+    uploadedFiles.value.forEach((file) => {
+      fileStore.addFile({
+        id: `${applicationId}-${file.uid}`,
+        applicationId,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.fileType || 'application/octet-stream',
+        uploadStatus: 'completed',
+        uploadProgress: 100,
+        uploadedAt: file.lastModified || new Date().toISOString(),
+        fileBlob: file.raw,
+      })
+    })
+  }
+
   async function handleSubmit() {
     const created = await applicationStore.createApplication(buildPayload('pending_approval'))
+
+    bindUploadedFilesToApplication(created.id)
 
     if (currentDraftId.value)
       applicationStore.deleteDraft(currentDraftId.value)
