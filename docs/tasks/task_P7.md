@@ -16,7 +16,7 @@
 
 ### P7.1 文件上传组件（4h）
 
-- [ ] 创建 `src/components/business/FileUpload.vue`
+- [√] 创建 `src/components/business/FileUpload.vue`
   - 使用 `a-upload` 组件的自定义上传模式（`custom-request`）
   - Props：
     - `applicationId: string` - 所属申请单 ID
@@ -40,11 +40,11 @@
     - 操作按钮：暂停/继续/重试/删除
   - 全局操作：全部暂停、全部继续、清空已完成
   - 并发控制：最多同时上传3个文件（`p-limit` 控制并发）
-- [ ] 创建 `src/components/business/FileUpload.scss`
+- [√] 创建 `src/components/business/file-upload.scss`
 
 ### P7.2 文件分片上传逻辑（4h）
 
-- [ ] 创建 `src/composables/useFileUpload.ts`
+- [√] 创建 `src/composables/useFileUpload.ts`
   - `uploadFile(file, applicationId, onProgress)` - 主要上传方法
     1. 生成 fileId：`${applicationId}-${file.name}-${file.size}-${file.lastModified}`
     2. 从 IndexedDB 查询已上传的分片列表（`db.fileChunks.where({ fileId }).toArray()`）
@@ -62,7 +62,7 @@
   - `resumeUpload(fileId)` - 继续上传（重新启动上传流程）
   - `cancelUpload(fileId)` - 取消并清理 IndexedDB 数据
   - `getUploadProgress(fileId)` - 获取上传进度
-- [ ] 文件上传相关常量（`src/utils/constants.ts` 中增加）：
+- [√] 文件上传相关常量（`src/utils/constants.ts` 中增加）：
   ```typescript
   export const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB
   export const MAX_CONCURRENT_UPLOADS = 3

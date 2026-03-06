@@ -65,8 +65,23 @@ export const useApprovalStore = defineStore('approval', () => {
   }
 
   async function fetchApprovalHistory(applicationId: string) {
-    return approvalHistory.value.filter(item => item.applicationId === applicationId)
+    const records = await approvalApi.getHistory(applicationId)
+    const localRecords = approvalHistory.value.filter(item => item.applicationId === applicationId)
+
+    const mergedMap = new Map<string, ApprovalRecord>()
+    ;[...records, ...localRecords].forEach((item) => {
+      mergedMap.set(item.id, item)
+    })
+
+    const merged = [...mergedMap.values()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    approvalHistory.value = [
+      ...approvalHistory.value.filter(item => item.applicationId !== applicationId),
+      ...merged,
+    ]
+
+    return merged
   }
+
 
   return {
     pendingApprovals,

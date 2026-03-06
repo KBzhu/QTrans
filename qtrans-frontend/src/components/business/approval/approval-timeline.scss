@@ -1,0 +1,38 @@
+.approval-timeline {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 20px;
+
+  :deep(.arco-timeline-item-content) {
+    padding-bottom: 18px;
+  }
+
+  &__node {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__node-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1e293b;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &__node-meta {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  &__opinion {
+    margin: 0;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}

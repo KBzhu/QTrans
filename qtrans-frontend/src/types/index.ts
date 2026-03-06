@@ -4,3 +4,5 @@ export * from './application'
 export * from './file'
 export * from './approval'
 export * from './notification'
+export * from './detail'
+

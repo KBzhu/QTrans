@@ -89,7 +89,7 @@
 
 ### P6.3 申请单列表页面（4h）
 
-- [ ] 创建 `src/views/application/ApplicationListView.vue`
+- [√] 创建 `src/views/application/ApplicationListView.vue`
   - 页面标题：「我的申请单」
   - 顶部操作栏：
   - 筛选区域（a-form inline）：
@@ -104,7 +104,7 @@
     - 操作列：查看详情、继续编辑（仅草稿）、删除（仅草稿），撤回申请（仅待审批）
   - 分页器（a-pagination）
   - 空状态：无数据时显示空状态插图 + 引导创建
-- [ ] 创建 `src/composables/useApplicationList.ts`
+- [√] 创建 `src/composables/useApplicationList.ts`
   - `listData` - 列表数据
   - `loading` - 加载状态
   - `pagination` - 分页参数
@@ -114,30 +114,30 @@
   - `handleReset()` - 重置筛选
   - `handlePageChange()` - 翻页
   - `handleDelete(id)` - 删除草稿
-- [ ] 样式文件 `src/views/application/application-list.scss`
+- [√] 样式文件 `src/views/application/application-list.scss`
+
 
 ### P6.4 申请单详情页面（4h）
 
 - [ ] 创建 `src/views/application/ApplicationDetailView.vue`
   - 页面标题：申请单号 + 状态标签
-  - 顶部操作栏（根据状态显示不同按钮）：
+  - 底部操作栏（根据状态显示不同按钮）：
     - 草稿状态：继续编辑、删除
     - 待上传状态：上传文件
     - 待审批状态：撤回申请
     - 已通过状态：查看传输进度
     - 传输中状态：查看传输进度
     - 已完成状态：下载文件
-  - 信息展示区域（a-descriptions）：
-    - 基本信息：传输类型、所属部门、源/目标安全域、源/目标城市
-    - 申请信息：申请人、申请时间、申请原因
-    - 下载人信息：下载人账号列表
+  - 信息展示区域（a-des       criptions）：
+    - 基本信息：申请人、传输类型、所属部门、存储大小、上传有效期、下载有效期
+    - 申请信息：申请时间、申请原因，下载人账号列表，源/目标安全域、源/目标城市，
     - 客户数据信息（如有）：客户授权文件、SR单号、最小部门主管
     - 通知配置：申请人通知选项、下载人通知选项
-    - 存储配置：存储大小、上传有效期、下载有效期
   - 文件列表区域（a-table）：
-    - 列：文件名、大小、上传时间、状态、操作
-    - 操作：预览、下载（已完成状态）
-  - 审批记录区域（仅需审批的申请单）：
+    - 列：文件名、大小、上传时间、SHA256
+    - 操作：下载（已批准状态）
+    - 
+  - 审批记录区域（仅需审 批的申请单，至于页面底部）：
     - 使用 `ApprovalTimeline` 组件（P8.4）
   - 传输进度区域（传输中/已完成状态）：
     - 使用 `TransferProgress` 组件（P9.1）

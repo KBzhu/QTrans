@@ -4,6 +4,8 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import { permissionDirective, roleDirective } from './directives/permission'
+import '@arco-design/web-vue/es/message/style/css.js'
+import '@arco-design/web-vue/es/modal/style/css.js'
 import './assets/styles/index.scss'
 
 async function bootstrap() {

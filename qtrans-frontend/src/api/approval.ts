@@ -1,9 +1,12 @@
-import type { Application } from '@/types'
+import type { Application, ApprovalRecord } from '@/types'
 import { request } from '@/utils'
 
 export const approvalApi = {
   getPending(): Promise<Application[]> {
     return request.get<Application[]>('/approvals/pending')
+  },
+  getHistory(applicationId: string): Promise<ApprovalRecord[]> {
+    return request.get<ApprovalRecord[]>(`/approvals/${applicationId}/history`)
   },
   approve(id: string, opinion: string): Promise<Application> {
     return request.post<Application>(`/approvals/${id}/approve`, { opinion })
@@ -15,3 +18,4 @@ export const approvalApi = {
     return request.post<Application>(`/approvals/${id}/skip`, { opinion })
   },
 }
+

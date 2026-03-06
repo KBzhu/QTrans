@@ -16,7 +16,7 @@
 
 ### P8.1 待审批列表页面（3h）
 
-- [ ] 创建 `src/views/approval/ApprovalListView.vue`
+- [√] 创建 `src/views/approvals/ApprovalListView.vue`
   - 页面标题：「待审批列表」+ 待审批数量徽标
   - Tab 切换：待我审批 / 我已审批 / 全部审批
   - 筛选区域（a-form inline）：
@@ -33,7 +33,7 @@
       - 我已审批：查看详情
   - 分页器（a-pagination）
   - 空状态：无待审批时展示「暂无待审批申请单」
-- [ ] 创建 `src/composables/useApprovalList.ts`
+- [√] 创建 `src/composables/useApprovalList.ts`
   - `activeTab` - 当前 Tab（pending/approved/all）
   - `listData` - 列表数据
   - `loading` - 加载状态
@@ -44,11 +44,13 @@
   - `handleSearch()` - 搜索
   - `handleReset()` - 重置筛选
   - `handlePageChange()` - 翻页
-- [ ] 样式文件 `src/views/approval/approval-list.scss`
+- [√] 样式文件 `src/views/approvals/approval-list.scss`
+
 
 ### P8.2 审批详情页面（4h）
 
-- [ ] 创建 `src/views/approval/ApprovalDetailView.vue`
+- [√] 创建 `src/views/approvals/ApprovalDetailView.vue`
+
   - 页面标题：申请单号 + 当前审批层级标签
   - 顶部操作栏（仅待审批状态显示）：
     - 通过按钮（a-button type="primary"）
@@ -63,7 +65,8 @@
   - 审批操作区域（待审批状态）：
     - 审批意见输入框（a-textarea，选填，最多500字）
     - 通过/驳回按钮（与顶部操作栏同步）
-- [ ] 创建 `src/composables/useApprovalDetail.ts`
+- [√] 创建 `src/composables/useApprovalDetail.ts`
+
   - `detailData` - 详情数据
   - `loading` - 加载状态
   - `approvalOpinion` - 审批意见
@@ -71,11 +74,12 @@
   - `handleApprove()` - 审批通过
   - `handleReject()` - 审批驳回
   - `handleExempt()` - 免审（管理员）
-- [ ] 样式文件 `src/views/approval/approval-detail.scss`
+- [√] 样式文件 `src/views/approvals/approval-detail.scss`
+
 
 ### P8.3 审批操作（3h）
 
-- [ ] 在 Approval Store 中实现审批操作方法：
+- [√] 在 Approval Store 中实现审批操作方法：
   - `approve(applicationId, opinion)` - 审批通过
     1. 调用 `approvalApi.approve({ applicationId, opinion })`
     2. 更新申请单状态：
@@ -94,18 +98,19 @@
     3. 记录审批记录（action: 'exempt'）
     4. 自动开始传输
     5. 发送通知给申请人
-- [ ] 审批操作确认弹窗：
+- [√] 审批操作确认弹窗：
   - 通过：`a-modal` 确认弹窗，「确认通过该申请单？」
   - 驳回：`a-modal` 确认弹窗，「确认驳回该申请单？驳回后申请人需重新提交」，必填审批意见
   - 免审：`a-modal` 确认弹窗，「确认免审该申请单？将跳过所有审批流程」
-- [ ] 操作成功后：
+- [√] 操作成功后：
   - 显示成功提示（a-message.success）
   - 刷新列表数据
   - 跳转回待审批列表
 
 ### P8.4 审批时间线组件（2h）
 
-- [ ] 创建 `src/components/business/ApprovalTimeline.vue`
+- [√] 创建 `src/components/business/approval/ApprovalTimeline.vue`
+
   - 使用 `a-timeline` 展示审批流程
   - Props：
     - `applicationId: string` - 申请单 ID
@@ -125,7 +130,8 @@
     - 驳回：红色 `a-tag` 「已驳回」
     - 免审：橙色 `a-tag` 「已免审」
   - 审批意见展示：使用 `a-typography-paragraph` 展示，支持展开/收起（超过3行）
-- [ ] 样式文件 `src/components/business/ApprovalTimeline.scss`
+- [√] 样式文件 `src/components/business/approval/approval-timeline.scss`
+
   - 时间线节点样式
   - 审批意见区域样式
 

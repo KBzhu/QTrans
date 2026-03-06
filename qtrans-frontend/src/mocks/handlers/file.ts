@@ -1,109 +1,91 @@
-import { db } from '../db'
-import { http } from 'msw'
-import { failed, mockDelay, success } from './_utils'
+import { http, HttpResponse } from 'msw'
 
-interface UploadChunkPayload {
-  fileId: string
-  chunkIndex: number
-  chunkHash: string
-  size: number
-  fileName: string
-  fileSize: number
-  applicationId: string
-  totalChunks: number
-}
+// 模拟存储的分片数据
+const uploadedChunks = new Map<string, Set<number>>()
+const mergedFiles = new Map<string, string>()
 
 export const fileHandlers = [
-  http.post('/api/files/upload', async ({ request }) => {
-    await mockDelay(200)
+  // 上传分片
+  http.post('/api/files/upload/chunk', async ({ request }) => {
+    const formData = await request.formData()
+    const fileId = formData.get('fileId') as string
+    const chunkIndex = Number(formData.get('chunkIndex'))
+    const totalChunks = Number(formData.get('totalChunks'))
 
-    const payload = await request.json() as UploadChunkPayload
-
-    await db.fileChunks.put({
-      fileId: payload.fileId,
-      chunkIndex: payload.chunkIndex,
-      chunkHash: payload.chunkHash,
-      size: payload.size,
-      uploadTime: Date.now(),
-    })
-
-    const meta = await db.fileMetas.where('fileId').equals(payload.fileId).first()
-
-    if (!meta) {
-      await db.fileMetas.add({
-        fileId: payload.fileId,
-        fileName: payload.fileName,
-        fileSize: payload.fileSize,
-        fileType: '',
-        totalChunks: payload.totalChunks,
-        uploadedChunks: 1,
-        applicationId: payload.applicationId,
-        status: 'uploading',
-        createTime: Date.now(),
-        updateTime: Date.now(),
-      })
-    }
-    else {
-      await db.fileMetas.update(meta.id!, {
-        uploadedChunks: Math.min(meta.totalChunks, meta.uploadedChunks + 1),
-        status: 'uploading',
-        updateTime: Date.now(),
-      })
+    if (!uploadedChunks.has(fileId)) {
+      uploadedChunks.set(fileId, new Set())
     }
 
-    return success({ uploaded: true })
-  }),
+    uploadedChunks.get(fileId)!.add(chunkIndex)
 
-  http.post('/api/files/merge', async ({ request }) => {
-    await mockDelay(200)
+    // 模拟网络延迟
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200))
 
-    const payload = await request.json() as { fileId: string }
-    const meta = await db.fileMetas.where('fileId').equals(payload.fileId).first()
-
-    if (!meta)
-      return failed('文件不存在', 404)
-
-    await db.fileMetas.update(meta.id!, {
-      uploadedChunks: meta.totalChunks,
-      status: 'completed',
-      updateTime: Date.now(),
-    })
-
-    return success({ success: true }, '分片合并成功')
-  }),
-
-  http.get('/api/files/:id/chunks', async ({ params }) => {
-    await mockDelay(120)
-
-    const fileId = String(params.id)
-    const chunks = await db.fileChunks.where('fileId').equals(fileId).toArray()
-
-    return success({
-      fileId,
-      uploadedChunks: chunks.map(item => item.chunkIndex).sort((a, b) => a - b),
+    return HttpResponse.json({
+      success: true,
+      chunkIndex,
+      message: `分片 ${chunkIndex + 1}/${totalChunks} 上传成功`,
     })
   }),
 
-  http.delete('/api/files/:id', async ({ params }) => {
-    await mockDelay(150)
+  // 合并分片
+  http.post('/api/files/upload/merge', async ({ request }) => {
+    const body = await request.json() as { fileId: string, totalChunks: number }
+    const { fileId, totalChunks } = body
 
-    const fileId = String(params.id)
-    await db.transaction('rw', db.fileChunks, db.fileMetas, async () => {
-      await db.fileChunks.where('fileId').equals(fileId).delete()
-      await db.fileMetas.where('fileId').equals(fileId).delete()
+    const chunks = uploadedChunks.get(fileId)
+    if (!chunks || chunks.size !== totalChunks) {
+      return HttpResponse.json(
+        {
+          success: false,
+          message: `分片不完整: ${chunks?.size || 0}/${totalChunks}`,
+        },
+        { status: 400 },
+      )
+    }
+
+    // 生成上传后的文件 ID
+    const uploadedFileId = `file-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    mergedFiles.set(fileId, uploadedFileId)
+
+    // 清理分片记录
+    uploadedChunks.delete(fileId)
+
+    // 模拟合并延迟
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    return HttpResponse.json({
+      success: true,
+      uploadedFileId,
+      fileUrl: `/uploads/${uploadedFileId}`,
     })
-
-    return success(null, '文件已删除')
   }),
 
-  http.get('/api/files/:id/download', async ({ params }) => {
-    await mockDelay(100)
-    const fileId = String(params.id)
+  // 删除文件
+  http.delete('/api/files/:fileId', async ({ params }) => {
+    const { fileId } = params
 
-    return success({
-      fileId,
-      url: `https://download.qtrans.demo/${fileId}`,
-      expiredAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    uploadedChunks.delete(fileId as string)
+    mergedFiles.delete(fileId as string)
+
+    return HttpResponse.json({
+      success: true,
     })
+  }),
+
+  // 获取文件列表
+  http.get('/api/files/list/:applicationId', async ({ params }) => {
+    const { applicationId } = params
+
+    // 返回模拟文件列表
+    return HttpResponse.json([
+      {
+        id: `file-1-${applicationId}`,
+        fileName: '测试文件.zip',
+        fileSize: 1024 * 1024 * 10,
+        uploadTime: Date.now() - 3600000,
+        status: 'completed',
+      },
+    ])
   }),
 ]

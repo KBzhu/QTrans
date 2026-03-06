@@ -1,0 +1,56 @@
+.detail-file-table {
+  &__name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__file-icon {
+    color: #155dfc;
+    font-size: 18px;
+  }
+
+  &__name {
+    color: #155dfc;
+    font-weight: 500;
+  }
+
+  &__sha {
+    color: #64748b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 13px;
+  }
+
+  &__action {
+    color: #64748b;
+    font-size: 16px;
+
+    &:hover {
+      color: #155dfc;
+    }
+  }
+
+  &__footer {
+    margin-top: 20px;
+  }
+
+  :deep(.arco-table-container) {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  :deep(.arco-table-th) {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  :deep(.arco-table-td) {
+    color: #1e293b;
+    font-size: 14px;
+  }
+}

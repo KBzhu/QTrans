@@ -12,6 +12,16 @@ The format is based on Keep a Changelog.
 - Figma 资源同步：`public/figma/3971_812/`（19 个 SVG 文件）。
 - 新增 `docs/diff/P6_Figma_Doc_Diff.md`：P6.1 Figma 与文档差异记录（7 项差异）。
 - 新增 `docs/exec/task_P6_exec.md`：P6 执行记录。
+- 完成 P6.4（首版）：新增申请单详情页 `src/views/application/ApplicationDetailView.vue` 与 `src/composables/useApplicationDetail.ts`，支持「申请单信息 / 文件列表」双 Tab、状态展示及按状态操作按钮。
+- 完成 P6.4（抽象复用）：新增通用详情组件 `src/components/business/detail/DetailInfoSection.vue`、`DetailFileTable.vue` 及独立样式文件，供后续审批单详情复用。
+- Figma 资源同步：`public/figma/3971_1904/`（9 个 SVG 文件）。
+- 新增 P6.4 快速上手文档 `docs/guides/P6_ApplicationDetail_quickStart.md`：覆盖页面入口、复用组件、开发验收与 QA 回归路径。
+- 完成 P8.1：新增待审批列表页面 `src/views/approvals/ApprovalListView.vue` + `src/composables/useApprovalList.ts` + `approval-list.scss`，实现 Tab 切换（待我审批/我已审批/全部审批）、筛选区域（申请单号、传输类型、申请人、申请时间）、数据表格（含审批层级标签）、分页功能。
+- 完成 P8.2 & P8.4：新增审批详情页面 `src/views/approvals/ApprovalDetailView.vue` + `src/composables/useApprovalDetail.ts` + `approval-detail.scss`，实现审批时间线组件 `ApprovalTimeline.vue`、复用 `DetailInfoSection` / `DetailFileTable`、支持通过/驳回/免审操作。
+- 完成 P8.3：实现审批操作完整逻辑，审批通过时判断是否为最后一级（根据 transferType），最后一级提示"已自动开始传输"，非最后一级提示"已通知下一级审批人"，操作成功后1.5秒自动跳转回审批列表。
+- 新增 P8 快速上手文档 `docs/guides/P8_quickStart.md`：覆盖审批详情、审批操作、审批时间线。
+- 完成 P7.1：新增通用文件上传组件 `src/components/business/FileUpload.vue` + `file-upload.scss`，支持拖拽上传、点击选择、文件列表展示（图标、名称、大小、进度、速度、状态）、文件操作（暂停/继续/重试/删除）、全局操作（全部暂停/继续/清空已完成）、并发控制（最多3个同时上传）。当前使用Mock上传逻辑，待P7.2完成后集成真实分片上传。
+
 
 ### Changed
 - P6.1 补齐：按 Figma 3830_3 补充绿区传出缺失的 2 个传输类型（绿区传到外网、绿区传到海思红区），绿区传出 Tab 现有 5 种类型。
@@ -19,8 +29,22 @@ The format is based on Keep a Changelog.
 - P6.1 补齐：渐变色对齐 Figma 3830_3（黄区 `#F2B313→#EE7214`、红区 `#FF6900→#FB2C36`），新增外网渐变 `#2B7FFF→#00BBA7`、海思红区渐变 `#AD46FF→#F6339A`。
 - P6.1 补齐：网格布局从 3 列调整为 5 列（≥1400px），新增 1400px 响应式断点。
 - 更新 `src/router/routes.ts`：新增 `/application/select-type`（选择传输类型）和 `/application/create`（创建申请单）路由。
+- 更新 `src/router/routes.ts`：新增 `/application/:id`（申请单详情）路由。
+- 更新 `src/views/application/ApplicationListView.vue`：查看动作改为跳转申请单详情页。
+- 更新 `src/router/routes.ts`：新增 `/approvals/:id`（审批详情）路由，更新 `/approvals` 路由指向 `ApprovalListView.vue`。
+- 更新 `src/api/approval.ts`、`src/stores/approval.ts`、`src/mocks/handlers/approval.ts`：新增审批历史查询链路 `GET /approvals/:id/history`。
+- 删除审批管理旧占位文件：`src/views/approvals/index.vue` 与 `approval-index.scss`，已被列表页替代。
+- 更新 `docs/tasks/task_P8.md`：勾选 P8.1（待审批列表）、P8.2（审批详情）、P8.3（审批操作）、P8.4（审批时间线）已完成项，P8 模块全部完成。
+- 更新 `src/composables/useApprovalDetail.ts`：新增 `isLastLevel` 方法判断审批层级，审批通过后根据是否最后一级展示不同提示信息，操作成功后1.5秒自动跳转回审批列表。
+- 更新 `src/mocks/handlers/approval.ts`：实现审批层级判断逻辑，审批通过时若非最后一级则 `currentApprovalLevel + 1` 并保持 `pending_approval` 状态，最后一级则状态改为 `approved`。
+- 更新 `docs/tasks/task_P7.md`：勾选 P7.1（文件上传组件）已完成项。
+
+
+### Fixed
+- 修复“我的申请单”页首刷后删除/撤回弹框样式异常问题：在 `src/main.ts` 全局补充引入 `@arco-design/web-vue/es/modal/style/css.js` 与 `@arco-design/web-vue/es/message/style/css.js`，确保 `Modal.*` / `Message` 首次触发即可正确渲染。
 
 ### Added
+
 - 完成 P5.1：新增登录页面 `src/views/auth/LoginView.vue`，按 Figma 3971_1023 还原（居中卡片 + Logo + 渐变标题 + Arco 表单 + Demo 快速体验表格）。
 - 完成 P5.1：新增独立样式文件 `src/views/auth/login.scss`，复用 mixin。
 - 完成 P5.2：新增 `src/composables/useLogin.ts`（表单校验 / 登录 / 快速登录 / 记住我 / 角色跳转）。
@@ -68,6 +92,14 @@ The format is based on Keep a Changelog.
 - 修复 P6.2 Step1 国家/城市校验残留问题：补充 `a-cascader` 返回值归一化逻辑（兼容 string/number/array），避免有效选择被错误置空后重复触发“请选择源国家/城市”。
 - 修复 P6.2 Step2 按钮图标未渲染：`StepTwoUploadFile.vue` 显式引入 Arco Icon 组件并替换 `icon-*` 标签，恢复上传按钮与表格操作列按钮图标显示。
 - 修复 P6.2 Step3 视觉问题：成功态图标改为 `3.svg + 4.svg` 叠加显示对号；步骤条 `current` 改为 `currentStep + 1` 并补齐 `finish/process/active` 高亮；成功页底部按钮样式对齐 Figma（圆角、字体、色值与宽度）。
+- 完成 P6.3 申请单列表页面：新增 `ApplicationListView.vue` + `useApplicationList.ts` + `application-list.scss`，实现搜索/状态筛选/高级筛选（时间范围）/表格分页/状态标签/草稿编辑删除与待审批撤回，并接入 Figma `3961_3234` 资源（复制 33 个 SVG 到 `public/figma/3961_3234/`）。
+- 新增 P6.3 快速上手文档 `docs/guides/P6_ApplicationList_quickStart.md`：覆盖入口路由、筛选/分页/导出/操作行为、代码结构与扩展点。
+- 修复 P6.3 申请单列表页问题：增加历史草稿字段归一化（兼容 string/array）避免 `sourceCity.join` 报错；补充申请原因/下载人/城市字段的空值兜底显示；操作列由文字按钮改为 Figma 图标按钮并对齐样式。
+- 修复 P6.3 操作列可用性：为查看/编辑/删除/撤回按钮补充悬浮提示（tooltip）；将高保真缺失或重复语义图标替换为 Arco Icon（`IconEye`/`IconEdit`/`IconDelete`/`IconUndo`），提升可辨识度。
+
+
+
+
 
 
 

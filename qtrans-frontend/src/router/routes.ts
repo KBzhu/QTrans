@@ -64,15 +64,16 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/applications',
     name: 'ApplicationList',
-    component: () => import('@/views/applications/index.vue'),
+    component: () => import('@/views/application/ApplicationListView.vue'),
     meta: {
-      title: '申请单管理',
+      title: '我的申请单',
       icon: 'icon-file',
       layout: 'default',
       requiresAuth: true,
       roles: authRoles,
     } as AppRouteMeta,
   },
+
   {
     path: '/application/select-type',
     name: 'SelectType',
@@ -99,11 +100,25 @@ export const routes: RouteRecordRaw[] = [
       hidden: true,
     } as AppRouteMeta,
   },
+  {
+    path: '/application/:id',
+    name: 'ApplicationDetail',
+    component: () => import('@/views/application/ApplicationDetailView.vue'),
+    meta: {
+      title: '申请详情',
+      icon: 'icon-file',
+      layout: 'default',
+      requiresAuth: true,
+      roles: authRoles,
+      hidden: true,
+    } as AppRouteMeta,
+  },
+
 
   {
     path: '/approvals',
     name: 'ApprovalList',
-    component: () => import('@/views/approvals/index.vue'),
+    component: () => import('@/views/approvals/ApprovalListView.vue'),
     meta: {
       title: '审批管理',
       icon: 'icon-check-circle',
@@ -112,6 +127,20 @@ export const routes: RouteRecordRaw[] = [
       roles: approverRoles,
     } as AppRouteMeta,
   },
+  {
+    path: '/approvals/:id',
+    name: 'ApprovalDetail',
+    component: () => import('@/views/approvals/ApprovalDetailView.vue'),
+    meta: {
+      title: '审批详情',
+      icon: 'icon-file',
+      layout: 'default',
+      requiresAuth: true,
+      roles: approverRoles,
+      hidden: true,
+    } as AppRouteMeta,
+  },
+
   {
     path: '/transfers',
     name: 'TransferList',
