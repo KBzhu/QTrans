@@ -221,7 +221,65 @@
   - 从 Mock 数据加载用户列表（`userApi.search(keyword)`）
   - 选项展示：用户名 + 姓名 + 部门
 
+### P6.7 待我下载页面（4h）
+
+- [√] 创建 `src/views/download/DownloadListView.vue`
+
+  - 页面标题：「待我下载」
+  - 页面布局按 Figma `4088_301`：
+    - 顶部筛选区（搜索框 + 状态筛选 + 下载状态筛选）
+    - 列表区（表格）
+    - 底部分页与记录统计
+  - 表格列：序号、申请单号、申请类型、文件数、状态、申请人、申请原因、创建时间、结束时间、操作
+  - 操作列：查看详情、下载文件
+  - 空状态：无记录时展示空态引导
+
+- [√] 创建 `src/composables/useDownloadList.ts`
+
+  - `listData` - 待我下载列表数据
+  - `loading` - 加载状态
+  - `filters` - 搜索条件（keyword/status/downloadStatus）
+  - `pagination` - 分页参数
+  - `fetchList()` - 获取列表数据
+  - `handleSearch()` - 搜索
+  - `handleReset()` - 重置筛选
+  - `handlePageChange()` - 翻页
+  - `handleDownload(applicationId)` - 触发下载行为
+
+- [√] 路由与菜单接入
+
+  - 新增路由：`/downloads/pending`
+  - 侧边栏「个人工作台」下新增菜单「待我下载」
+  - 菜单可见性：仅对“被选为下载人”的用户显示对应数据
+
+- [√] 数据权限与筛选规则（详细设计）
+
+  - 数据来源：申请单数据 + 文件元数据
+  - 可见性规则：`application.downloaders` 包含当前登录用户时，该申请单出现在“待我下载”
+  - 状态筛选：审批状态（全部状态/已批准/传输中/已完成等）
+  - 下载状态筛选：全部下载状态/未下载/部分下载/已下载
+  - 列表默认按 `createdAt` 倒序
+
+- [√] 下载状态模型设计（前端 Mock 阶段）
+
+  - 在下载侧建立 `downloadRecords`（可放 Pinia + localStorage/IndexedDB）
+  - 记录维度：`applicationId + fileId + userId`
+  - 状态定义：
+    - `not_started`：未下载
+    - `partial`：部分下载（多文件时）
+    - `completed`：已下载
+  - 聚合规则：
+    - 0/总数 => 未下载
+    - (0, 总数) => 部分下载
+    - 总数/总数 => 已下载
+
+- [√] 样式文件 `src/views/download/download-list.scss`
+
+  - 卡片容器、筛选栏、表格、分页区样式
+  - 与现有列表页视觉规范保持一致（玻璃态 + 圆角 + 轻阴影）
+
 ---
+
 
 ## 技术要点
 
@@ -312,6 +370,10 @@ onBeforeRouteLeave((to, from, next) => {
 6. 选择器组件：
    - 部门树、城市级联、用户搜索均正常
    - v-model 双向绑定正常
+7. 待我下载页面：
+   - 仅展示当前用户为下载人的申请单
+   - 支持关键词、审批状态、下载状态筛选
+   - 支持查看详情与下载操作
 
 ---
 
@@ -319,6 +381,8 @@ onBeforeRouteLeave((to, from, next) => {
 
 - `useApplicationForm.ts`：测试表单校验、步骤切换、草稿保存
 - `useApplicationList.ts`：测试列表加载、筛选、分页
+- `useDownloadList.ts`：测试下载人可见性过滤、下载状态聚合、筛选与分页
 - `DepartmentSelector.vue`：测试部门树加载、选择
 - `CitySelector.vue`：测试城市级联加载、选择
 - `UserSelector.vue`：测试用户搜索、多选
+

@@ -56,9 +56,53 @@
 
 ---
 
-## 5. 建议的下一步优先级
+## 5. 未完成功能明细（按任务拆分）
+
+### P2（Mock 与数据层）
+
+- [ ] 登录/申请单/审批接口联调通过
+- [ ] 文件分片写入 IndexedDB、断点续传复现场景稳定通过
+
+### P6（申请单模块）
+
+- [ ] 文档层面未勾选项需与实际代码对齐（如 `useApplicationForm`、`ApplicationDetailView`、`useApplicationDetail` 等）
+- [ ] 草稿箱页面 `DraftListView.vue` 与批量草稿管理能力
+- [ ] 选择器组件任务文档仍未收口（`DepartmentSelector`、`CitySelector`、`UserSelector`）
+- [ ] “待我下载”页面尚未纳入任务清单（本次已补充设计到 `task_P6.md`）
+
+### P7（文件管理）
+
+- [ ] `FilePreview.vue` 组件
+- [ ] `FileList.vue` 集成预览能力
+- [ ] 预览相关工具能力补全（按任务要求）
+
+### P9（传输模块）
+
+- [ ] `TransferProgress.vue` + 样式
+- [ ] `useTransferSimulator.ts` 及 File Store 传输状态集成
+- [ ] `TransferManageView.vue` + `useTransferManage.ts` + 样式
+
+### P10（辅助模块）
+
+- [ ] Dashboard（页面 + composable + 样式）
+- [ ] 个人中心（页面 + composable + 样式）
+- [ ] 消息中心（页面 + composable + 样式）
+- [ ] 用户管理（页面/弹窗 + composable + 样式）
+- [ ] 系统配置（页面 + composable + 样式）
+- [ ] 日志审计（页面 + composable + 样式）
+
+### P11（测试与优化）
+
+- [ ] 测试环境配置与分层测试（utils/store/composables/components/views）
+- [ ] 性能优化项（路由懒加载、虚拟滚动、构建分包、资源优化）
+- [ ] 文档完善项（任务总表状态同步、关键注释补齐等）
+
+---
+
+## 6. 建议的下一步优先级
 
 1. **优先补齐文件下载闭环**：二进制落 IndexedDB + 分片重组下载（解决刷新后真实下载）。
 2. **同步任务勾选状态**：对齐 docs/tasks 与实际代码，避免进度认知偏差。
 3. **推进 P9**：完成传输进度组件、模拟器集成、传输管理页面。
 4. **补 P11 核心测试**：优先覆盖 `src/utils/*`、`file/application` 关键链路。
+

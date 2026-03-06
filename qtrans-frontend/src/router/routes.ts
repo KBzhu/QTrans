@@ -73,6 +73,18 @@ export const routes: RouteRecordRaw[] = [
       roles: authRoles,
     } as AppRouteMeta,
   },
+  {
+    path: '/downloads/pending',
+    name: 'PendingDownloads',
+    component: () => import('@/views/download/DownloadListView.vue'),
+    meta: {
+      title: '待我下载',
+      icon: 'icon-download',
+      layout: 'default',
+      requiresAuth: true,
+      roles: authRoles,
+    } as AppRouteMeta,
+  },
 
   {
     path: '/application/select-type',

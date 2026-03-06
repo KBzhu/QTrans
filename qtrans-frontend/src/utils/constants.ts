@@ -53,5 +53,6 @@ export const STORAGE_KEYS = {
   DRAFTS: 'qtrans:application:drafts',
   APPLICATIONS: 'qtrans:application:list',
   FILE_METAS: 'qtrans:file:metas',
+  DOWNLOAD_RECORDS: 'qtrans:download:records',
   NOTIFICATIONS: 'qtrans:notification:list',
 } as const

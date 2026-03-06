@@ -1,0 +1,161 @@
+.download-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.download-list-page__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 400;
+  color: #1e293b;
+}
+
+.download-filter-card,
+.download-table-card {
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  background: rgb(255 255 255 / 30%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%), 0 1px 2px -1px rgb(0 0 0 / 10%);
+}
+
+.download-filter-card {
+  padding: 20px;
+}
+
+.download-filter-card__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px 160px 84px;
+  gap: 12px;
+  align-items: center;
+}
+
+.filter-keyword,
+.filter-select,
+.filter-reset-btn {
+  height: 36px;
+}
+
+.download-table-card {
+  overflow: hidden;
+}
+
+.download-table-card__table-wrap {
+  overflow-x: auto;
+}
+
+.download-table-card :is(.arco-table-th) {
+  background: rgb(203 213 225 / 10%);
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.download-table-card :is(.arco-table-td) {
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.download-table-card :is(.arco-table-tr) {
+  background: rgb(255 255 255 / 50%);
+}
+
+.application-no-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #155dfc;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.application-no-link:hover {
+  text-decoration: underline;
+}
+
+.download-status-tag {
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 20px;
+  padding: 2px 10px;
+}
+
+.download-status-tag--pending_upload,
+.download-status-tag--pending_approval {
+  background: #fffbeb;
+  border-color: #ffd230;
+  color: #bb4d00;
+}
+
+.download-status-tag--approved,
+.download-status-tag--completed {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.download-status-tag--rejected {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.download-status-tag--transferring {
+  background: #eff6ff;
+  border-color: #8ec5ff;
+  color: #1447e6;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  .table-action-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 10px;
+
+    .arco-icon {
+      font-size: 16px;
+    }
+  }
+}
+
+.download-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.download-table-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid #cbd5e1;
+  background: rgb(255 255 255 / 50%);
+}
+
+.download-table-card__summary {
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 1024px) {
+  .download-filter-card__main {
+    grid-template-columns: 1fr;
+  }
+
+  .download-table-card__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

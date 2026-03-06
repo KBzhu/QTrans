@@ -7,8 +7,12 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
-- **单元测试**: 运行 P6、P7、P8 全部单元测试，13 个测试文件 49 个测试用例全部通过。
-- **覆盖率报告**: 生成覆盖率报告 `coverage/coverage-report-P6-P7-P8.md`，P6 平均覆盖率 ~90%，P7 ~52%（需补充 useFileUpload 测试），P8 ~46%。
+- **P6.7 待我下载**: 新增页面 `src/views/download/DownloadListView.vue` 与样式 `src/views/download/download-list.scss`，基于 Figma `4088_301` 实现标题、筛选、列表、分页与操作区。
+- **P6.7 下载逻辑**: 新增 `src/composables/useDownloadList.ts`，支持下载人可见性过滤、下载状态聚合（未下载/部分下载/已下载）、分页筛选与批量触发应用文件下载。
+- **P6.7 单元测试**: 新增 `src/composables/__tests__/useDownloadList.spec.ts`，覆盖默认状态、可见性过滤、下载状态聚合与筛选重置。
+- **单元测试**: 运行 `pnpm test:coverage`，14 个测试文件 53 个测试用例全部通过。
+- **覆盖率报告**: 本次全量覆盖率执行通过（v8），并完成 `useDownloadList.spec.ts` 覆盖率校验。
+
 - **测试修复**: 修复 `useApprovalDetail.spec.ts` 测试代码，补充 `transferTypeLabel` 返回值。
 - **测试修复**: 修复 `guards.spec.ts` 避免加载含 SVG 引用的真实组件。
 - **Bug 修复**: 修复申请详情页文件列表显示问题，`useApplicationDetail.ts` 现在从 `fileStore.getFilesByApplicationId()` 获取真实上传的文件。
@@ -48,6 +52,8 @@ The format is based on Keep a Changelog.
 
 ### Fixed
 - 修复“我的申请单”页首刷后删除/撤回弹框样式异常问题：在 `src/main.ts` 全局补充引入 `@arco-design/web-vue/es/modal/style/css.js` 与 `@arco-design/web-vue/es/message/style/css.js`，确保 `Modal.*` / `Message` 首次触发即可正确渲染。
+- 修复 `src/components/business/__tests__/FileUpload.spec.ts` 未初始化 Pinia 导致 `pnpm test:coverage` 失败的问题，在 `beforeEach` 中补充 `setActivePinia(createPinia())`。
+
 
 ### Added
 

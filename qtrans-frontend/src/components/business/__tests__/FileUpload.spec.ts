@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import FileUpload from '../FileUpload.vue'
 import { formatFileSize } from '@/utils/format'
 
+
 describe('FileUpload.vue', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
   })
+
 
   it('renders upload zone correctly', () => {
     const wrapper = mount(FileUpload, {
