@@ -1,9 +1,9 @@
-import type { Application, ApplicationStatus, DetailFieldItem, DetailFileItem, TransferType } from '@/types'
+import type { Application, ApplicationStatus, DetailFieldItem, DetailFileItem, FileInfo, TransferType } from '@/types'
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useApplicationStore } from '@/stores'
+import { useApplicationStore, useFileStore } from '@/stores'
 
 const transferTypeLabelMap: Record<TransferType, string> = {
   'green-to-green': '绿区传到绿区',
@@ -32,7 +32,17 @@ function toArrayText(value: unknown, separator = ' / ') {
   return String(value || '')
 }
 
-function buildFileList(record: Application): DetailFileItem[] {
+function fileInfoToDetailFileItem(fileInfo: FileInfo): DetailFileItem {
+  return {
+    id: fileInfo.id,
+    fileName: fileInfo.fileName,
+    fileSize: fileInfo.fileSize,
+    uploadedAt: fileInfo.uploadedAt || new Date().toISOString(),
+    sha256: `sha256_${fileInfo.id.slice(-16)}`, // 实际项目中应从后端获取真实 sha256
+  }
+}
+
+function buildMockFileList(record: Application): DetailFileItem[] {
   const size = Math.max(1024 * 1024, Math.round((record.storageSize || 1) * 1024 * 0.38))
 
   return [
@@ -43,12 +53,20 @@ function buildFileList(record: Application): DetailFileItem[] {
       uploadedAt: record.updatedAt || record.createdAt,
       sha256: `89abc123def456ghi789jkl012mno345p${record.id.slice(-2)}`,
     },
+        {
+      id: `${record.id}-file-2`,
+      fileName: '审批附件汇总.zip',
+      fileSize: size,
+      uploadedAt: record.updatedAt || record.createdAt,
+      sha256: `89abc1212343456ghi789jkl012mno345p${record.id.slice(-2)}`,
+    },
   ]
 }
 
 export function useApplicationDetail() {
   const router = useRouter()
   const applicationStore = useApplicationStore()
+  const fileStore = useFileStore()
 
   const loading = ref(false)
   const detailData = ref<Application | null>(null)
@@ -106,7 +124,15 @@ export function useApplicationDetail() {
   const files = computed<DetailFileItem[]>(() => {
     if (!detailData.value)
       return []
-    return buildFileList(detailData.value)
+
+    // 优先从 fileStore 获取真实上传的文件
+    const realFiles = fileStore.getFilesByApplicationId(detailData.value.id)
+    if (realFiles.length > 0) {
+      return realFiles.map(fileInfoToDetailFileItem)
+    }
+
+    // 如果没有真实文件，返回模拟数据（用于演示）
+    return buildMockFileList(detailData.value)
   })
 
   async function fetchDetail(id: string) {

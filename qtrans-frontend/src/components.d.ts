@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AAlert: typeof import('@arco-design/web-vue')['Alert']
     AButton: typeof import('@arco-design/web-vue')['Button']
+    ACard: typeof import('@arco-design/web-vue')['Card']
     ACascader: typeof import('@arco-design/web-vue')['Cascader']
     ACheckbox: typeof import('@arco-design/web-vue')['Checkbox']
     ACheckboxGroup: typeof import('@arco-design/web-vue')['CheckboxGroup']
@@ -48,6 +49,7 @@ declare module 'vue' {
     ATypographyParagraph: typeof import('@arco-design/web-vue')['TypographyParagraph']
     DetailFileTable: typeof import('./components/business/detail/DetailFileTable.vue')['default']
     DetailInfoSection: typeof import('./components/business/detail/DetailInfoSection.vue')['default']
+    FileList: typeof import('./components/business/FileList.vue')['default']
     FileUpload: typeof import('./components/business/FileUpload.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     PageContainer: typeof import('./components/common/PageContainer.vue')['default']

@@ -263,6 +263,7 @@ export function useApprovalDetail() {
     approvalOpinion,
     approvalRecords,
     statusLabel,
+    transferTypeLabel,
     basicInfoRows,
     applicationInfoRows,
     files,

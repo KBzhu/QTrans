@@ -4,6 +4,8 @@ import { Message } from '@arco-design/web-vue'
 import { computed, ref } from 'vue'
 import { formatFileSize } from '@/utils/format'
 import { MAX_CONCURRENT_UPLOADS, MAX_FILE_SIZE } from '@/utils/constants'
+import { useFileStore } from '@/stores'
+import { useFileUpload, generateFileId } from '@/composables/useFileUpload'
 import './file-upload.scss'
 
 interface Props {
@@ -29,6 +31,9 @@ interface Emits {
 }
 
 const emit = defineEmits<Emits>()
+
+const fileStore = useFileStore()
+const { uploadFile: uploadFileReal } = useFileUpload()
 
 type FileStatus = 'pending' | 'uploading' | 'completed' | 'failed' | 'paused'
 
@@ -99,7 +104,7 @@ function getStatusColor(status: FileStatus): string {
   return colorMap[status]
 }
 
-function handleFileSelect(files: FileList | null) {
+async function handleFileSelect(files: FileList | null) {
   if (!files || files.length === 0)
     return
 
@@ -132,52 +137,76 @@ function handleFileSelect(files: FileList | null) {
   }
 
   // 自动开始上传
-  startPendingUploads()
+  await startPendingUploads()
 }
 
-function startPendingUploads() {
+async function startPendingUploads() {
   const pendingFiles = fileList.value.filter(item => item.status === 'pending')
 
   for (const item of pendingFiles) {
     if (uploadingCount.value >= MAX_CONCURRENT_UPLOADS)
       break
 
-    uploadFile(item)
+    await uploadFile(item)
   }
 }
 
-// Mock 上传函数（P7.2 完成后替换为真实的分片上传）
-function uploadFile(item: UploadFileItem) {
+// 真实上传函数（使用分片上传）
+async function uploadFile(item: UploadFileItem) {
+  if (!props.applicationId) {
+    Message.error('缺少申请单ID，无法上传')
+    return
+  }
+
   item.status = 'uploading'
   item.progress = 0
   item.speed = 0
 
-  const startTime = Date.now()
-  const fileSize = item.file.size
-  const duration = Math.max(2000, Math.min(10000, fileSize / 1024 / 100)) // 模拟上传时间
+  try {
+    const fileId = await uploadFileReal(
+      item.file,
+      props.applicationId,
+      (progress) => {
+        item.progress = Math.floor(progress.progress)
+        item.speed = progress.speed
+      },
+    )
 
-  const interval = setInterval(() => {
-    const elapsed = Date.now() - startTime
-    const progress = Math.min(100, (elapsed / duration) * 100)
-    item.progress = Math.floor(progress)
-    item.speed = (fileSize * progress / 100) / (elapsed / 1000)
+    // 上传成功，存入 fileStore
+    item.status = 'completed'
+    item.progress = 100
+    item.speed = 0
 
-    if (progress >= 100) {
-      clearInterval(interval)
-      item.status = 'completed'
-      item.progress = 100
-      item.speed = 0
-      emit('upload-success', item.file, item.id)
+    // 将文件信息存入 fileStore，这样申请详情页可以看到
+    fileStore.addFile({
+      id: fileId,
+      applicationId: props.applicationId,
+      fileName: item.file.name,
+      fileSize: item.file.size,
+      fileType: item.file.type || 'application/octet-stream',
+      uploadStatus: 'completed',
+      uploadProgress: 100,
+      uploadedAt: new Date().toISOString(),
+    })
 
-      // 检查是否所有文件都已完成
-      if (fileList.value.every(f => f.status === 'completed' || f.status === 'failed')) {
-        emit('all-uploaded')
-      }
+    emit('upload-success', item.file, fileId)
 
-      // 继续上传下一个待上传文件
-      startPendingUploads()
+    // 检查是否所有文件都已完成
+    if (fileList.value.every(f => f.status === 'completed' || f.status === 'failed')) {
+      emit('all-uploaded')
     }
-  }, 100)
+
+    // 继续上传下一个待上传文件
+    startPendingUploads()
+  }
+  catch (error: any) {
+    item.status = 'failed'
+    item.error = error.message || '上传失败'
+    Message.error(`${item.file.name} 上传失败: ${item.error}`)
+
+    // 继续上传下一个待上传文件
+    startPendingUploads()
+  }
 }
 
 function handlePause(item: UploadFileItem) {
@@ -188,18 +217,20 @@ function handlePause(item: UploadFileItem) {
   }
 }
 
-function handleResume(item: UploadFileItem) {
+async function handleResume(item: UploadFileItem) {
   if (item.status === 'paused') {
-    uploadFile(item)
+    item.status = 'pending'
     Message.info(`继续上传 ${item.file.name}`)
+    await uploadFile(item)
   }
 }
 
-function handleRetry(item: UploadFileItem) {
+async function handleRetry(item: UploadFileItem) {
   if (item.status === 'failed') {
     item.error = undefined
-    uploadFile(item)
+    item.status = 'pending'
     Message.info(`重试上传 ${item.file.name}`)
+    await uploadFile(item)
   }
 }
 
@@ -235,13 +266,13 @@ function handleClearCompleted() {
   }
 }
 
-function handleDrop(e: DragEvent) {
+async function handleDrop(e: DragEvent) {
   e.preventDefault()
   if (props.disabled)
     return
 
   const files = e.dataTransfer?.files || null
-  handleFileSelect(files)
+  await handleFileSelect(files)
 }
 
 function handleDragOver(e: DragEvent) {
@@ -253,9 +284,9 @@ function handleClickUpload() {
   input.type = 'file'
   input.multiple = true
   input.accept = props.accept
-  input.onchange = (e) => {
+  input.onchange = async (e) => {
     const target = e.target as HTMLInputElement
-    handleFileSelect(target.files)
+    await handleFileSelect(target.files)
   }
   input.click()
 }

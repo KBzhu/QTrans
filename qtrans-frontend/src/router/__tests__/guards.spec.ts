@@ -1,9 +1,38 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { setupRouterGuards } from '@/router/guards'
-import { routes } from '@/router/routes'
 import { useAuthStore } from '@/stores'
+
+// 使用简单的模拟组件，避免加载包含SVG引用的真实组件
+const MockComponent = { template: '<div>Mock</div>' }
+
+const mockRoutes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: MockComponent,
+    meta: { title: '登录', layout: 'blank', requiresAuth: false },
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: MockComponent,
+    meta: { title: '首页', layout: 'default', requiresAuth: true },
+  },
+  {
+    path: '/users',
+    name: 'UserList',
+    component: MockComponent,
+    meta: { title: '用户管理', layout: 'default', requiresAuth: true, roles: ['admin'] },
+  },
+  {
+    path: '/403',
+    name: 'Forbidden',
+    component: MockComponent,
+    meta: { title: '无权限', layout: 'blank', requiresAuth: false },
+  },
+]
 
 describe('RouterGuards', () => {
   beforeEach(() => {
@@ -11,10 +40,14 @@ describe('RouterGuards', () => {
     setActivePinia(createPinia())
   })
 
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('redirects to login when not authenticated', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
-      routes,
+      routes: mockRoutes,
     })
 
     setupRouterGuards(router)
@@ -26,7 +59,7 @@ describe('RouterGuards', () => {
   it('redirects to 403 when role not allowed', async () => {
     const router = createRouter({
       history: createMemoryHistory(),
-      routes,
+      routes: mockRoutes,
     })
 
     setupRouterGuards(router)

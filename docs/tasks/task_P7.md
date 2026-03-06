@@ -72,14 +72,15 @@
 
 ### P7.3 断点续传实现（3h）
 
-- [ ] 在 `useFileUpload.ts` 中实现断点续传核心逻辑：
+- [√] 在 `useFileUpload.ts` 中实现断点续传核心逻辑：
   - **分片记录**：每片上传成功后立即写入 IndexedDB
     ```typescript
     await db.fileChunks.add({
       fileId,
       chunkIndex,
+      chunkHash: '',
+      uploadTime: Date.now(),
       size: chunkBlob.size,
-      uploadedAt: Date.now()
     })
     ```
   - **续传检测**：上传前检查 IndexedDB 中已存在的分片
@@ -91,17 +92,17 @@
     ```
   - **跳过已完成分片**：遍历时跳过 `uploadedIndexes` 中的分片
   - **进度恢复**：初始进度 = 已上传分片数 / 总分片数 * 100
-- [ ] 文件 Meta 管理（`db.fileMetas`）：
+- [√] 文件 Meta 管理（`db.fileMetas`）：
   - 上传开始时，写入文件 Meta（fileId, fileName, fileSize, applicationId, totalChunks, status）
   - 上传完成时，更新 Meta status 为 `'completed'`
-  - 上传失败/取消时，更新 Meta status 为 `'error'`/'`cancelled`'
-- [ ] 演示断点续传的 Demo 辅助：
+  - 上传失败/取消时，更新 Meta status 为 `'failed'`/`'cancelled'`
+- [√] 演示断点续传的 Demo 辅助：
   - 在 `FileUpload.vue` 中增加「模拟断点」按钮（仅开发模式），点击后随机暂停当前上传
-  - 重新上传时自动从断点处继续
+  - 重新上传时自动从断点处继续（已通过 pauseUpload/resumeUpload 实现）
 
 ### P7.4 文件列表组件（2h）
 
-- [ ] 创建 `src/components/business/FileList.vue`
+- [√] 创建 `src/components/business/FileList.vue`
   - Props：
     - `applicationId: string` - 申请单 ID
     - `mode: 'upload' | 'download' | 'view'` - 模式
@@ -114,6 +115,7 @@
       - view 模式：预览（支持的格式）
   - 文件总大小统计：列表底部展示「共 N 个文件，总大小 X.X GB」
   - 空状态：无文件时展示上传引导
+- [√] 创建 `src/components/business/file-list.scss`
 
 ### P7.5 文件预览功能（2h）
 

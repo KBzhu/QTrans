@@ -39,4 +39,40 @@
 
 ## 执行结果
 
-待完成...
+### 已完成产出
+
+1. **API 层** (`src/api/file.ts`)
+   - `uploadChunk` - 上传单个分片
+   - `mergeChunks` - 合并所有分片
+   - `deleteFile` - 删除文件
+   - `getFileList` - 获取文件列表
+
+2. **Composable** (`src/composables/useFileUpload.ts`)
+   - `uploadFile` - 主上传方法，支持断点续传
+   - `pauseUpload` - 暂停上传
+   - `resumeUpload` - 继续上传
+   - `cancelUpload` - 取消并清理
+   - `getUploadProgress` - 获取进度
+   - `customRequest` - ArcoDesign Upload 组件适配
+
+3. **MSW Mock** (`src/mocks/handlers/file.ts`)
+   - 模拟分片上传接口
+   - 模拟分片合并接口
+   - 模拟文件删除和列表接口
+
+### 核心特性
+
+- ✅ 文件分片：5MB 每片
+- ✅ 断点续传：基于 IndexedDB 记录已上传分片
+- ✅ 进度追踪：实时计算上传进度和速度
+- ✅ 暂停/继续：使用 AbortController 控制请求
+- ✅ 取消上传：清理 IndexedDB 数据
+- ✅ 错误处理：失败自动更新状态
+
+### 待完成
+
+- 单元测试编写（需后续在可运行环境中验证）
+
+### 验收结果
+
+核心功能已实现，代码通过 ESLint 检查，无语法错误。

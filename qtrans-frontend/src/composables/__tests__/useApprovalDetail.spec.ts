@@ -44,14 +44,14 @@ describe('useApprovalDetail', () => {
   })
 
   it('computes transfer type label correctly', () => {
-    const { detailData, transferTypeLabel } = useApprovalDetail()
+    const result = useApprovalDetail()
 
-    detailData.value = {
+    result.detailData.value = {
       id: 'app-1',
       transferType: 'green-to-red',
     } as Application
 
-    expect(transferTypeLabel.value).toBe('绿区传到红区')
+    expect(result.transferTypeLabel.value).toBe('绿区传到红区')
   })
 
   it('computes approval levels correctly for different transfer types', () => {

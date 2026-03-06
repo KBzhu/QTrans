@@ -7,6 +7,12 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- **单元测试**: 运行 P6、P7、P8 全部单元测试，13 个测试文件 49 个测试用例全部通过。
+- **覆盖率报告**: 生成覆盖率报告 `coverage/coverage-report-P6-P7-P8.md`，P6 平均覆盖率 ~90%，P7 ~52%（需补充 useFileUpload 测试），P8 ~46%。
+- **测试修复**: 修复 `useApprovalDetail.spec.ts` 测试代码，补充 `transferTypeLabel` 返回值。
+- **测试修复**: 修复 `guards.spec.ts` 避免加载含 SVG 引用的真实组件。
+- **Bug 修复**: 修复申请详情页文件列表显示问题，`useApplicationDetail.ts` 现在从 `fileStore.getFilesByApplicationId()` 获取真实上传的文件。
+- **Bug 修复**: 修复 `FileUpload.vue` 使用 Mock 上传的问题，现在使用真实的 `useFileUpload` 分片上传，并在上传成功后通过 `fileStore.addFile()` 将文件信息存入 Store。
 - 完成 P6.1：新增选择传输类型页面 `src/views/application/SelectTypeView.vue`，按 Figma 3971_812 还原（Tab 分组 + 传输类型卡片 + 安全域渐变图标 + 审批层级标签 + hover 上浮效果）。
 - 完成 P6.1：新增独立样式文件 `src/views/application/select-type.scss`，玻璃拟态卡片 + 响应式 3→2→1 列布局。
 - Figma 资源同步：`public/figma/3971_812/`（19 个 SVG 文件）。
@@ -113,6 +119,18 @@ The format is based on Keep a Changelog.
 
 
 
+
+## [2026-03-05]
+
+### Added
+- 完成 P7.2 文件分片上传逻辑：新增 `useFileUpload` composable，实现基于 IndexedDB 的断点续传、暂停/继续/取消功能，支持 5MB 分片上传，集成 AbortController 请求控制和实时进度追踪。
+- 完成 P7.3 断点续传实现：基于 IndexedDB 的分片记录机制，上传前自动检测已上传分片并跳过，恢复上传进度，支持暂停后继续、关闭浏览器后恢复上传。
+- 完成 P7.4 文件列表组件：新增 `FileList.vue`，支持 upload/download/view 三种模式，展示文件名、大小、上传时间、状态，提供删除/下载/预览操作，底部统计文件总数和总大小。
+- 新增文件上传 API (`src/api/file.ts`)：uploadChunk（分片上传）、mergeChunks（分片合并）、deleteFile（删除文件）、getFileList（文件列表）。
+- 新增 MSW 文件上传 Mock Handlers (`src/mocks/handlers/file.ts`)：模拟分片上传、合并、删除和列表查询接口。
+
+### Changed
+- 更新 `src/api/index.ts`：导出 file API 模块。
 
 ## [2026-03-04]
 
