@@ -12,6 +12,10 @@ The format is based on Keep a Changelog.
 - **P6.7 单元测试**: 新增 `src/composables/__tests__/useDownloadList.spec.ts`，覆盖默认状态、可见性过滤、下载状态聚合与筛选重置。
 - **单元测试**: 运行 `pnpm test:coverage`，14 个测试文件 53 个测试用例全部通过。
 - **覆盖率报告**: 本次全量覆盖率执行通过（v8），并完成 `useDownloadList.spec.ts` 覆盖率校验。
+- **工时统计模板**: 按 SSD 口径在 `docs/exec/*` 增加工时统计表字段（基线/AI工时/交互轮次/人工介入/返工/缺陷/覆盖率），并补齐缺失的 `task_P0/P1/P2/P3/P4/P7/P9/P10/P11` 模块级 exec 占位文件。
+- **工时估算回填**: 基于“累计3天=24h”完成 P0~P11 第一版模块级估算回填，汇总口径更新为基线 45h、AI 24h、节省 21h、总节省率 46.7%。
+
+
 
 - **测试修复**: 修复 `useApprovalDetail.spec.ts` 测试代码，补充 `transferTypeLabel` 返回值。
 - **测试修复**: 修复 `guards.spec.ts` 避免加载含 SVG 引用的真实组件。

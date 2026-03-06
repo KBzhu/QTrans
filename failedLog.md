@@ -192,6 +192,11 @@
   - 错误信息：`FileUpload.spec.ts` 在挂载 `FileUpload.vue` 时未初始化 Pinia，触发 `getActivePinia() was called but there was no active Pinia`。
   - 处理：在 `src/components/business/__tests__/FileUpload.spec.ts` 的 `beforeEach` 增加 `setActivePinia(createPinia())`，随后重新执行 `pnpm test:coverage`，14 个测试文件 53 个用例全部通过。
 
+- 2026-03-06 AI工时统计文档更新失败：`replace_in_file` 修改 `docs/exec/task_P6.2.md` 时 old_str 命中多处。
+  - 错误信息：`The old_str was found multiple times in the file, please include more context to only edit one occurrence.`
+  - 处理：重新读取文件末尾上下文，使用更长上下文片段精确替换，已成功写入。
+
 ## 2026-03-05 22:15 - P7 and P8��Ԫ����ִ������ 
+
 ������3�������ļ�����ִ�в���ʱ�������⣬�����Ѵ�����������֤�� 
 
