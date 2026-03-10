@@ -1,0 +1,32 @@
+.user-manage-view {
+  padding: 20px;
+  background: var(--color-bg-1);
+  min-height: 100%;
+}
+
+.user-manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.user-manage-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.user-manage-filters {
+  background: var(--color-bg-2);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.user-manage-table {
+  background: var(--color-bg-2);
+  padding: 16px;
+  border-radius: 8px;
+}

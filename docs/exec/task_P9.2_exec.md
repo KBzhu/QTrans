@@ -40,11 +40,11 @@
 - `pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" exec vitest run src/composables/__tests__/useTransferSimulator.spec.ts src/stores/__tests__/file.spec.ts src/composables/__tests__/useApprovalDetail.spec.ts`：3 个文件、19 个用例全部通过。
 - `pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test:coverage`：15 个测试文件、60 个用例全部通过。
 
-## AI工时统计（SSD口径）
+## AI工时统计（SDD口径）
 
 > 口径：AI工时 = Prompt + 等待 + Review + 改写 + 测试 + 返工。
 > 项目累计实际投入：3天（按 8h/天折算 24h）。
 
-| task_id | 模块/页面 | SSD阶段 | 复杂度(1-5) | 基线工时(h) | AI工时(h) | AI交互轮次 | 人工介入时长(h) | 返工次数 | 缺陷数 | 覆盖率(前/后) | 节省小时 | 节省率 | 单位复杂度节省 | 备注 |
+| task_id | 模块/页面 | SDD阶段 | 复杂度(1-5) | 基线工时(h) | AI工时(h) | AI交互轮次 | 人工介入时长(h) | 返工次数 | 缺陷数 | 覆盖率(前/后) | 节省小时 | 节省率 | 单位复杂度节省 | 备注 |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---|
-| P9.2 | 传输模拟逻辑 | Requirements/Design/TaskList/执行 | 待补录 | 待补录 | 待补录（累计24h口径） | 待补录 | 待补录 | 1 | 0 | 待补录 | 待补录 | 待补录 | 待补录 | 已完成，待按新总投入回填 |
+| P9.2 | 传输模拟逻辑 | Requirements/Design/TaskList/执行 | 4 | 8.0 | 3.0 | 12 | 0.8 | 1 | 0 | 14文件53用例 → 15文件60用例 | 5.0 | 62.5% | 1.25 | 已完成，包含传输模拟器、状态管理、审批联动、完成通知 |

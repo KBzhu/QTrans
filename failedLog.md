@@ -234,3 +234,7 @@
 
 ������3�������ļ�����ִ�в���ʱ�������⣬�����Ѵ�����������֤�� 
 
+- 2026-03-10 P10.4 上下文检查读取失败：`read_file d:/VibeCoding/QTrans-0302new/qtrans-frontend/src/test/setup.ts`
+  - 错误信息：文件不存在（`Could not find file 'd:/VibeCoding/QTrans-0302new/qtrans-frontend/src/test/setup.ts' in the workspace.`）。
+  - 处理：记录当前测试环境尚未按 `task_P11` 建立统一 `setup.ts`，本轮 P10.4 继续基于现有 `vitest.config.ts` 与局部测试文件实现，不阻塞用户管理开发。
+

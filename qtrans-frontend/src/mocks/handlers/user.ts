@@ -15,17 +15,31 @@ export const userHandlers = [
     const state = getDemoState()
     const url = new URL(request.url)
     const keyword = (url.searchParams.get('keyword') || '').trim().toLowerCase()
+    const role = url.searchParams.get('role')
+    const department = url.searchParams.get('department')
+    const status = url.searchParams.get('status') as UserStatus | null
 
-    const list = state.users
-      .filter((item) => {
-        if (!keyword)
-          return true
-
-        return [item.username, item.name, item.email, item.departmentName]
+    let list = state.users.filter((item) => {
+      if (keyword) {
+        const match = [item.username, item.name, item.email, item.departmentName]
           .some(field => field.toLowerCase().includes(keyword))
-      })
-      .map(withoutPassword)
+        if (!match)
+          return false
+      }
 
+      if (role && !item.roles.includes(role as any))
+        return false
+
+      if (department && item.department !== department)
+        return false
+
+      if (status && item.status !== status)
+        return false
+
+      return true
+    })
+
+    list = list.map(withoutPassword)
     return success(list)
   }),
 
@@ -85,10 +99,7 @@ export const userHandlers = [
     })
 
     return success(withoutPassword(current), '更新成功')
-
-
   }),
-
 
   http.put('/api/users/:id/status', async ({ params, request }) => {
     await mockDelay(150)
@@ -106,4 +117,36 @@ export const userHandlers = [
 
     return success(withoutPassword(user), '状态已更新')
   }),
+
+  http.delete('/api/users/:id', async ({ params }) => {
+    await mockDelay(150)
+
+    const id = String(params.id)
+    const state = getDemoState()
+    const index = state.users.findIndex(item => item.id === id)
+
+    if (index < 0)
+      return failed('用户不存在', 404)
+
+    state.users.splice(index, 1)
+    return success(true, '删除成功')
+  }),
+
+  http.put('/api/users/:id/reset-password', async ({ params }) => {
+    await mockDelay(180)
+
+    const id = String(params.id)
+    const state = getDemoState()
+    const user = state.users.find(item => item.id === id)
+
+    if (!user)
+      return failed('用户不存在', 404)
+
+    const tempPassword = `Temp${Math.random().toString(36).slice(2, 8)}`
+    user.password = tempPassword
+    user.updatedAt = new Date().toISOString()
+
+    return success({ tempPassword }, '密码已重置')
+  }),
 ]
+

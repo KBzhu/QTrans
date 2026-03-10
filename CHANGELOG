@@ -17,6 +17,9 @@ The format is based on Keep a Changelog.
 - **P9.2 传输模拟逻辑**: 完善 `src/composables/useTransferSimulator.ts`，新增暂停/继续/取消与实时传输状态快照；在 `src/stores/file.ts` 集成传输状态、审批后自动开始传输及完成通知；补充 `useTransferSimulator.spec.ts`、`file.spec.ts`、`useApprovalDetail.spec.ts` 覆盖关键链路。
 - **P9.1 传输进度组件**: 新增 `src/components/business/TransferProgress.vue` 与独立样式 `TransferProgress.scss`，支持状态标签、进度展示、暂停/继续/重试操作；并接入 `ApplicationDetailView.vue`、`ApprovalDetailView.vue` 展示传输进度，新增 `TransferProgress.spec.ts`，全量覆盖率更新为 16 个测试文件、65 个用例通过。
 - **P9.3 传输管理页面**: 新增 `src/views/transfer/TransferManageView.vue`、`src/composables/useTransferManage.ts` 与 `transfer-manage.scss`，支持管理员查看传输任务、Tab/筛选/分页、单条暂停继续重试及批量操作；`src/views/transfers/index.vue` 由占位页切换为真实实现，新增 `useTransferManage.spec.ts`，全量覆盖率更新为 17 个测试文件、68 个用例通过。
+- **P10.4 用户管理**: 新增 `src/views/admin/UserManageView.vue`、`src/views/admin/UserManageModal.vue`、`src/composables/useUserManage.ts` 与 `user-manage.scss`，支持管理员进行用户 CRUD 操作、角色分配、状态切换、重置密码；扩展 `src/api/user.ts` 与 `src/mocks/handlers/user.ts` 支持筛选参数（keyword/role/department/status）、删除用户、重置密码接口；新增 `useUserManage.spec.ts`，全量覆盖率更新为 19 个测试文件、83 个用例通过。
+- **P10 模块设计补充**: 在 `docs/tasks/task_P10.md` 补充三个缺失模块详设：P10.7 区域管理（城市-安全域映射、域配置）、P10.8 传输通道管理（加密配置、服务器管理）、P10.9 界面配置（文本配置、卡片配置、国际化、按钮显隐）。
+- **P7，8，9 模块设计补充**:  完成AI 工时统计补充
 
 
 

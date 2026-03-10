@@ -106,7 +106,7 @@
 
 ### P10.4 用户管理（管理员）（4h）
 
-- [ ] 创建 `src/views/admin/UserManageView.vue`
+- [√] 创建 `src/views/admin/UserManageView.vue`
   - 页面标题：「用户管理」
   - 顶部操作栏：新建用户按钮
   - 筛选区域：
@@ -121,10 +121,10 @@
     - 状态列：使用 `a-switch`（在线切换）
     - 操作列：编辑、重置密码、禁用/启用、删除
   - 分页器（a-pagination）
-- [ ] 创建 `src/views/admin/UserManageModal.vue`（新增/编辑用户弹窗）
+- [√] 创建 `src/views/admin/UserManageModal.vue`（新增/编辑用户弹窗）
   - 表单字段：用户名、姓名、邮箱、手机号、所属部门、角色（多选）、初始密码（新增时）
   - 表单校验
-- [ ] 创建 `src/composables/useUserManage.ts`
+- [√] 创建 `src/composables/useUserManage.ts`
   - `listData` - 列表数据
   - `loading` - 加载状态
   - `pagination` - 分页参数
@@ -137,7 +137,8 @@
   - `handleDelete(id)` - 删除用户
   - `handleToggleStatus(id, status)` - 切换用户状态
   - `handleResetPassword(id)` - 重置密码
-- [ ] 样式文件 `src/views/admin/user-manage.scss`
+- [√] 样式文件 `src/views/admin/user-manage.scss`
+
 
 ### P10.5 系统配置（管理员）（3h）
 
@@ -285,6 +286,22 @@ export const exportToCsv = (data: any[], filename: string) => {
 6. 日志审计（管理员）：
    - 列表加载、筛选、分页正常
    - CSV 导出正常
+7. 区域管理（管理员）：
+   - 城市与安全域映射列表正常加载
+   - 安全域配置列表正常加载
+   - 新增/编辑/删除操作正常
+   - 状态切换正常
+8. 传输通道管理（管理员）：
+   - 通道列表正常加载
+   - 加密配置展示正常
+   - 服务器配置弹窗正常
+   - 服务器列表拖拽排序正常
+9. 界面配置（管理员）：
+   - 文字内容配置树形结构展示正常
+   - 申请单卡片配置拖拽排序正常
+   - 国际化配置编辑正常
+   - 按钮显隐配置正常
+   - 导入/导出功能正常
 
 ---
 
@@ -294,4 +311,7 @@ export const exportToCsv = (data: any[], filename: string) => {
 - `useNotificationList.ts`：测试消息操作、未读统计
 - `useUserManage.ts`：测试 CRUD 操作
 - `useAuditLog.ts`：测试列表加载、导出
+- `useRegionManage.ts`：测试城市映射、安全域配置 CRUD
+- `useChannelManage.ts`：测试通道 CRUD、服务器配置
+- `useUIConfig.ts`：测试各类配置的加载、保存、导入导出
 - `exportToCsv` 工具函数：测试 CSV 生成
