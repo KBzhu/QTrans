@@ -1,0 +1,40 @@
+@import '@/styles/mixins.scss';
+
+.audit-log-view {
+  @include glass-card;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audit-log-filters,
+.audit-log-table-wrapper {
+  background: var(--color-bg-2);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.audit-log-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  &__summary {
+    color: var(--color-text-2);
+    font-size: 13px;
+  }
+}
+
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-log-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}

@@ -4,5 +4,7 @@ export * from './application'
 export * from './file'
 export * from './approval'
 export * from './notification'
+export * from './auditLog'
 export * from './detail'
+
 

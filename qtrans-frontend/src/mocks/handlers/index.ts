@@ -6,6 +6,7 @@ import { departmentHandlers } from './department'
 import { fileHandlers } from './file'
 import { notificationHandlers } from './notification'
 import { userHandlers } from './user'
+import { systemConfigHandlers } from './systemConfig'
 
 export const handlers = [
   ...authHandlers,
@@ -16,4 +17,7 @@ export const handlers = [
   ...departmentHandlers,
   ...cityHandlers,
   ...notificationHandlers,
+  ...systemConfigHandlers,
+  ...auditLogHandlers,
 ]
+

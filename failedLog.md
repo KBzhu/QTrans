@@ -218,6 +218,14 @@
 
 - 2026-03-06 AI工时统计文档更新失败：`replace_in_file` 修改 `docs/exec/task_P6.2.md` 时 old_str 命中多处。
   - 错误信息：`The old_str was found multiple times in the file, please include more context to only edit one occurrence.`
+
+- 2026-03-10 P10.6 单测命令首次执行异常：`cd qtrans-frontend && pnpm vitest run src/composables/__tests__/useAuditLog.spec.ts`
+  - 错误信息：输出 `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`，命令在仓库根目录解析，未定位到 `qtrans-frontend/package.json`。
+  - 处理：改用显式目录参数重试。
+
+- 2026-03-10 P10.6 单测命令二次执行失败：`pnpm --dir "d:/VibeCoding/QTrans-0302new/qtrans-frontend" vitest run src/composables/__tests__/useAuditLog.spec.ts`
+  - 错误信息：输出 `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL`，`Command "d:/VibeCoding/QTrans-0302new/qtrans-frontend" not found`（Windows 下参数解析异常）。
+  - 处理：改用 `npm --prefix d:\VibeCoding\QTrans-0302new\qtrans-frontend run test -- src/composables/__tests__/useAuditLog.spec.ts` 执行定向测试。
   - 处理：重新读取文件末尾上下文，使用更长上下文片段精确替换，已成功写入。
 
 - 2026-03-06 P9.2 定向测试命令首次执行异常：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" exec -- vitest run ...`

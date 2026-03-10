@@ -3,5 +3,8 @@ export * from './application'
 export * from './approval'
 export * from './notification'
 export * from './user'
+export * from './systemConfig'
+export * from './auditLog'
 
 export * from './file'
+

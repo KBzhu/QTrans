@@ -1,0 +1,54 @@
+@import '@/styles/mixins.scss';
+
+.system-config-container {
+  @include glass-card;
+  padding: 24px;
+
+  .config-form {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 0;
+
+    .arco-form-item {
+      margin-bottom: 24px;
+    }
+
+    .arco-divider {
+      margin: 32px 0 24px;
+      font-weight: 500;
+      color: var(--color-text-1);
+    }
+
+    .arco-table {
+      margin-bottom: 24px;
+
+      :deep(.arco-table-th) {
+        background-color: var(--color-fill-2);
+        font-weight: 500;
+      }
+    }
+
+    .arco-checkbox-group {
+      .arco-checkbox {
+        margin-bottom: 12px;
+      }
+    }
+
+    .arco-input-number {
+      width: 100%;
+    }
+
+    .arco-btn-primary {
+      min-width: 120px;
+    }
+  }
+
+  :deep(.arco-tabs-nav-tab) {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  :deep(.arco-tabs-content) {
+    padding-top: 16px;
+  }
+}

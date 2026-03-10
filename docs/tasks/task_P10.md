@@ -142,7 +142,7 @@
 
 ### P10.5 系统配置（管理员）（3h）
 
-- [ ] 创建 `src/views/admin/SystemConfigView.vue`
+- [√] 创建 `src/views/admin/SystemConfigView.vue`
   - 使用 `a-tabs` 分组展示配置项
   - **Tab1：传输配置**：
     - 单申请单最大文件大小（GB，默认50）
@@ -163,16 +163,21 @@
     - 草稿有效期（天，默认30）
     - 存储清理周期（天）
   - 保存按钮（每个 Tab 独立保存）
-- [ ] 创建 `src/composables/useSystemConfig.ts`
+- [√] 创建 `src/composables/useSystemConfig.ts`
   - `configData` - 配置数据
   - `loading` - 加载状态
   - `fetchConfig()` - 获取配置
   - `handleSave(tab)` - 保存配置
-- [ ] 样式文件 `src/views/admin/system-config.scss`
+- [√] 样式文件 `src/views/admin/system-config.scss`
+- [√] API 接口 `src/api/systemConfig.ts`
+- [√] Mock 数据 `src/mocks/handlers/systemConfig.ts`
+- [√] 更新路由 `src/views/settings/index.vue`
+- [√] 单元测试 `src/composables/__tests__/useSystemConfig.spec.ts`
+
 
 ### P10.6 日志审计（管理员）（3h）
 
-- [ ] 创建 `src/views/admin/AuditLogView.vue`
+- [√] 创建 `src/views/admin/AuditLogView.vue`
   - 页面标题：「日志审计」
   - 筛选区域：
     - 操作类型（a-select：登录/申请单/文件/审批/传输/系统配置）
@@ -187,7 +192,7 @@
     - 操作详情列：文字截断，可点击展开查看完整内容
   - 分页器（a-pagination）
   - 导出按钮（导出 CSV，仅 Mock 数据）
-- [ ] 创建 `src/composables/useAuditLog.ts`
+- [√] 创建 `src/composables/useAuditLog.ts`
   - `listData` - 列表数据
   - `loading` - 加载状态
   - `pagination` - 分页参数
@@ -197,7 +202,11 @@
   - `handleReset()` - 重置筛选
   - `handlePageChange()` - 翻页
   - `handleExport()` - 导出 CSV
-- [ ] 样式文件 `src/views/admin/audit-log.scss`
+- [√] 样式文件 `src/views/admin/audit-log.scss`
+- [√] API 接口 `src/api/auditLog.ts`
+- [√] Mock 数据 `src/mocks/handlers/auditLog.ts`
+- [√] 更新路由入口 `src/views/logs/index.vue`
+- [√] 单元测试 `src/composables/__tests__/useAuditLog.spec.ts`
 
 ### P10.7 区域管理（管理员）（3h）
 
