@@ -3,7 +3,8 @@ import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useApplicationStore, useApprovalStore, useAuthStore } from '@/stores'
+import { useApplicationStore, useApprovalStore, useAuthStore, useFileStore } from '@/stores'
+
 
 const transferTypeLabelMap: Record<TransferType, string> = {
   'green-to-green': '绿区传到绿区',
@@ -61,6 +62,8 @@ export function useApprovalDetail() {
   const applicationStore = useApplicationStore()
   const approvalStore = useApprovalStore()
   const authStore = useAuthStore()
+  const fileStore = useFileStore()
+
 
   const loading = ref(false)
   const detailData = ref<Application | null>(null)
@@ -190,11 +193,14 @@ export function useApprovalDetail() {
     await fetchApprovalHistory(updated.id)
 
     if (isLast) {
+      await fileStore.startTransfer(updated.id)
+      detailData.value = applicationStore.applications.find(item => item.id === updated.id) || updated
       Message.success('审批通过，已自动开始传输')
     }
     else {
       Message.success('审批通过，已通知下一级审批人')
     }
+
 
     setTimeout(() => {
       router.push('/approvals')
@@ -226,10 +232,12 @@ export function useApprovalDetail() {
       return
 
     const updated = await approvalStore.skip(detailData.value.id, approvalOpinion.value.trim() || '免审通过')
-    detailData.value = updated
+    await fileStore.startTransfer(updated.id)
+    detailData.value = applicationStore.applications.find(item => item.id === updated.id) || updated
     approvalOpinion.value = ''
     await fetchApprovalHistory(updated.id)
     Message.success('申请已免审通过，已自动开始传输')
+
 
     setTimeout(() => {
       router.push('/approvals')

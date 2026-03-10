@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import type { TransferState } from '@/types'
 import { Modal } from '@arco-design/web-vue'
 import { IconCheckCircleFill } from '@arco-design/web-vue/es/icon'
-import { onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import TransferProgress from '@/components/business/TransferProgress.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
 import './application-detail.scss'
+
 
 const route = useRoute()
 const router = useRouter()
@@ -29,10 +32,44 @@ const {
 } = useApplicationDetail()
 
 const id = String(route.params.id || '')
+const transferSectionRef = ref<HTMLElement | null>(null)
+
+const showTransferProgress = computed(() => {
+  const status = detailData.value?.status
+  return status === 'approved' || status === 'transferring' || status === 'completed'
+})
+
+const transferFileSize = computed(() => {
+  const total = files.value.reduce((sum, item) => sum + Math.max(item.fileSize, 0), 0)
+  if (total > 0)
+    return total
+
+  return Math.max(1024 * 1024, Math.round((detailData.value?.storageSize || 0) * 1024 * 1024))
+})
+
+const transferStatusHint = computed<TransferState['status']>(() => {
+  if (detailData.value?.status === 'completed')
+    return 'completed'
+
+  if (detailData.value?.status === 'transferring')
+    return 'transferring'
+
+  return 'pending'
+})
+
+async function handleViewTransferProgress() {
+  await nextTick()
+  transferSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function handleDownloadAll() {
+  handleBatchDownload(files.value.map(item => item.id))
+}
 
 function goBack() {
   router.push('/applications')
 }
+
 
 function onDelete() {
   Modal.warning({
@@ -115,11 +152,22 @@ onMounted(async () => {
       </a-spin>
     </div>
 
+    <section v-if="showTransferProgress" ref="transferSectionRef" class="application-detail-page__transfer">
+      <TransferProgress
+        :application-id="detailData?.id || id"
+        :file-size="transferFileSize"
+        :status-hint="transferStatusHint"
+      />
+    </section>
+
     <footer class="application-detail-page__actions">
       <a-button v-if="detailData?.status === 'draft'" type="outline" @click="handleEdit">继续编辑</a-button>
       <a-button v-if="detailData?.status === 'draft'" status="danger" @click="onDelete">删除</a-button>
       <a-button v-if="detailData?.status === 'pending_upload'" type="primary" @click="handleUploadFile">上传文件</a-button>
       <a-button v-if="detailData?.status === 'pending_approval'" status="danger" @click="onWithdraw">关闭申请</a-button>
+      <a-button v-if="detailData && ['approved', 'transferring'].includes(detailData.status)" type="primary" @click="handleViewTransferProgress">查看传输进度</a-button>
+      <a-button v-if="detailData?.status === 'completed' && files.length" type="primary" @click="handleDownloadAll">批量下载</a-button>
     </footer>
+
   </section>
 </template>

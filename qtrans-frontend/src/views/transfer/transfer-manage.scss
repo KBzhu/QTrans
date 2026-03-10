@@ -1,0 +1,138 @@
+.transfer-manage-page {
+  min-height: 100%;
+  padding: 20px;
+
+  &__header {
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    margin: 0;
+    color: #1e293b;
+    font-size: 32px;
+    font-weight: 600;
+  }
+
+  &__subtitle {
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+.transfer-manage-tabs-card,
+.transfer-manage-filter-card,
+.transfer-manage-table-card {
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.transfer-manage-tabs-card {
+  margin-bottom: 16px;
+  padding: 12px 20px 0;
+}
+
+.transfer-manage-filter-card {
+  margin-bottom: 16px;
+  padding: 20px;
+}
+
+.transfer-manage-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.transfer-manage-table-card {
+  overflow: hidden;
+
+  &__toolbar {
+    padding: 18px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__selected {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__footer {
+    padding: 16px 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__summary {
+    color: #64748b;
+    font-size: 13px;
+  }
+}
+
+.transfer-manage-empty {
+  padding: 36px 0;
+}
+
+.application-no-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #165dff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.transfer-status-tag {
+  min-width: 88px;
+  justify-content: center;
+  border: 0;
+  color: #fff;
+
+  &--transferring {
+    background: #165dff;
+  }
+
+  &--paused {
+    background: #ff7d00;
+  }
+
+  &--completed {
+    background: #00b42a;
+  }
+
+  &--error {
+    background: #f53f3f;
+  }
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-action-btn {
+  color: #165dff;
+}
+
+.table-action-placeholder {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  .transfer-manage-page {
+    &__title {
+      font-size: 28px;
+    }
+  }
+}

@@ -46,3 +46,17 @@ export interface FileMeta {
   createdAt: number
   updatedAt?: number
 }
+
+export type TransferStatus = 'pending' | 'transferring' | 'paused' | 'completed' | 'error'
+
+export interface TransferState {
+  applicationId: string
+  status: TransferStatus
+  progress: number
+  speedBytesPerSec: number
+  transferredBytes: number
+  totalBytes: number
+  remainingSeconds: number
+  errorMessage?: string
+}
+

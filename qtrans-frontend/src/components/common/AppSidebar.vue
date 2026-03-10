@@ -35,7 +35,7 @@ const iconMap: Record<string, Component> = {
   'icon-home': IconHome,
   'icon-file': IconFile,
   'icon-check-circle': IconCheckCircle,
-  'icon-download': IconDownload,
+  // 'icon-download': IconDownload,
   'icon-send': IconSend,
   'icon-folder': IconFolder,
   'icon-user-group': IconUserGroup,

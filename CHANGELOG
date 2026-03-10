@@ -14,6 +14,12 @@ The format is based on Keep a Changelog.
 - **覆盖率报告**: 本次全量覆盖率执行通过（v8），并完成 `useDownloadList.spec.ts` 覆盖率校验。
 - **工时统计模板**: 按 SSD 口径在 `docs/exec/*` 增加工时统计表字段（基线/AI工时/交互轮次/人工介入/返工/缺陷/覆盖率），并补齐缺失的 `task_P0/P1/P2/P3/P4/P7/P9/P10/P11` 模块级 exec 占位文件。
 - **工时估算回填**: 基于“累计3天=24h”完成 P0~P11 第一版模块级估算回填，汇总口径更新为基线 45h、AI 24h、节省 21h、总节省率 46.7%。
+- **P9.2 传输模拟逻辑**: 完善 `src/composables/useTransferSimulator.ts`，新增暂停/继续/取消与实时传输状态快照；在 `src/stores/file.ts` 集成传输状态、审批后自动开始传输及完成通知；补充 `useTransferSimulator.spec.ts`、`file.spec.ts`、`useApprovalDetail.spec.ts` 覆盖关键链路。
+- **P9.1 传输进度组件**: 新增 `src/components/business/TransferProgress.vue` 与独立样式 `TransferProgress.scss`，支持状态标签、进度展示、暂停/继续/重试操作；并接入 `ApplicationDetailView.vue`、`ApprovalDetailView.vue` 展示传输进度，新增 `TransferProgress.spec.ts`，全量覆盖率更新为 16 个测试文件、65 个用例通过。
+- **P9.3 传输管理页面**: 新增 `src/views/transfer/TransferManageView.vue`、`src/composables/useTransferManage.ts` 与 `transfer-manage.scss`，支持管理员查看传输任务、Tab/筛选/分页、单条暂停继续重试及批量操作；`src/views/transfers/index.vue` 由占位页切换为真实实现，新增 `useTransferManage.spec.ts`，全量覆盖率更新为 17 个测试文件、68 个用例通过。
+
+
+
 
 
 
@@ -38,7 +44,10 @@ The format is based on Keep a Changelog.
 
 
 ### Changed
+- **P10 模块进度**: 更新 `docs/tasks/task_P10.md`、`docs/TaskList.md`、`docs/exec/task_P10_exec.md` 与 `docs/exec/task_project_progress_summary_2026-03-06.md`，同步 `P10.3` 完成状态，并记录 `P10.1 / P10.2` 暂缓、后续优先 `P10.4`。
+- **头部通知刷新**: 更新 `src/components/common/AppHeader.vue`，在切换账号后自动拉取当前用户通知，确保头部未读角标同步刷新。
 - P6.1 补齐：按 Figma 3830_3 补充绿区传出缺失的 2 个传输类型（绿区传到外网、绿区传到海思红区），绿区传出 Tab 现有 5 种类型。
+
 - P6.1 补齐：图标资源统一切换到 `public/figma/3830_3/`，描述文案对齐 Figma（非研发到非研发/研发/外网/红区/海思红区）。
 - P6.1 补齐：渐变色对齐 Figma 3830_3（黄区 `#F2B313→#EE7214`、红区 `#FF6900→#FB2C36`），新增外网渐变 `#2B7FFF→#00BBA7`、海思红区渐变 `#AD46FF→#F6339A`。
 - P6.1 补齐：网格布局从 3 列调整为 5 列（≥1400px），新增 1400px 响应式断点。

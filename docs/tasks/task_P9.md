@@ -16,7 +16,8 @@
 
 ### P9.1 传输进度组件（3h）
 
-- [ ] 创建 `src/components/business/TransferProgress.vue`
+- [√] 创建 `src/components/business/TransferProgress.vue`
+
   - Props：
     - `applicationId: string` - 申请单 ID
     - `fileSize: number` - 文件总大小（字节）
@@ -40,11 +41,13 @@
       - 继续传输（status='paused'）
       - 重试（status='error'）
   - 传输动画：进度条带动画效果（transition）
-- [ ] 样式文件 `src/components/business/TransferProgress.scss`
+- [√] 样式文件 `src/components/business/TransferProgress.scss`
+
 
 ### P9.2 传输模拟逻辑（2h）
 
-- [ ] 创建 `src/composables/useTransferSimulator.ts`
+- [√] 创建 `src/composables/useTransferSimulator.ts`
+
   - `simulateTransfer(applicationId, fileSize, onProgress, onComplete)` - 主要模拟方法
     - 参数：
       - `applicationId: string` - 申请单 ID
@@ -67,7 +70,8 @@
       7. 返回取消函数：`() => clearInterval(timer)`
   - `pauseTransfer(applicationId)` - 暂停传输（清除定时器）
   - `resumeTransfer(applicationId)` - 继续传输（重新启动定时器）
-- [ ] 在 File Store 中集成传输模拟：
+- [√] 在 File Store 中集成传输模拟：
+
   - `startTransfer(applicationId)` - 开始传输
     1. 更新申请单状态为 `'transferring'`
     2. 调用 `simulateTransfer()`
@@ -78,7 +82,8 @@
 
 ### P9.3 传输管理页面（3h）
 
-- [ ] 创建 `src/views/transfer/TransferManageView.vue`（仅管理员可访问）
+- [√] 创建 `src/views/transfer/TransferManageView.vue`（仅管理员可访问）
+
   - 页面标题：「传输管理」
   - Tab 切换：传输中 / 已完成 / 全部
   - 筛选区域（a-form inline）：
@@ -98,7 +103,8 @@
       - 失败：重试/查看详情
   - 分页器（a-pagination）
   - 批量操作：批量暂停、批量继续
-- [ ] 创建 `src/composables/useTransferManage.ts`
+- [√] 创建 `src/composables/useTransferManage.ts`
+
   - `activeTab` - 当前 Tab（transferring/completed/all）
   - `listData` - 列表数据
   - `loading` - 加载状态
@@ -115,7 +121,8 @@
   - `handleRetry(id)` - 重试传输
   - `handleBatchPause()` - 批量暂停
   - `handleBatchResume()` - 批量继续
-- [ ] 样式文件 `src/views/transfer/transfer-manage.scss`
+- [√] 样式文件 `src/views/transfer/transfer-manage.scss`
+
 
 ---
 
@@ -247,4 +254,4 @@ const startTransfer = (applicationId: string) => {
 - `useTransferSimulator.ts`：测试传输模拟逻辑、进度计算、取消功能
 - `TransferProgress.vue`：测试进度展示、操作按钮
 - `useTransferManage.ts`：测试列表加载、操作方法
-- File Store：测试传输状态管理、开始/暂停/继续
+- File Store：测试传输状态管理、开始/暂停/继�

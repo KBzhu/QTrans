@@ -1,4 +1,5 @@
 export type NotificationType = 'system' | 'approval' | 'transfer'
+export type NotificationSource = 'mock' | 'local'
 
 export interface Notification {
   id: string
@@ -9,4 +10,6 @@ export interface Notification {
   relatedId?: string
   read: boolean
   createdAt: string
+  source?: NotificationSource
 }
+

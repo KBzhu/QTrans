@@ -1,5 +1,29 @@
 # failedLog
 
+- 2026-03-10 P10.3 覆盖率首次失败：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test:coverage`
+  - 错误信息：`useNotificationList.spec.ts` 断言错误，先执行 `handleMarkRead('n-1')` 后又执行 `handleClearRead()`，此时 `n-1` 已变为已读并被清理，原断言仍期待保留 `['n-1']`，实际结果为空数组。
+  - 处理：修正测试预期为清空已读后的空列表，并重新执行覆盖率验证。
+
+
+
+- 2026-03-10 P9.1 定向测试首次失败：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" exec vitest run src/components/business/__tests__/TransferProgress.spec.ts src/composables/__tests__/useApprovalDetail.spec.ts src/stores/__tests__/file.spec.ts`
+  - 错误信息：`TransferProgress.spec.ts` 中将 `a-tag` 直接 stub 为 `true`，导致状态文案插槽未渲染，断言 `等待传输/传输中` 失败；命令尾部同时出现 `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL`。
+  - 处理：将 `a-tag` 替换为保留 slot 的自定义 stub，并改用更稳定的测试命令方式复跑相关测试。
+- 2026-03-10 P9.1 定向测试二次失败：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test -- src/components/business/__tests__/TransferProgress.spec.ts ...`
+  - 错误信息：测试脚本未按预期筛选到单文件且 `TransferProgress.spec.ts` 中仅替换了 `a-tag` 的引用，遗漏 `tagStub` 常量声明，触发 `ReferenceError: tagStub is not defined`。
+  - 处理：补齐 `tagStub` 常量定义，后续使用更稳定的项目脚本 `pnpm --dir ... test:coverage` 完成最终验收。
+- 2026-03-10 P9.1 直连 vitest 命令失败：`d:\VibeCoding\QTrans-0302new\qtrans-frontend\node_modules\.bin\vitest.cmd run ...`
+  - 错误信息：命令在仓库根目录启动，导致路径别名 `@/` 与 `.vue` 插件能力未正确加载，出现 `Cannot find package '@/stores'` 与 `Install @vitejs/plugin-vue to handle .vue files`。
+  - 处理：放弃直连方式，改回 `pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test:coverage`，最终 16 个测试文件、65 个用例全部通过。
+- 2026-03-10 P9.3 覆盖率首次失败：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test:coverage`
+  - 错误信息：`useTransferManage.spec.ts` 文件结尾少写了 `)`，esbuild 报错 `Expected ")" but found end of file`。
+  - 处理：补齐 `describe` 的闭合括号后重新执行覆盖率验证。
+
+
+
+
+
+
 - 2026-03-04 P0.1 执行命令失败：`cd d:/VibeCoding/QTrans-0302new; pnpm create vite qtrans-frontend --template vue-ts`
   - 错误信息：系统找不到指定的路径。
 - 2026-03-04 P0.1 执行命令失败：`Set-Location 'D:\VibeCoding\QTrans-0302new'; pnpm create vite qtrans-frontend --template vue-ts`
@@ -196,7 +220,17 @@
   - 错误信息：`The old_str was found multiple times in the file, please include more context to only edit one occurrence.`
   - 处理：重新读取文件末尾上下文，使用更长上下文片段精确替换，已成功写入。
 
+- 2026-03-06 P9.2 定向测试命令首次执行异常：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" exec -- vitest run ...`
+  - 错误信息：命令尾部触发 `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL`，提示 `Command "vitest" not found`；同时 `src/stores/__tests__/file.spec.ts` 首次断言时，`startTransfer` 完成态尚未落盘，断言读到 `transferring`。
+  - 处理：将命令修正为 `pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" exec vitest run ...`，并在 `file.spec.ts` 的 `startTransfer` 用例中补充一次微任务等待后再断言，随后 3 个测试文件 19 个用例全部通过。
+
+- 2026-03-06 P9.2 任务清单勾选写入失败：`replace_in_file` 修改 `task_P9.2.md` 时 old_str 未命中。
+  - 错误信息：`The string to replace was not found in the file`。
+  - 处理：重新读取 `task_P9.2.md` 当前内容后，用精确文本重新替换，已成功勾选覆盖率步骤。
+
 ## 2026-03-05 22:15 - P7 and P8��Ԫ����ִ������ 
+
+
 
 ������3�������ļ�����ִ�в���ʱ�������⣬�����Ѵ�����������֤�� 
 

@@ -30,13 +30,19 @@
     font-size: 20px;
   }
 
+  &__transfer {
+    margin-top: 16px;
+  }
+
   &__actions {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    flex-wrap: wrap;
   }
 }
+
 
 .back-btn {
   width: 28px;

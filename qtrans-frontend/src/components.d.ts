@@ -56,6 +56,7 @@ declare module 'vue' {
     RoleSwitcher: typeof import('./components/common/RoleSwitcher.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TransferProgress: typeof import('./components/business/TransferProgress.vue')['default']
     ViewPlaceholder: typeof import('./components/common/ViewPlaceholder.vue')['default']
   }
 }

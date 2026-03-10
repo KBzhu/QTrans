@@ -74,7 +74,7 @@
 
 ### P10.3 消息中心（3h）
 
-- [ ] 创建 `src/views/notification/NotificationListView.vue`
+- [√] 创建 `src/views/notification/NotificationListView.vue`
   - 页面标题：「消息中心」+ 未读数量徽标
   - Tab 切换：全部 / 未读 / 系统通知 / 审批通知 / 传输通知
   - 操作栏：全部已读 / 清空已读
@@ -88,7 +88,7 @@
       - 操作：标记已读、删除
     - 未读消息背景色浅蓝
   - 无限滚动加载（useIntersectionObserver）
-- [ ] 创建 `src/composables/useNotificationList.ts`
+- [√] 创建 `src/composables/useNotificationList.ts`
   - `listData` - 消息列表
   - `unreadCount` - 未读数量
   - `loading` - 加载状态
@@ -101,7 +101,8 @@
   - `handleDelete(id)` - 删除消息
   - `handleClearRead()` - 清空已读
   - `loadMore()` - 加载更多（无限滚动）
-- [ ] 样式文件 `src/views/notification/notification-list.scss`
+- [√] 样式文件 `src/views/notification/notification-list.scss`
+
 
 ### P10.4 用户管理（管理员）（4h）
 

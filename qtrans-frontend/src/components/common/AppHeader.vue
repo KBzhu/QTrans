@@ -49,10 +49,17 @@ async function handleLogout() {
   await authStore.logout()
 }
 
-onMounted(async () => {
-  if (authStore.currentUser?.id)
-    await notificationStore.fetchNotifications(authStore.currentUser.id)
-})
+watch(
+  () => authStore.currentUser?.id,
+  async (userId) => {
+    if (!userId)
+      return
+
+    await notificationStore.fetchNotifications(userId)
+  },
+  { immediate: true },
+)
+
 </script>
 
 <template>

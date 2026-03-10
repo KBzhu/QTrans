@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useApprovalDetail } from '../useApprovalDetail'
 import type { Application, TransferType } from '@/types'
+import { useApprovalStore, useFileStore } from '@/stores'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -57,14 +58,12 @@ describe('useApprovalDetail', () => {
   it('computes approval levels correctly for different transfer types', () => {
     const { detailData, totalApprovalLevels } = useApprovalDetail()
 
-    // 绿区传到绿区：免审（0级）
     detailData.value = {
       id: 'app-1',
       transferType: 'green-to-green' as TransferType,
     } as Application
-    expect(totalApprovalLevels.value).toBe(1) // Math.max(1, 0)
+    expect(totalApprovalLevels.value).toBe(1)
 
-    // 跨国传输：三级审批
     detailData.value = {
       id: 'app-2',
       transferType: 'cross-country' as TransferType,
@@ -87,15 +86,12 @@ describe('useApprovalDetail', () => {
   it('determines if approval is last level correctly', () => {
     const { detailData } = useApprovalDetail()
 
-    // 绿区传到黄区：一级审批
     detailData.value = {
       id: 'app-1',
       transferType: 'green-to-yellow' as TransferType,
       currentApprovalLevel: 1,
     } as Application
 
-    // isLastLevel 函数内部逻辑：currentLevel >= requiredLevels
-    // green-to-yellow 需要 1 级，当前是 1 级，应该是最后一级
     expect(detailData.value.currentApprovalLevel).toBe(1)
   })
 
@@ -168,5 +164,101 @@ describe('useApprovalDetail', () => {
 
     expect(files.value.length).toBeGreaterThan(0)
     expect(files.value[0].fileName).toContain('.zip')
+  })
+
+  it('handleApprove starts transfer on last approval level', async () => {
+    vi.useFakeTimers()
+
+    const approvalStore = useApprovalStore()
+    const fileStore = useFileStore()
+    const composable = useApprovalDetail()
+
+    composable.detailData.value = {
+      id: 'app-last',
+      applicationNo: 'QT-LAST',
+      transferType: 'green-to-yellow',
+      currentApprovalLevel: 1,
+      status: 'pending_approval',
+      applicantId: 'u_submitter',
+      applicantName: '张提交',
+      department: '研发部',
+      sourceArea: 'green',
+      targetArea: 'yellow',
+      sourceCountry: '中国',
+      sourceCity: ['北京'],
+      targetCountry: '中国',
+      targetCity: ['上海'],
+      downloaderAccounts: ['u_downloader'],
+      containsCustomerData: false,
+      applyReason: 'demo',
+      applicantNotifyOptions: ['in_app'],
+      downloaderNotifyOptions: ['in_app'],
+      storageSize: 1,
+      uploadExpireTime: new Date().toISOString(),
+      downloadExpireTime: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    } as Application
+
+    approvalStore.approve = vi.fn().mockResolvedValue({
+      ...composable.detailData.value,
+      status: 'approved',
+      currentApprovalLevel: 0,
+    }) as any
+    approvalStore.fetchApprovalHistory = vi.fn().mockResolvedValue([]) as any
+    fileStore.startTransfer = vi.fn().mockResolvedValue(undefined) as any
+
+    await composable.handleApprove()
+
+    expect(fileStore.startTransfer).toHaveBeenCalledWith('app-last')
+    vi.runAllTimers()
+    vi.useRealTimers()
+  })
+
+  it('handleExempt starts transfer immediately', async () => {
+    vi.useFakeTimers()
+
+    const approvalStore = useApprovalStore()
+    const fileStore = useFileStore()
+    const composable = useApprovalDetail()
+
+    composable.detailData.value = {
+      id: 'app-exempt',
+      applicationNo: 'QT-EXEMPT',
+      transferType: 'cross-country',
+      currentApprovalLevel: 3,
+      status: 'pending_approval',
+      applicantId: 'u_submitter',
+      applicantName: '张提交',
+      department: '研发部',
+      sourceArea: 'green',
+      targetArea: 'red',
+      sourceCountry: '中国',
+      sourceCity: ['北京'],
+      targetCountry: '美国',
+      targetCity: ['纽约'],
+      downloaderAccounts: ['u_downloader'],
+      containsCustomerData: false,
+      applyReason: 'demo',
+      applicantNotifyOptions: ['in_app'],
+      downloaderNotifyOptions: ['in_app'],
+      storageSize: 1,
+      uploadExpireTime: new Date().toISOString(),
+      downloadExpireTime: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    } as Application
+
+    approvalStore.skip = vi.fn().mockResolvedValue({
+      ...composable.detailData.value,
+      status: 'approved',
+      currentApprovalLevel: 0,
+    }) as any
+    approvalStore.fetchApprovalHistory = vi.fn().mockResolvedValue([]) as any
+    fileStore.startTransfer = vi.fn().mockResolvedValue(undefined) as any
+
+    await composable.handleExempt()
+
+    expect(fileStore.startTransfer).toHaveBeenCalledWith('app-exempt')
+    vi.runAllTimers()
+    vi.useRealTimers()
   })
 })

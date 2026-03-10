@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import type { TransferState } from '@/types'
 import { Message, Modal } from '@arco-design/web-vue'
 import { IconCheckCircleFill } from '@arco-design/web-vue/es/icon'
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import TransferProgress from '@/components/business/TransferProgress.vue'
 import ApprovalTimeline from '@/components/business/approval/ApprovalTimeline.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import { useApprovalDetail } from '@/composables/useApprovalDetail'
 import './approval-detail.scss'
+
 
 const route = useRoute()
 
@@ -37,7 +40,31 @@ const {
 
 const id = String(route.params.id || '')
 
+const showTransferProgress = computed(() => {
+  const status = detailData.value?.status
+  return status === 'approved' || status === 'transferring' || status === 'completed'
+})
+
+const transferFileSize = computed(() => {
+  const total = files.value.reduce((sum, item) => sum + Math.max(item.fileSize, 0), 0)
+  if (total > 0)
+    return total
+
+  return Math.max(1024 * 1024, Math.round((detailData.value?.storageSize || 0) * 1024 * 1024))
+})
+
+const transferStatusHint = computed<TransferState['status']>(() => {
+  if (detailData.value?.status === 'completed')
+    return 'completed'
+
+  if (detailData.value?.status === 'transferring')
+    return 'transferring'
+
+  return 'pending'
+})
+
 function onApprove() {
+
   Modal.confirm({
     title: '确认通过该申请单？',
     content: `申请单号：${detailData.value?.applicationNo || '-'}`,
@@ -147,7 +174,16 @@ onMounted(async () => {
       </a-spin>
     </div>
 
+    <section v-if="showTransferProgress" class="approval-detail-page__transfer">
+      <TransferProgress
+        :application-id="detailData?.id || id"
+        :file-size="transferFileSize"
+        :status-hint="transferStatusHint"
+      />
+    </section>
+
     <section v-if="canOperate" class="approval-opinion-card">
+
       <h3 class="approval-opinion-card__title">审批意见</h3>
       <a-textarea
         v-model="approvalOpinion"

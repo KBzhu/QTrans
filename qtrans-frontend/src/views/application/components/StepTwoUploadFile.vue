@@ -259,7 +259,7 @@ function formatTime(seconds: number): string {
             <template #icon>
               <IconFolder />
             </template>
-            上层目录
+            返回上层
           </a-button>
           <a-button
             type="text"
