@@ -199,6 +199,174 @@
   - `handleExport()` - 导出 CSV
 - [ ] 样式文件 `src/views/admin/audit-log.scss`
 
+### P10.7 区域管理（管理员）（3h）
+
+- [ ] 创建 `src/views/admin/RegionManageView.vue`
+  - 页面标题：「区域管理」
+  - 使用 `a-tabs` 分组展示
+  - **Tab1：城市与安全域映射**：
+    - 数据表格（a-table）：
+      - 列：城市名称、国家、安全域、状态、操作
+      - 安全域列：使用 `a-tag` 展示（绿区/黄区/红区）
+      - 操作列：编辑、删除
+    - 顶部操作栏：新增映射按钮
+    - 分页器（a-pagination）
+  - **Tab2：可选安全域配置**：
+    - 数据表格（a-table）：
+      - 列：安全域名称、安全域代码、颜色标识、描述、启用状态、操作
+      - 启用状态列：使用 `a-switch`（在线切换）
+      - 操作列：编辑、删除
+    - 顶部操作栏：新增安全域按钮
+- [ ] 创建 `src/views/admin/RegionManageModal.vue`（新增/编辑弹窗）
+  - 城市映射表单字段：城市名称、国家、安全域（下拉选择）
+  - 安全域配置表单字段：安全域名称、安全域代码、颜色标识（颜色选择器）、描述、启用状态
+  - 表单校验
+- [ ] 创建 `src/composables/useRegionManage.ts`
+  - `cityListData` - 城市映射列表
+  - `domainListData` - 安全域列表
+  - `loading` - 加载状态
+  - `pagination` - 分页参数
+  - `modalVisible` - 弹窗显示状态
+  - `editingItem` - 正在编辑的项
+  - `activeTab` - 当前 Tab
+  - `fetchCityList()` - 获取城市映射列表
+  - `fetchDomainList()` - 获取安全域列表
+  - `handleCreateCity()` - 新增城市映射
+  - `handleEditCity(item)` - 编辑城市映射
+  - `handleDeleteCity(id)` - 删除城市映射
+  - `handleCreateDomain()` - 新增安全域
+  - `handleEditDomain(item)` - 编辑安全域
+  - `handleDeleteDomain(id)` - 删除安全域
+  - `handleToggleDomainStatus(id, status)` - 切换安全域启用状态
+- [ ] 样式文件 `src/views/admin/region-manage.scss`
+
+### P10.8 传输通道管理（管理员）（4h）
+
+- [ ] 创建 `src/views/admin/ChannelManageView.vue`
+  - 页面标题：「传输通道管理」
+  - 顶部操作栏：新建通道按钮
+  - 数据表格（a-table）：
+    - 列：通道名称、通道代码、加密配置、服务器数量、状态、创建时间、操作
+    - 加密配置列：使用 `a-tag-group` 展示（数据加密/RMS加密/资产检测）
+    - 状态列：使用 `a-switch`（在线切换）
+    - 操作列：编辑、配置服务器、删除
+  - 分页器（a-pagination）
+- [ ] 创建 `src/views/admin/ChannelManageModal.vue`（新增/编辑通道弹窗）
+  - 表单字段：
+    - 通道名称
+    - 通道代码
+    - 加密配置（a-checkbox-group）：数据加密、RMS加密、资产检测
+    - 描述
+    - 启用状态
+  - 表单校验
+- [ ] 创建 `src/views/admin/ChannelServerModal.vue`（配置服务器弹窗）
+  - 服务器列表（a-transfer）：
+    - 左侧：可选服务器列表
+    - 右侧：已选服务器列表
+    - 支持搜索、批量选择
+  - 已选服务器配置：
+    - 服务器IP
+    - 服务器端口
+    - 优先级（拖拽排序）
+    - 状态（启用/禁用）
+- [ ] 创建 `src/composables/useChannelManage.ts`
+  - `listData` - 通道列表
+  - `loading` - 加载状态
+  - `pagination` - 分页参数
+  - `modalVisible` - 弹窗显示状态
+  - `serverModalVisible` - 服务器配置弹窗显示状态
+  - `editingChannel` - 正在编辑的通道
+  - `currentChannelId` - 当前配置服务器的通道ID
+  - `fetchList()` - 获取通道列表
+  - `handleCreate()` - 新建通道
+  - `handleEdit(channel)` - 编辑通道
+  - `handleDelete(id)` - 删除通道
+  - `handleToggleStatus(id, status)` - 切换通道状态
+  - `handleConfigServer(channelId)` - 打开服务器配置弹窗
+  - `handleSaveServers(channelId, servers)` - 保存服务器配置
+- [ ] 样式文件 `src/views/admin/channel-manage.scss`
+
+### P10.9 界面配置（管理员）（5h）
+
+- [ ] 创建 `src/views/admin/UIConfigView.vue`
+  - 页面标题：「界面配置」
+  - 使用 `a-tabs` 分组展示配置项
+  - **Tab1：文字内容配置**：
+    - 树形结构展示（a-tree）：
+      - 按模块分组（登录、首页、申请单、审批、传输、下载、通知、用户管理等）
+      - 每个节点显示：配置键、当前文字内容
+      - 点击节点展开编辑表单
+    - 编辑表单：
+      - 配置键（只读）
+      - 中文文字（a-input）
+      - 英文文字（a-input）
+      - 描述（a-textarea）
+    - 批量导入/导出按钮（JSON格式）
+  - **Tab2：申请单卡片配置**：
+    - 卡片列表（可拖拽排序）：
+      - 卡片名称
+      - 卡片代码
+      - 显示顺序
+      - 是否必填
+      - 启用状态（a-switch）
+      - 操作：编辑、删除
+    - 新增卡片按钮
+    - 卡片编辑表单：
+      - 卡片名称
+      - 卡片代码
+      - 显示顺序
+      - 是否必填
+      - 字段配置（JSON编辑器）
+      - 启用状态
+  - **Tab3：国际化配置**：
+    - 语言列表：
+      - 语言名称（中文/English）
+      - 语言代码（zh-CN/en-US）
+      - 启用状态（a-switch）
+      - 翻译完成度（进度条）
+      - 操作：编辑翻译、导入、导出
+    - 翻译编辑器（a-table）：
+      - 列：配置键、中文、英文、状态
+      - 支持在线编辑
+      - 支持批量导入/导出
+  - **Tab4：按钮显隐配置**：
+    - 按钮列表（a-table）：
+      - 列：按钮名称、按钮代码、所属页面、角色权限、显示条件、启用状态、操作
+      - 角色权限列：使用 `a-tag-group` 展示
+      - 启用状态列：使用 `a-switch`
+      - 操作列：编辑、删除
+    - 新增按钮配置
+    - 按钮编辑表单：
+      - 按钮名称
+      - 按钮代码
+      - 所属页面（下拉选择）
+      - 角色权限（多选）
+      - 显示条件（JSON编辑器）
+      - 启用状态
+  - 保存按钮（每个 Tab 独立保存）
+- [ ] 创建 `src/composables/useUIConfig.ts`
+  - `textConfigData` - 文字内容配置数据
+  - `cardConfigData` - 申请单卡片配置数据
+  - `i18nConfigData` - 国际化配置数据
+  - `buttonConfigData` - 按钮显隐配置数据
+  - `loading` - 加载状态
+  - `activeTab` - 当前 Tab
+  - `selectedNode` - 选中的树节点
+  - `editingItem` - 正在编辑的项
+  - `fetchTextConfig()` - 获取文字内容配置
+  - `fetchCardConfig()` - 获取申请单卡片配置
+  - `fetchI18nConfig()` - 获取国际化配置
+  - `fetchButtonConfig()` - 获取按钮显隐配置
+  - `handleSaveTextConfig(key, data)` - 保存文字内容配置
+  - `handleSaveCardConfig(data)` - 保存申请单卡片配置
+  - `handleSaveI18nConfig(lang, data)` - 保存国际化配置
+  - `handleSaveButtonConfig(data)` - 保存按钮显隐配置
+  - `handleImportConfig(type, file)` - 导入配置
+  - `handleExportConfig(type)` - 导出配置
+  - `handleCardSort(newOrder)` - 卡片排序
+- [ ] 样式文件 `src/views/admin/ui-config.scss`
+
+---
 ---
 
 ## 技术要点
