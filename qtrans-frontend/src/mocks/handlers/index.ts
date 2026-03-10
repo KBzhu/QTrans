@@ -7,6 +7,10 @@ import { fileHandlers } from './file'
 import { notificationHandlers } from './notification'
 import { userHandlers } from './user'
 import { systemConfigHandlers } from './systemConfig'
+import { auditLogHandlers } from './auditLog'
+import { regionManageHandlers } from './regionManage'
+import { channelManageHandlers } from './channelManage'
+
 
 export const handlers = [
   ...authHandlers,
@@ -19,5 +23,7 @@ export const handlers = [
   ...notificationHandlers,
   ...systemConfigHandlers,
   ...auditLogHandlers,
+  ...regionManageHandlers,
+  ...channelManageHandlers,
 ]
 

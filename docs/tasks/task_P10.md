@@ -210,7 +210,7 @@
 
 ### P10.7 区域管理（管理员）（3h）
 
-- [ ] 创建 `src/views/admin/RegionManageView.vue`
+- [√] 创建 `src/views/admin/RegionManageView.vue`
   - 页面标题：「区域管理」
   - 使用 `a-tabs` 分组展示
   - **Tab1：城市与安全域映射**：
@@ -226,11 +226,11 @@
       - 启用状态列：使用 `a-switch`（在线切换）
       - 操作列：编辑、删除
     - 顶部操作栏：新增安全域按钮
-- [ ] 创建 `src/views/admin/RegionManageModal.vue`（新增/编辑弹窗）
+- [√] 创建 `src/views/admin/RegionManageModal.vue`（新增/编辑弹窗）
   - 城市映射表单字段：城市名称、国家、安全域（下拉选择）
   - 安全域配置表单字段：安全域名称、安全域代码、颜色标识（颜色选择器）、描述、启用状态
   - 表单校验
-- [ ] 创建 `src/composables/useRegionManage.ts`
+- [√] 创建 `src/composables/useRegionManage.ts`
   - `cityListData` - 城市映射列表
   - `domainListData` - 安全域列表
   - `loading` - 加载状态
@@ -247,7 +247,11 @@
   - `handleEditDomain(item)` - 编辑安全域
   - `handleDeleteDomain(id)` - 删除安全域
   - `handleToggleDomainStatus(id, status)` - 切换安全域启用状态
-- [ ] 样式文件 `src/views/admin/region-manage.scss`
+- [√] 样式文件 `src/views/admin/region-manage.scss`
+- [√] API 接口 `src/api/regionManage.ts`
+- [√] Mock 数据 `src/mocks/handlers/regionManage.ts`
+- [√] 更新路由 `src/views/region/index.vue` + `src/router/routes.ts`
+- [√] 单元测试 `src/composables/__tests__/useRegionManage.spec.ts`（16 个用例全通过）
 
 ### P10.8 传输通道管理（管理员）（4h）
 
@@ -260,7 +264,7 @@
     - 状态列：使用 `a-switch`（在线切换）
     - 操作列：编辑、配置服务器、删除
   - 分页器（a-pagination）
-- [ ] 创建 `src/views/admin/ChannelManageModal.vue`（新增/编辑通道弹窗）
+- [√] 创建 `src/views/admin/ChannelManageModal.vue`（新增/编辑通道弹窗）
   - 表单字段：
     - 通道名称
     - 通道代码
@@ -278,7 +282,7 @@
     - 服务器端口
     - 优先级（拖拽排序）
     - 状态（启用/禁用）
-- [ ] 创建 `src/composables/useChannelManage.ts`
+- [√] 创建 `src/composables/useChannelManage.ts`
   - `listData` - 通道列表
   - `loading` - 加载状态
   - `pagination` - 分页参数
@@ -293,7 +297,7 @@
   - `handleToggleStatus(id, status)` - 切换通道状态
   - `handleConfigServer(channelId)` - 打开服务器配置弹窗
   - `handleSaveServers(channelId, servers)` - 保存服务器配置
-- [ ] 样式文件 `src/views/admin/channel-manage.scss`
+- [√] 样式文件 `src/views/admin/channel-manage.scss`
 
 ### P10.9 界面配置（管理员）（5h）
 

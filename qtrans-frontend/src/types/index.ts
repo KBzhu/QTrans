@@ -5,6 +5,8 @@ export * from './file'
 export * from './approval'
 export * from './notification'
 export * from './auditLog'
+export * from './regionManage'
+export * from './channelManage'
 export * from './detail'
 
 

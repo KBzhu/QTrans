@@ -202,6 +202,30 @@ export const routes: RouteRecordRaw[] = [
     } as AppRouteMeta,
   },
   {
+    path: '/region',
+    name: 'Region',
+    component: () => import('@/views/region/index.vue'),
+    meta: {
+      title: '区域管理',
+      icon: 'icon-location',
+      layout: 'default',
+      requiresAuth: true,
+      roles: adminRoles,
+    } as AppRouteMeta,
+  },
+  {
+    path: '/channels',
+    name: 'Channels',
+    component: () => import('@/views/channel/index.vue'),
+    meta: {
+      title: '传输通道管理',
+      icon: 'icon-branches',
+      layout: 'default',
+      requiresAuth: true,
+      roles: adminRoles,
+    } as AppRouteMeta,
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/profile/index.vue'),

@@ -1,5 +1,4 @@
 <template>
-  <PageContainer title="系统配置">
     <div class="system-config-container">
       <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
         <!-- Tab1: 传输配置 -->
@@ -302,7 +301,7 @@
         </a-tab-pane>
       </a-tabs>
     </div>
-  </PageContainer>
+
 </template>
 
 <script setup lang="ts">

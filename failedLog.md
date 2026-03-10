@@ -246,3 +246,87 @@
   - 错误信息：文件不存在（`Could not find file 'd:/VibeCoding/QTrans-0302new/qtrans-frontend/src/test/setup.ts' in the workspace.`）。
   - 处理：记录当前测试环境尚未按 `task_P11` 建立统一 `setup.ts`，本轮 P10.4 继续基于现有 `vitest.config.ts` 与局部测试文件实现，不阻塞用户管理开发。
 
+- 2026-03-10 P9.3 运行时错误（BUG 修复）：点击「传输管理」菜单报错 `TypeError: _a.includes is not a function`
+  - 错误信息：`TransferManageView.vue` 第 53 行，`rowSelection` 的 `selectedRowKeys` 应传数组 `selectedRows.value`，实际传了 ref 对象本身 `selectedRows`，导致 Arco Table 内部调用 `includes` 方法失败。
+  - 错误代码：
+    ```typescript
+    const rowSelection = computed(() => ({
+      type: 'checkbox',
+      showCheckedAll: true,
+      selectedRowKeys: selectedRows, // ❌ 错误：传递了 ref 对象
+    }))
+    ```
+  - 修复方案：改为 `selectedRowKeys: selectedRows.value`（取 ref 的值）。
+  - 处理：已修复并通过 lint 检查。
+
+- 2026-03-10 P10.6 样式导入路径错误（BUG 修复）：点击「传输管理」菜单时 Vite 构建报错 `[sass] ENOENT: no such file or directory, open 'D:\VibeCoding\QTrans-0302new\qtrans-frontend\src\styles\mixins.scss'`
+  - 错误文件：`system-config.scss`、`audit-log.scss` 第 1 行
+  - 错误原因：导入路径 `@/styles/mixins.scss` 缺少 `assets` 目录，实际路径为 `@/assets/styles/mixins.scss`
+  - 错误代码：
+    ```scss
+    @import '@/styles/mixins.scss'; // ❌ 错误：缺少 assets
+    ```
+  - 修复方案 1：修正导入路径为 `@import '@/assets/styles/mixins.scss';`
+  - 修复方案 2：补充缺失的 `glass-card` mixin 到 `mixins.scss`（`system-config.scss`、`audit-log.scss` 使用但未定义）
+  - 处理：已修复路径错误并补充 mixin，通过 lint 检查。
+
+- 2026-03-10 P10.6 Mock 响应码错误（BUG 修复）：系统配置页面每个 Tab 加载时报错 `Error: success`，控制台显示 `request.ts:24` 拦截器抛出异常
+  - 错误文件：`systemConfig.ts` 第 132、158 行
+  - 错误原因：Mock 返回 `code: 0`，但 `request.ts` 拦截器期望 `code: 200`（第 23 行 `if (code !== 200)`），导致将 `message: 'success'` 作为错误抛出
+  - 错误代码：
+    ```typescript
+    return HttpResponse.json({
+      code: 0, // ❌ 错误：应为 200
+      message: 'success',
+      data: config
+    })
+    ```
+  - 修复方案：将所有 Mock 响应的 `code: 0` 改为 `code: 200`
+  - 处理：已修复 2 处响应码，通过 lint 检查。
+
+- 2026-03-10 P10.6 SCSS 别名解析失败（BUG 修复）：修改 `SystemConfigView.vue` 保存后 Vite 热更新报错，提示无法解析 `@import '@/assets/styles/mixins.scss'`
+  - 错误文件：`system-config.scss`、`audit-log.scss` 第 1 行
+  - 错误原因：SCSS 的 `@import` 语句不支持 Vite 的 `@` 别名（即使加 `~` 前缀也失败：`Can't find stylesheet to import`）
+  - 初次尝试：改为 `@import '~@/assets/styles/mixins.scss';` - 失败
+  - 最终方案：使用相对路径 `@import '../../assets/styles/mixins.scss';`（从 `views/admin/` 到 `assets/styles/`）
+  - 处理：已修复 2 处导入路径，通过 lint 检查。
+
+- 2026-03-10 P10.7 模块导入错误（BUG 修复）：点击「区域管理」菜单时报错 `SyntaxError: The requested module '/src/utils/request.ts' does not provide an export named 'default'`
+  - 错误文件：`src/api/file.ts` 第 1 行
+  - 错误原因：`request.ts` 使用命名导出 `export const request`，但 `file.ts` 使用了默认导入 `import request from`
+  - 错误代码：
+    ```typescript
+    import request from '@/utils/request' // ❌ 错误：默认导入
+    ```
+  - 修复方案：改为命名导入 `import { request } from '@/utils/request'`
+  - 处理：已修复导入语句，通过 lint 检查。
+
+- 2026-03-10 P10.8 测试命令执行路径错误：执行 `npm run` 时出现 `ENOENT` / `系统找不到指定的路径`
+  - 错误原因：命令行环境无法正确切换到 `qtrans-frontend` 子目录（`cd` 失败）
+  - 错误命令：
+    ```bash
+    cd /d D:\VibeCoding\QTrans-0302new\qtrans-frontend && npm run test ...
+    ```
+  - 修复方案：改为使用 `npm --prefix D:\VibeCoding\QTrans-0302new\qtrans-frontend ...` 直接指定项目根目录
+  - 处理：命令已恢复正常，`useChannelManage.spec.ts` 12 个用例通过。
+
+- 2026-03-10 P10.8 覆盖率执行失败（存量问题）：执行 `npm --prefix ... run test:coverage` 失败
+  - 错误文件：`src/composables/__tests__/useSystemConfig.spec.ts`
+  - 错误信息：
+    1. `expected ... to have a length of 3 but got 11`
+    2. `TypeError: composable.loadConfig is not a function`
+  - 影响范围：非本次 P10.8 新增模块，属于历史测试基线与当前实现不一致
+  - 处理：已保留失败信息，本次先完成 P10.8 功能交付与专项单测，覆盖率问题待单独修复。
+
+
+
+
+
+
+
+
+
+
+
+
+

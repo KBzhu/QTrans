@@ -50,7 +50,7 @@ const transferTypeOptions: { label: string, value: 'all' | TransferType }[] = [
 const rowSelection = computed(() => ({
   type: 'checkbox',
   showCheckedAll: true,
-  selectedRowKeys: selectedRows,
+  selectedRowKeys: selectedRows.value,
 }))
 
 function getProgressStatus(status: TransferManageStatus) {
@@ -115,7 +115,6 @@ onMounted(async () => {
   <section class="transfer-manage-page">
     <header class="transfer-manage-page__header">
       <div>
-        <h1 class="transfer-manage-page__title">传输管理</h1>
         <p class="transfer-manage-page__subtitle">仅管理员可见，用于追踪传输任务进度、失败重试与批量控制。</p>
       </div>
     </header>

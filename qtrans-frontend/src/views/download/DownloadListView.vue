@@ -85,8 +85,6 @@ onMounted(async () => {
 
 <template>
   <section class="download-list-page">
-    <h1 class="download-list-page__title">待我下载</h1>
-
     <section class="download-filter-card">
       <div class="download-filter-card__main">
         <a-input

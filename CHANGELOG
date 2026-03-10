@@ -7,7 +7,11 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
-- **P6.7 待我下载**: 新增页面 `src/views/download/DownloadListView.vue` 与样式 `src/views/download/download-list.scss`，基于 Figma `4088_301` 实现标题、筛选、列表、分页与操作区。
+- **P10.8 传输通道管理**: 新增 `src/views/admin/ChannelManageView.vue`、`ChannelManageModal.vue`、`ChannelServerModal.vue` 与 `channel-manage.scss`，支持通道 CRUD、状态切换、服务器穿梭选择与拖拽排序；新增 `src/composables/useChannelManage.ts`、`src/api/channelManage.ts`、`src/mocks/handlers/channelManage.ts`、`src/types/channelManage.ts`；新增路由入口 `src/views/channel/index.vue` 并在 `src/router/routes.ts` 注册 `/channels`；更新 `api/index.ts`、`types/index.ts`、`mocks/handlers/index.ts`；新增 `useChannelManage.spec.ts`（12 个测试用例全通过）。
+- **P10.7 区域管理**: 新增 `src/views/admin/RegionManageView.vue`（双 Tab：城市与安全域映射 / 可选安全域配置）、`src/views/admin/RegionManageModal.vue`（城市映射/安全域 共用弹窗，含表单校验与预设颜色选择器）、`src/composables/useRegionManage.ts`（城市/安全域完整 CRUD + 状态切换 + Tab 联动）、`src/api/regionManage.ts`、`src/mocks/handlers/regionManage.ts`（12条城市+4个安全域默认数据，全 CRUD Mock）、`region-manage.scss`；更新 `src/router/routes.ts` 新增 `/region` 路由，新增路由入口 `src/views/region/index.vue`；更新 `api/index.ts`、`mocks/handlers/index.ts`、`types/index.ts` 聚合导出；新增 `useRegionManage.spec.ts`（16 个测试用例全通过）。
+
+
+ 与样式 `src/views/download/download-list.scss`，基于 Figma `4088_301` 实现标题、筛选、列表、分页与操作区。
 - **P6.7 下载逻辑**: 新增 `src/composables/useDownloadList.ts`，支持下载人可见性过滤、下载状态聚合（未下载/部分下载/已下载）、分页筛选与批量触发应用文件下载。
 - **P6.7 单元测试**: 新增 `src/composables/__tests__/useDownloadList.spec.ts`，覆盖默认状态、可见性过滤、下载状态聚合与筛选重置。
 - **单元测试**: 运行 `pnpm test:coverage`，14 个测试文件 53 个测试用例全部通过。

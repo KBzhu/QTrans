@@ -1,4 +1,5 @@
-import type { CreateUserRequest, UpdateUserRequest, User, UserQueryParams, UserRole, UserStatus } from '@/types'
+import type { CreateUserRequest, UpdateUserRequest, User, UserQueryParams,
+     UserRole, UserStatus } from '@/types'
 import { computed, ref } from 'vue'
 import { Modal, Message } from '@arco-design/web-vue'
 import { userApi } from '@/api'

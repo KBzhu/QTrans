@@ -129,7 +129,7 @@ export const systemConfigHandlers = [
     }
 
     return HttpResponse.json({
-      code: 0,
+      code: 200,
       message: 'success',
       data: config
     })
@@ -155,7 +155,7 @@ export const systemConfigHandlers = [
     currentConfigs[tab as keyof typeof currentConfigs] = data as any
 
     return HttpResponse.json({
-      code: 0,
+      code: 200,
       message: '配置保存成功',
       data: null
     })

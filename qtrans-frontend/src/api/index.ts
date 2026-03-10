@@ -5,6 +5,8 @@ export * from './notification'
 export * from './user'
 export * from './systemConfig'
 export * from './auditLog'
+export * from './regionManage'
+export * from './channelManage'
 
 export * from './file'
 
