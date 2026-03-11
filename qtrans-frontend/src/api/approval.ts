@@ -5,6 +5,13 @@ export const approvalApi = {
   getPending(): Promise<Application[]> {
     return request.get<Application[]>('/approvals/pending')
   },
+  getProcessed(): Promise<Application[]> {
+    return request.get<Application[]>('/approvals/processed')
+  },
+  getAll(): Promise<Application[]> {
+    return request.get<Application[]>('/approvals/all')
+  },
+
   getHistory(applicationId: string): Promise<ApprovalRecord[]> {
     return request.get<ApprovalRecord[]>(`/approvals/${applicationId}/history`)
   },

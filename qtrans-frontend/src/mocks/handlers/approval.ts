@@ -1,4 +1,5 @@
-import type { ApprovalAction, ApprovalLevel, ApprovalRecord, TransferType } from '@/types'
+import type { ApprovalAction, ApprovalLevel, ApprovalRecord, Application, TransferType, UserRole } from '@/types'
+import type { DemoState } from '../data/demo-init'
 import { http } from 'msw'
 import { getDemoState } from '../data/demo-init'
 import { failed, mockDelay, success } from './_utils'
@@ -17,29 +18,120 @@ function getRequiredApprovalLevels(transferType: TransferType): number {
   return approvalLevelMap[transferType] || 0
 }
 
-function buildRecord(applicationId: string, action: ApprovalAction, opinion: string): ApprovalRecord {
-  const state = getDemoState()
-  const application = state.applications.find(item => item.id === applicationId)
-  const level = Math.min(3, Math.max(1, application?.currentApprovalLevel || 1)) as ApprovalLevel
+function parseUserIdFromAuthorization(authorization: string | null) {
+  if (!authorization)
+    return ''
+
+  const token = authorization.replace(/^Bearer\s+/i, '').trim()
+  const match = token.match(/^mock-token-([a-zA-Z0-9_]+)-\d+$/)
+  return match?.[1] || ''
+}
+
+function getCurrentUser(state: DemoState, authorization: string | null) {
+  const userId = parseUserIdFromAuthorization(authorization)
+  if (!userId)
+    return null
+  return state.users.find(item => item.id === userId) || null
+}
+
+function getApproverLevelByRoles(roles: UserRole[]): number {
+  if (roles.includes('admin'))
+    return 99
+  if (roles.includes('approver3'))
+    return 3
+  if (roles.includes('approver2'))
+    return 2
+  if (roles.includes('approver1'))
+    return 1
+  return 0
+}
+
+function canHandleApplication(user: NonNullable<ReturnType<typeof getCurrentUser>>, app: Application) {
+  const approverLevel = getApproverLevelByRoles(user.roles)
+  if (approverLevel === 99)
+    return true
+  return app.status === 'pending_approval' && app.currentApprovalLevel === approverLevel
+}
+
+function buildRecord(app: Application, action: ApprovalAction, opinion: string, user: NonNullable<ReturnType<typeof getCurrentUser>>): ApprovalRecord {
+  const level = Math.min(3, Math.max(1, app.currentApprovalLevel || 1)) as ApprovalLevel
 
   return {
-    id: `apr-${Date.now()}`,
-    applicationId,
+    id: `apr-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    applicationId: app.id,
     level,
-    approverId: `u_approver${level}`,
-    approverName: `审批人${level}`,
+    approverId: user.id,
+    approverName: user.name,
     action,
     opinion,
     createdAt: new Date().toISOString(),
   }
 }
 
+function dedupeApplications(list: Application[]) {
+  const map = new Map<string, Application>()
+  list.forEach((item) => {
+    map.set(item.id, item)
+  })
+  return [...map.values()].sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+}
+
+function getScopedPending(state: DemoState, user: NonNullable<ReturnType<typeof getCurrentUser>>) {
+  const pending = state.applications.filter(item => item.status === 'pending_approval')
+  if (user.roles.includes('admin'))
+    return pending
+  return pending.filter(item => canHandleApplication(user, item))
+}
+
+function getScopedProcessed(state: DemoState, user: NonNullable<ReturnType<typeof getCurrentUser>>) {
+  const records = user.roles.includes('admin')
+    ? state.approvals
+    : state.approvals.filter(item => item.approverId === user.id)
+
+  const applications = records
+    .map(record => state.applications.find(app => app.id === record.applicationId))
+    .filter(Boolean) as Application[]
+
+  return dedupeApplications(applications)
+}
+
 export const approvalHandlers = [
-  http.get('/api/approvals/pending', async () => {
+  http.get('/api/approvals/pending', async ({ request }) => {
     await mockDelay(200)
     const state = getDemoState()
-    const list = state.applications.filter(item => item.status === 'pending_approval')
-    return success(list)
+    const user = getCurrentUser(state, request.headers.get('authorization'))
+
+    if (!user)
+      return failed('未登录', 401)
+
+    return success(dedupeApplications(getScopedPending(state, user)))
+  }),
+
+  http.get('/api/approvals/processed', async ({ request }) => {
+    await mockDelay(180)
+    const state = getDemoState()
+    const user = getCurrentUser(state, request.headers.get('authorization'))
+
+    if (!user)
+      return failed('未登录', 401)
+
+    return success(getScopedProcessed(state, user))
+  }),
+
+  http.get('/api/approvals/all', async ({ request }) => {
+    await mockDelay(180)
+    const state = getDemoState()
+    const user = getCurrentUser(state, request.headers.get('authorization'))
+
+    if (!user)
+      return failed('未登录', 401)
+
+    const all = dedupeApplications([
+      ...getScopedPending(state, user),
+      ...getScopedProcessed(state, user),
+    ])
+
+    return success(all)
   }),
 
   http.get('/api/approvals/:id/history', async ({ params }) => {
@@ -54,37 +146,38 @@ export const approvalHandlers = [
   }),
 
   http.post('/api/approvals/:id/approve', async ({ params, request }) => {
-
     await mockDelay(250)
 
     const id = String(params.id)
     const payload = await request.json().catch(() => ({})) as { opinion?: string }
     const state = getDemoState()
-    const app = state.applications.find(item => item.id === id)
+    const user = getCurrentUser(state, request.headers.get('authorization'))
 
+    if (!user)
+      return failed('未登录', 401)
+
+    const app = state.applications.find(item => item.id === id)
     if (!app)
       return failed('申请单不存在', 404)
 
+    if (!canHandleApplication(user, app))
+      return failed('当前账号无权审批该申请单', 403)
+
     const requiredLevels = getRequiredApprovalLevels(app.transferType)
-    const currentLevel = app.currentApprovalLevel || 1
+    const currentLevel = app.currentApprovalLevel || (requiredLevels > 0 ? 1 : 0)
 
-    // 记录审批记录
-    state.approvals.unshift(buildRecord(id, 'approve', payload.opinion || '审批通过'))
+    state.approvals.unshift(buildRecord(app, 'approve', payload.opinion || '审批通过', user))
 
-    // 判断是否为最后一级审批
-    if (currentLevel >= requiredLevels) {
-      // 最后一级审批通过，状态改为approved，自动开始传输
+    if (requiredLevels === 0 || currentLevel >= requiredLevels) {
       app.status = 'approved'
       app.currentApprovalLevel = 0
     }
     else {
-      // 不是最后一级，增加审批层级，继续待审批
       app.currentApprovalLevel = (currentLevel + 1) as ApprovalLevel
       app.status = 'pending_approval'
     }
 
     app.updatedAt = new Date().toISOString()
-
     return success(app, '审批通过')
   }),
 
@@ -94,15 +187,22 @@ export const approvalHandlers = [
     const id = String(params.id)
     const payload = await request.json().catch(() => ({})) as { opinion?: string }
     const state = getDemoState()
-    const app = state.applications.find(item => item.id === id)
+    const user = getCurrentUser(state, request.headers.get('authorization'))
 
+    if (!user)
+      return failed('未登录', 401)
+
+    const app = state.applications.find(item => item.id === id)
     if (!app)
       return failed('申请单不存在', 404)
+
+    if (!canHandleApplication(user, app))
+      return failed('当前账号无权审批该申请单', 403)
 
     app.status = 'rejected'
     app.updatedAt = new Date().toISOString()
 
-    state.approvals.unshift(buildRecord(id, 'reject', payload.opinion || '审批驳回'))
+    state.approvals.unshift(buildRecord(app, 'reject', payload.opinion || '审批驳回', user))
     return success(app, '已驳回')
   }),
 
@@ -112,16 +212,23 @@ export const approvalHandlers = [
     const id = String(params.id)
     const payload = await request.json().catch(() => ({})) as { opinion?: string }
     const state = getDemoState()
-    const app = state.applications.find(item => item.id === id)
+    const user = getCurrentUser(state, request.headers.get('authorization'))
 
+    if (!user)
+      return failed('未登录', 401)
+
+    const app = state.applications.find(item => item.id === id)
     if (!app)
       return failed('申请单不存在', 404)
+
+    if (!user.roles.includes('admin'))
+      return failed('仅管理员可执行免审', 403)
 
     app.status = 'approved'
     app.currentApprovalLevel = 0
     app.updatedAt = new Date().toISOString()
 
-    state.approvals.unshift(buildRecord(id, 'exempt', payload.opinion || '免审通过'))
+    state.approvals.unshift(buildRecord(app, 'exempt', payload.opinion || '免审通过', user))
     return success(app, '免审通过')
   }),
 ]

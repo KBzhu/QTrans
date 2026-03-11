@@ -1,7 +1,8 @@
 import type { Application } from '@/types'
 import { computed, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import { useApprovalStore } from '@/stores'
+import { approvalApi } from '@/api/approval'
+import { useAuthStore } from '@/stores'
 
 export type ApprovalTabType = 'pending' | 'approved' | 'all'
 
@@ -28,8 +29,16 @@ const transferTypeLabelMap: Record<Application['transferType'], string> = {
   'cross-country': '跨国传输',
 }
 
+function dedupeById(list: Application[]) {
+  const map = new Map<string, Application>()
+  list.forEach((item) => {
+    map.set(item.id, item)
+  })
+  return [...map.values()].sort((a, b) => dayjs(b.updatedAt || b.createdAt).valueOf() - dayjs(a.updatedAt || a.createdAt).valueOf())
+}
+
 export function useApprovalList() {
-  const approvalStore = useApprovalStore()
+  const authStore = useAuthStore()
   const loading = ref(false)
   const activeTab = ref<ApprovalTabType>('pending')
 
@@ -46,21 +55,24 @@ export function useApprovalList() {
     total: 0,
   })
 
+  const pendingApprovals = ref<Application[]>([])
+  const processedApprovals = ref<Application[]>([])
   const allApprovals = ref<Application[]>([])
 
   const filteredList = computed(() => {
     let result: Application[] = []
 
-    if (activeTab.value === 'pending') {
-      result = approvalStore.pendingApprovals
-    }
-    else if (activeTab.value === 'approved') {
-      result = allApprovals.value.filter(item =>
-        item.status === 'approved' || item.status === 'rejected',
-      )
-    }
-    else {
+    if (activeTab.value === 'pending')
+      result = pendingApprovals.value
+    else if (activeTab.value === 'approved')
+      result = processedApprovals.value
+    else
       result = allApprovals.value
+
+    if (!authStore.isAdmin) {
+      const currentUserId = authStore.currentUser?.id
+      if (!currentUserId)
+        result = []
     }
 
     if (filters.keyword) {
@@ -71,15 +83,12 @@ export function useApprovalList() {
       )
     }
 
-    if (filters.transferType && filters.transferType !== 'all') {
+    if (filters.transferType && filters.transferType !== 'all')
       result = result.filter(item => item.transferType === filters.transferType)
-    }
 
     if (filters.applicant) {
       const applicant = filters.applicant.toLowerCase()
-      result = result.filter(item =>
-        item.applicantName.toLowerCase().includes(applicant),
-      )
+      result = result.filter(item => item.applicantName.toLowerCase().includes(applicant))
     }
 
     if (filters.dateRange?.length === 2) {
@@ -93,7 +102,6 @@ export function useApprovalList() {
     }
 
     pagination.total = result.length
-
     const startIdx = (pagination.current - 1) * pagination.pageSize
     return result.slice(startIdx, startIdx + pagination.pageSize)
   })
@@ -103,16 +111,14 @@ export function useApprovalList() {
   async function fetchList() {
     loading.value = true
     try {
-      await approvalStore.fetchPendingApprovals()
-      
-      allApprovals.value = [
-        ...approvalStore.pendingApprovals,
-        ...(approvalStore.approvalHistory
-          .map((record) => {
-            return approvalStore.pendingApprovals.find(app => app.id === record.applicationId)
-          })
-          .filter(Boolean) as Application[]),
-      ]
+      const [pending, processed, all] = await Promise.all([
+        approvalApi.getPending(),
+        approvalApi.getProcessed(),
+        approvalApi.getAll(),
+      ])
+      pendingApprovals.value = dedupeById(pending)
+      processedApprovals.value = dedupeById(processed)
+      allApprovals.value = dedupeById(all)
     }
     finally {
       loading.value = false

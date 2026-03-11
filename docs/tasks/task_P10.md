@@ -301,7 +301,7 @@
 
 ### P10.9 界面配置（管理员）（5h）
 
-- [ ] 创建 `src/views/admin/UIConfigView.vue`
+- [√] 创建 `src/views/admin/UIConfigView.vue`
   - 页面标题：「界面配置」
   - 使用 `a-tabs` 分组展示配置项
   - **Tab1：文字内容配置**：
@@ -377,7 +377,7 @@
   - `handleImportConfig(type, file)` - 导入配置
   - `handleExportConfig(type)` - 导出配置
   - `handleCardSort(newOrder)` - 卡片排序
-- [ ] 样式文件 `src/views/admin/ui-config.scss`
+- [√] 样式文件 `src/views/admin/ui-config.scss`
 
 ---
 ---

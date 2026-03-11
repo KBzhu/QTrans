@@ -382,7 +382,10 @@ export function useApplicationForm(initialTransferType?: string) {
       status,
       applicantId: user?.id || 'u_submitter',
       applicantName: user?.name || user?.username || '提交人',
-      currentApprovalLevel: APPROVAL_LEVEL_MAP[formData.value.transferType],
+      currentApprovalLevel: status === 'pending_approval'
+        ? (APPROVAL_LEVEL_MAP[formData.value.transferType] > 0 ? 1 : 0)
+        : 0,
+
     }
   }
 

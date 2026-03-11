@@ -10,6 +10,8 @@ import { systemConfigHandlers } from './systemConfig'
 import { auditLogHandlers } from './auditLog'
 import { regionManageHandlers } from './regionManage'
 import { channelManageHandlers } from './channelManage'
+import { uiConfigHandlers } from './uiConfig'
+
 
 
 export const handlers = [
@@ -25,5 +27,6 @@ export const handlers = [
   ...auditLogHandlers,
   ...regionManageHandlers,
   ...channelManageHandlers,
+  ...uiConfigHandlers,
 ]
 

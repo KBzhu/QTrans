@@ -1,6 +1,7 @@
 import type { Router } from 'vue-router'
 import type { UserRole } from '@/types'
-import { useAuthStore, useNotificationStore } from '@/stores'
+import { useAuthStore } from '@/stores'
+
 
 function hasAnyRole(roles: UserRole[] | undefined, userRoles: UserRole[]): boolean {
   if (!roles || roles.length === 0)
@@ -41,23 +42,5 @@ export function setupRouterGuards(router: Router) {
     return true
   })
 
-  router.afterEach((to, from) => {
-    const authStore = useAuthStore()
-    if (!authStore.isLoggedIn)
-      return
 
-    if (to.fullPath === from.fullPath)
-      return
-
-    const notificationStore = useNotificationStore()
-    notificationStore.addNotification({
-      id: `route-log-${Date.now()}`,
-      userId: authStore.currentUser?.id || 'anonymous',
-      type: 'system',
-      title: '页面访问记录',
-      content: `访问页面：${String(to.meta.title || to.path)}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-    })
-  })
 }

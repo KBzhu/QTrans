@@ -318,6 +318,33 @@
   - 影响范围：非本次 P10.8 新增模块，属于历史测试基线与当前实现不一致
   - 处理：已保留失败信息，本次先完成 P10.8 功能交付与专项单测，覆盖率问题待单独修复。
 
+- 2026-03-10 P10.9 覆盖率执行失败（存量问题延续）：执行 `npm --prefix ... run test:coverage` 失败
+  - 错误文件：`src/composables/__tests__/useSystemConfig.spec.ts`
+  - 错误信息：
+    1. `expected ... to have a length of 3 but got 11`
+    2. `TypeError: composable.loadConfig is not a function`
+  - 影响范围：非本次 P10.9 新增模块，属于历史测试基线问题
+  - 处理：P10.9 专项单测 `useUIConfig.spec.ts` 12 个用例已通过；覆盖率失败已记录，待单独修复 `useSystemConfig.spec.ts`。
+
+- 2026-03-10 审批链路专项修复验证：执行 `npm --prefix ... run test:coverage` 失败（存量问题）
+  - 错误文件：`src/composables/__tests__/useSystemConfig.spec.ts`
+  - 错误信息：
+    1. `expected ... to have a length of 3 but got 11`
+    2. `TypeError: composable.loadConfig is not a function`
+  - 影响范围：本次审批链路修复相关用例全部通过，失败来自历史存量测试
+  - 处理：已完成专项回归（`useApplicationList.spec.ts`、`useApprovalList.spec.ts`、`useApprovalDetail.spec.ts` 共 19 用例通过），覆盖率问题待后续单独修复。
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

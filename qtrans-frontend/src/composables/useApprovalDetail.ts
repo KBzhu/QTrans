@@ -1,4 +1,5 @@
-import type { Application, ApplicationStatus, ApprovalRecord, DetailFieldItem, DetailFileItem, TransferType } from '@/types'
+import type { Application, ApplicationStatus, ApprovalRecord, DetailFieldItem, DetailFileItem, FileInfo, UserRole, TransferType } from '@/types'
+
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
@@ -43,19 +44,28 @@ function toArrayText(value: unknown, separator = ' / ') {
   return String(value || '')
 }
 
-function buildFileList(record: Application): DetailFileItem[] {
-  const size = Math.max(1024 * 1024, Math.round((record.storageSize || 1) * 1024 * 0.42))
-
-  return [
-    {
-      id: `${record.id}-file-1`,
-      fileName: '审批附件汇总.zip',
-      fileSize: size,
-      uploadedAt: record.updatedAt || record.createdAt,
-      sha256: `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p${record.id.slice(-2)}`,
-    },
-  ]
+function fileInfoToDetailFileItem(fileInfo: FileInfo): DetailFileItem {
+  return {
+    id: fileInfo.id,
+    fileName: fileInfo.fileName,
+    fileSize: fileInfo.fileSize,
+    uploadedAt: fileInfo.uploadedAt || new Date().toISOString(),
+    sha256: `sha256_${fileInfo.id.slice(-16)}`,
+  }
 }
+
+function getApprovalLevelByRole(roles: UserRole[]): number {
+  if (roles.includes('admin'))
+    return 99
+  if (roles.includes('approver3'))
+    return 3
+  if (roles.includes('approver2'))
+    return 2
+  if (roles.includes('approver1'))
+    return 1
+  return 0
+}
+
 
 export function useApprovalDetail() {
   const router = useRouter()
@@ -111,8 +121,20 @@ export function useApprovalDetail() {
     return levelMap[currentApprovalLevel.value] || `${currentApprovalLevel.value}级审批`
   })
 
-  const canOperate = computed(() => detailData.value?.status === 'pending_approval')
+  const canHandleCurrentLevel = computed(() => {
+    if (!detailData.value)
+      return false
+
+    const userLevel = getApprovalLevelByRole(authStore.userRoles)
+    if (userLevel === 99)
+      return true
+
+    return detailData.value.currentApprovalLevel === userLevel
+  })
+
+  const canOperate = computed(() => detailData.value?.status === 'pending_approval' && canHandleCurrentLevel.value)
   const canExempt = computed(() => authStore.isAdmin)
+
 
   const basicInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
@@ -151,8 +173,11 @@ export function useApprovalDetail() {
   const files = computed<DetailFileItem[]>(() => {
     if (!detailData.value)
       return []
-    return buildFileList(detailData.value)
+
+    const realFiles = fileStore.getFilesByApplicationId(detailData.value.id)
+    return realFiles.map(fileInfoToDetailFileItem)
   })
+
 
   async function fetchApprovalHistory(id: string) {
     const records = await approvalStore.fetchApprovalHistory(id)
@@ -244,15 +269,32 @@ export function useApprovalDetail() {
     }, 1500)
   }
 
-  function handleDownloadFile(file: DetailFileItem) {
-    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
+  function triggerBrowserDownload(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = file.fileName
+    link.download = fileName
+    link.style.display = 'none'
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(link)
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
+
+  function handleDownloadFile(file: DetailFileItem) {
+    const realFile = fileStore.files.get(file.id)
+
+    if (realFile?.fileBlob) {
+      triggerBrowserDownload(realFile.fileBlob, realFile.fileName)
+      Message.success(`开始下载：${realFile.fileName}`)
+      return
+    }
+
+    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
+    triggerBrowserDownload(blob, file.fileName)
+    Message.warning('当前文件缺少二进制内容，已回退为模拟下载')
+  }
+
 
   function handleBatchDownload(fileIds: string[]) {
     const selected = files.value.filter(file => fileIds.includes(file.id))

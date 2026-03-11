@@ -7,6 +7,8 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- **P7.2 文件分片上传单元测试**: 新增 `src/composables/__tests__/useFileUpload.spec.ts`（15 个测试用例全通过），覆盖 generateFileId、uploadFile（单/多分片、进度回调、IndexedDB 存储、错误处理）、断点续传（resumeUpload）、暂停/取消（pauseUpload/cancelUpload）、进度查询（getUploadProgress）、ArcoDesign 适配（customRequest）；使用 Mock 替代真实 IndexedDB（happy-dom 不支持 IndexedDB API），测试执行时间 199ms。
+- **P10.9 界面配置**: 新增 `src/views/admin/UIConfigView.vue`、`ui-config.scss`，支持文字内容配置（树形编辑）、申请单卡片配置（新增/编辑/删除/顺序调整）、国际化配置（语言启停+翻译编辑）、按钮显隐配置（角色权限+条件 JSON+状态切换），并提供四类配置 JSON 导入/导出；新增 `src/composables/useUIConfig.ts`、`src/api/uiConfig.ts`、`src/mocks/handlers/uiConfig.ts`、`src/types/uiConfig.ts`；新增路由入口 `src/views/ui-config/index.vue` 并在 `src/router/routes.ts` 注册 `/ui-config`；更新 `api/index.ts`、`types/index.ts`、`mocks/handlers/index.ts`；新增 `useUIConfig.spec.ts`（12 个测试用例全通过）。
 - **P10.8 传输通道管理**: 新增 `src/views/admin/ChannelManageView.vue`、`ChannelManageModal.vue`、`ChannelServerModal.vue` 与 `channel-manage.scss`，支持通道 CRUD、状态切换、服务器穿梭选择与拖拽排序；新增 `src/composables/useChannelManage.ts`、`src/api/channelManage.ts`、`src/mocks/handlers/channelManage.ts`、`src/types/channelManage.ts`；新增路由入口 `src/views/channel/index.vue` 并在 `src/router/routes.ts` 注册 `/channels`；更新 `api/index.ts`、`types/index.ts`、`mocks/handlers/index.ts`；新增 `useChannelManage.spec.ts`（12 个测试用例全通过）。
 - **P10.7 区域管理**: 新增 `src/views/admin/RegionManageView.vue`（双 Tab：城市与安全域映射 / 可选安全域配置）、`src/views/admin/RegionManageModal.vue`（城市映射/安全域 共用弹窗，含表单校验与预设颜色选择器）、`src/composables/useRegionManage.ts`（城市/安全域完整 CRUD + 状态切换 + Tab 联动）、`src/api/regionManage.ts`、`src/mocks/handlers/regionManage.ts`（12条城市+4个安全域默认数据，全 CRUD Mock）、`region-manage.scss`；更新 `src/router/routes.ts` 新增 `/region` 路由，新增路由入口 `src/views/region/index.vue`；更新 `api/index.ts`、`mocks/handlers/index.ts`、`types/index.ts` 聚合导出；新增 `useRegionManage.spec.ts`（16 个测试用例全通过）。
 
@@ -72,8 +74,10 @@ The format is based on Keep a Changelog.
 
 
 ### Fixed
+- 修复审批链路用户隔离与流转异常：`我的申请单` 改为仅显示当前提交人数据（`useApplicationList.ts`）；审批提交起始层级修正为一级（`useApplicationForm.ts`），避免二级审批单首审后直接结束；审批详情文件列表改为展示真实上传文件（`useApprovalDetail.ts`）；审批 Mock 接口新增并启用当前用户作用域（`pending/processed/all`）及审批权限校验（`mocks/handlers/approval.ts`），`我已审批/全部审批` 不再跨审批人串单。
 - 修复“我的申请单”页首刷后删除/撤回弹框样式异常问题：在 `src/main.ts` 全局补充引入 `@arco-design/web-vue/es/modal/style/css.js` 与 `@arco-design/web-vue/es/message/style/css.js`，确保 `Modal.*` / `Message` 首次触发即可正确渲染。
 - 修复 `src/components/business/__tests__/FileUpload.spec.ts` 未初始化 Pinia 导致 `pnpm test:coverage` 失败的问题，在 `beforeEach` 中补充 `setActivePinia(createPinia())`。
+
 
 
 ### Added

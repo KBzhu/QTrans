@@ -370,6 +370,65 @@ Mock 接口已补齐：
 - `npm --prefix D:\VibeCoding\QTrans-0302new\qtrans-frontend run test -- src/composables/__tests__/useChannelManage.spec.ts`
 - 测试结果：**12 个用例全部通过**
 
+---
+
+## P10.9 界面配置
+
+### 开发说明
+
+**路由入口**：`/ui-config`（仅 admin 角色可见）
+
+**主要文件**：
+
+| 文件 | 说明 |
+|------|------|
+| `src/views/admin/UIConfigView.vue` | 主页面（4 个 Tab） |
+| `src/views/admin/ui-config.scss` | 界面配置页样式 |
+| `src/composables/useUIConfig.ts` | 界面配置状态与操作逻辑 |
+| `src/api/uiConfig.ts` | 界面配置接口（文本/卡片/i18n/按钮/导入导出） |
+| `src/mocks/handlers/uiConfig.ts` | 界面配置 Mock 数据与接口实现 |
+| `src/types/uiConfig.ts` | 界面配置类型定义 |
+| `src/views/ui-config/index.vue` | 路由入口 |
+
+**核心能力**：
+- Tab1 文字内容配置：树形分组、选中编辑、单条保存
+- Tab2 申请单卡片配置：新增/编辑/删除，顺序调整（上移/下移）
+- Tab3 国际化配置：语言启停、翻译列表在线编辑与保存
+- Tab4 按钮显隐配置：按钮 CRUD、角色权限、条件 JSON、状态切换
+- 四类配置均支持 JSON 导入/导出
+
+---
+
+### QA 回归步骤（P10.9）
+
+以 `admin` 账号登录，从侧边栏进入「界面配置」页面。
+
+| 步骤 | 操作 | 预期结果 |
+|------|------|----------|
+| 1 | 进入页面 | 默认显示「文字内容配置」Tab，左侧为模块树，右侧为编辑表单 |
+| 2 | 点击任意文字配置节点（如 `login.title`） | 表单回填配置键、中文、英文、描述 |
+| 3 | 修改中文文案并点击保存 | 提示保存成功，再次选中该节点显示更新后文案 |
+| 4 | 点击「导出 JSON」 | 浏览器下载 `ui-config-text.json` |
+| 5 | 切换到「申请单卡片配置」Tab | 展示卡片表格与新增按钮 |
+| 6 | 点击「新增卡片」，填写名称/代码并保存 | 列表新增卡片记录 |
+| 7 | 对某卡片点击「上移/下移」 | 卡片顺序更新 |
+| 8 | 切换到「国际化配置」Tab | 展示语言列表与翻译编辑表格 |
+| 9 | 切换语言为 `en-US`，修改翻译并点击保存翻译 | 提示保存成功，状态与进度刷新 |
+| 10 | 切换到「按钮显隐配置」Tab | 展示按钮列表（名称、代码、页面、角色、状态） |
+| 11 | 点击某按钮状态开关 | 状态在启用/禁用间切换并提示成功 |
+| 12 | 点击「新增按钮」并填写信息保存 | 列表新增按钮配置 |
+| 13 | 点击导入按钮，粘贴任意合法 JSON 并确认 | 提示导入成功（Mock 下重置为默认数据） |
+| 14 | 切换到非 admin 账号 | 侧边栏不显示「界面配置」，直接访问 `/ui-config` 被拦截 |
+
+## 9. 本轮测试命令（P10.9 后）
+
+- `npm --prefix D:\VibeCoding\QTrans-0302new\qtrans-frontend run test -- src/composables/__tests__/useUIConfig.spec.ts`
+- 测试结果：**12 个用例全部通过**
+- `npm --prefix D:\VibeCoding\QTrans-0302new\qtrans-frontend run test:coverage`
+- 覆盖率执行结果：**失败（存量问题：`useSystemConfig.spec.ts` 两个断言失败）**
+
+
+
 
 
 

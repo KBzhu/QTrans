@@ -226,6 +226,18 @@ export const routes: RouteRecordRaw[] = [
     } as AppRouteMeta,
   },
   {
+    path: '/ui-config',
+    name: 'UIConfig',
+    component: () => import('@/views/ui-config/index.vue'),
+    meta: {
+      title: '界面配置',
+      icon: 'icon-computer',
+      layout: 'default',
+      requiresAuth: true,
+      roles: adminRoles,
+    } as AppRouteMeta,
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/profile/index.vue'),

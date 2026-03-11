@@ -23,8 +23,8 @@
 - [√] 在 MSW handlers 中实现分片上传 Mock
 
 ### 4. 单元测试
-- [ ] 编写 `useFileUpload.spec.ts` 单元测试
-- [ ] 运行测试并生成覆盖率报告
+- [√] 编写 `useFileUpload.spec.ts` 单元测试
+- [√] 运行测试并生成覆盖率报告
 
 ## 技术要点
 
@@ -71,11 +71,42 @@
 
 ### 待完成
 
-- 单元测试编写（需后续在可运行环境中验证）
+- ~~单元测试编写（需后续在可运行环境中验证）~~ ✅ 已完成
+
+### 单元测试结果
+
+**测试文件**: `src/composables/__tests__/useFileUpload.spec.ts`
+
+**测试用例**（15个）：
+1. ✅ generateFileId - 根据文件属性和 applicationId 生成唯一 ID
+2. ✅ generateFileId - 为不同文件生成不同 ID
+3. ✅ uploadFile - 单个分片上传小文件
+4. ✅ uploadFile - 多分片上传大文件
+5. ✅ uploadFile - 上传过程中调用进度回调
+6. ✅ uploadFile - 存储文件 meta 和分片到 IndexedDB
+7. ✅ uploadFile - 处理上传错误并更新状态
+8. ✅ resumeUpload - 从上次上传的分片继续（断点续传）
+9. ✅ resumeUpload - 跳过所有已上传分片直接合并
+10. ✅ pauseUpload - 暂停正在进行的上传
+11. ✅ cancelUpload - 取消上传并清理 IndexedDB 数据
+12. ✅ getUploadProgress - 返回文件上传进度
+13. ✅ getUploadProgress - 不存在的文件返回 undefined
+14. ✅ customRequest - 适配 ArcoDesign Upload 组件
+15. ✅ customRequest - 上传失败时调用 onError
+
+**测试结果**: 
+- 测试文件：1 passed
+- 测试用例：15 passed (15)
+- 执行时间：199ms
+
+**技术要点**：
+- 使用 Mock 替代真实 IndexedDB（happy-dom 不支持 IndexedDB API）
+- Mock 了 fileApi、Message 组件
+- 测试覆盖了核心功能：分片上传、断点续传、暂停/继续/取消、进度查询
 
 ### 验收结果
 
-核心功能已实现，代码通过 ESLint 检查，无语法错误。
+核心功能已实现，代码通过 ESLint 检查，无语法错误。单元测试全部通过（15/15）。
 
 ## AI工时统计（SDD口径）
 

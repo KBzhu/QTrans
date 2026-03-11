@@ -7,6 +7,7 @@ export * from './systemConfig'
 export * from './auditLog'
 export * from './regionManage'
 export * from './channelManage'
+export * from './uiConfig'
 
 export * from './file'
 

@@ -54,6 +54,7 @@ declare module 'vue' {
     ATimeline: typeof import('@arco-design/web-vue')['Timeline']
     ATimelineItem: typeof import('@arco-design/web-vue')['TimelineItem']
     ATooltip: typeof import('@arco-design/web-vue')['Tooltip']
+    ATransfer: typeof import('@arco-design/web-vue')['Transfer']
     ATree: typeof import('@arco-design/web-vue')['Tree']
     ATypographyParagraph: typeof import('@arco-design/web-vue')['TypographyParagraph']
     DetailFileTable: typeof import('./components/business/detail/DetailFileTable.vue')['default']

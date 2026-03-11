@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useApprovalDetail } from '../useApprovalDetail'
 import type { Application, TransferType } from '@/types'
-import { useApprovalStore, useFileStore } from '@/stores'
+import { useApprovalStore, useAuthStore, useFileStore } from '@/stores'
+
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({
@@ -22,7 +23,22 @@ describe('useApprovalDetail', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+
+    const authStore = useAuthStore()
+    authStore.currentUser = {
+      id: 'u_approver1',
+      username: 'approver1',
+      name: '王审批一',
+      email: 'approver1@qtrans.demo',
+      phone: '13800000002',
+      department: 'dept-security',
+      departmentName: '安全部',
+      roles: ['approver1'],
+      status: 'enabled',
+    }
+    authStore.token = 'mock-token-u_approver1-1'
   })
+
 
   it('initializes with default values', () => {
     const { loading, detailData, activeTab, approvalOpinion } = useApprovalDetail()
@@ -101,15 +117,18 @@ describe('useApprovalDetail', () => {
     detailData.value = {
       id: 'app-1',
       status: 'pending_approval',
+      currentApprovalLevel: 1,
     } as Application
     expect(canOperate.value).toBe(true)
 
     detailData.value = {
       id: 'app-2',
-      status: 'approved',
+      status: 'pending_approval',
+      currentApprovalLevel: 2,
     } as Application
     expect(canOperate.value).toBe(false)
   })
+
 
   it('builds basic info rows correctly', () => {
     const { detailData, basicInfoRows } = useApprovalDetail()
@@ -153,8 +172,20 @@ describe('useApprovalDetail', () => {
     expect(rows.find(r => r.label === '包含客户网络数据')?.value).toBe('是')
   })
 
-  it('builds file list correctly', () => {
+  it('builds file list from uploaded files', () => {
+    const fileStore = useFileStore()
     const { detailData, files } = useApprovalDetail()
+
+    fileStore.addFile({
+      id: 'app-1-file-1',
+      applicationId: 'app-1',
+      fileName: 'demo.txt',
+      fileSize: 128,
+      fileType: 'text/plain',
+      uploadStatus: 'completed',
+      uploadProgress: 100,
+      uploadedAt: '2026-03-05T10:05:00Z',
+    })
 
     detailData.value = {
       id: 'app-1',
@@ -162,9 +193,11 @@ describe('useApprovalDetail', () => {
       createdAt: '2026-03-05T10:00:00Z',
     } as Application
 
-    expect(files.value.length).toBeGreaterThan(0)
-    expect(files.value[0].fileName).toContain('.zip')
+    expect(files.value.length).toBe(1)
+    expect(files.value[0]?.fileName).toBe('demo.txt')
+
   })
+
 
   it('handleApprove starts transfer on last approval level', async () => {
     vi.useFakeTimers()

@@ -1,7 +1,8 @@
 import type { Application, ApplicationStatus } from '@/types'
 import { computed, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
-import { useApplicationStore } from '@/stores'
+import { useApplicationStore, useAuthStore } from '@/stores'
+
 
 export interface ApplicationListFilters {
   keyword: string
@@ -68,7 +69,9 @@ function mergeApplications(records: Application[]): Application[] {
 
 export function useApplicationList() {
   const applicationStore = useApplicationStore()
+  const authStore = useAuthStore()
   const loading = ref(false)
+
   const advancedVisible = ref(false)
 
   const filters = reactive<ApplicationListFilters>({
@@ -84,9 +87,15 @@ export function useApplicationList() {
   })
 
   const allList = computed(() => {
+    const currentUserId = authStore.currentUser?.id
+    if (!currentUserId)
+      return []
+
     const merged = mergeApplications([...applicationStore.applications, ...applicationStore.drafts])
+      .filter(item => item.applicantId === currentUserId)
     return merged.map(item => normalizeApplication(item))
   })
+
 
 
   const filteredList = computed(() => {

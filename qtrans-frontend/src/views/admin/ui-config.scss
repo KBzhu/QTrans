@@ -1,0 +1,57 @@
+@import '../../assets/styles/mixins.scss';
+
+.ui-config-view {
+  @include glass-card;
+  padding: 20px;
+  min-height: 100%;
+}
+
+.ui-config-view__header {
+  margin-bottom: 16px;
+}
+
+.ui-config-view__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.ui-config-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.text-config-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+}
+
+.text-tree-panel,
+.text-form-panel,
+.lang-table-panel,
+.translation-panel {
+  background: var(--color-bg-2);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border-2);
+}
+
+.i18n-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+}
+
+.translation-header {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1200px) {
+  .text-config-layout,
+  .i18n-layout {
+    grid-template-columns: 1fr;
+  }
+}
