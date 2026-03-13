@@ -1,0 +1,363 @@
+/**
+ * TransFileTable 组件样式
+ */
+
+.trans-file-table {
+  width: 100%;
+}
+
+// 工具栏
+.trans-file-table__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-fill-1);
+  border-radius: 4px;
+  margin-bottom: 12px;
+
+  .toolbar-info {
+    font-size: 14px;
+    color: var(--color-text-2);
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// 文件列表
+.trans-file-table__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// 空状态
+.trans-file-table__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: var(--color-text-3);
+  font-size: 14px;
+}
+
+// ============ 上传列表项 ============
+
+.upload-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-border-2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &.is-selected {
+    border-color: rgb(var(--primary-6));
+    background: rgba(var(--primary-1), 0.1);
+  }
+}
+
+.upload-item__select {
+  display: flex;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.upload-item__icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.upload-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.upload-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.upload-item__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.upload-item__size {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.upload-item__progress {
+  margin-bottom: 4px;
+
+  .arco-progress {
+    margin-bottom: 4px;
+  }
+}
+
+.upload-item__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.upload-item__speed {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.upload-item__hash {
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: var(--color-fill-1);
+  border-radius: 4px;
+
+  .hash-success {
+    color: rgb(var(--success-6));
+  }
+
+  .hash-error {
+    color: rgb(var(--danger-6));
+  }
+}
+
+.upload-item__error {
+  font-size: 12px;
+  color: rgb(var(--danger-6));
+  margin-top: 4px;
+}
+
+.upload-item__actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+// ============ 已上传列表项 ============
+
+.uploaded-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-bg-1);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-border-2);
+    background: var(--color-fill-1);
+  }
+
+  &.is-selected {
+    border-color: rgb(var(--primary-6));
+    background: rgba(var(--primary-1), 0.1);
+  }
+}
+
+.uploaded-item__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.uploaded-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.uploaded-item__name {
+  font-size: 14px;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploaded-item__size {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.uploaded-item__check {
+  width: 20px;
+  height: 20px;
+  color: rgb(var(--primary-6));
+}
+
+// ============ 下载模式样式 ============
+
+.download-toolbar {
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-path {
+    font-size: 14px;
+    color: var(--color-text-2);
+  }
+}
+
+.download-list-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 120px 180px 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--color-fill-1);
+  border-radius: 4px 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-2);
+
+  .header-name {
+    min-width: 0;
+  }
+
+  .header-size,
+  .header-time,
+  .header-actions {
+    text-align: center;
+  }
+}
+
+.download-list {
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+  gap: 0;
+}
+
+.download-item {
+  display: grid;
+  grid-template-columns: 32px 1fr 120px 180px 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--color-bg-1);
+  border-bottom: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--color-fill-1);
+  }
+
+  &.is-selected {
+    background: rgba(var(--primary-1), 0.1);
+  }
+}
+
+.download-item--directory {
+  .download-item__name {
+    cursor: pointer;
+
+    &:hover .download-item__text {
+      color: rgb(var(--primary-6));
+    }
+  }
+}
+
+.download-item__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.download-item__icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+
+  &.download-item__icon--folder {
+    color: rgb(var(--warning-6));
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.download-item__text {
+  font-size: 14px;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.download-item__size,
+.download-item__time {
+  font-size: 13px;
+  color: var(--color-text-3);
+  text-align: center;
+}
+
+.download-item__actions {
+  display: flex;
+  justify-content: center;
+}
+
+.download-footer {
+  padding: 12px 16px;
+  background: var(--color-fill-1);
+  border-radius: 4px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--color-text-3);
+}
+
+.download-progress-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+
+  .toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--color-bg-3);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+  }
+}

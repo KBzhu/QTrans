@@ -111,6 +111,18 @@ export const routes: RouteRecordRaw[] = [
       hidden: true,
     } as AppRouteMeta,
   },
+  {
+    path: '/trans/demo',
+    name: 'TransFileTableDemo',
+    component: () => import('@/views/trans/TransFileTableDemo.vue'),
+    meta: {
+      title: '组件演示 - TransFileTable',
+      icon: 'icon-apps',
+      layout: 'blank',
+      requiresAuth: false,
+      hidden: true,
+    } as AppRouteMeta,
+  },
 
   {
     path: '/application/select-type',

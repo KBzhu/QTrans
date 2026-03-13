@@ -70,6 +70,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TransferProgress: typeof import('./components/business/TransferProgress.vue')['default']
+    TransFileTable: typeof import('./components/business/TransFileTable.vue')['default']
     ViewPlaceholder: typeof import('./components/common/ViewPlaceholder.vue')['default']
   }
 }

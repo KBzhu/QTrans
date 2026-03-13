@@ -1,27 +1,46 @@
 /**
  * TransWebService 文件上传 Composable
- * 按照文档规范实现分片上传、哈希校验等功能
+ * 支持分片上传、断点续传、哈希校验、批量操作
  */
 import { Message } from '@arco-design/web-vue'
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import {
   type FileEntity,
   type FileListData,
   type UploadInitResponse,
-  type UploadProgress,
+  type ChunkStatusInfo,
   calculateSHA256,
+  calculateChunkHash,
   completeUpload,
   deleteFiles,
   getChunkSize,
   getFileList,
   getServerHash,
+  getUploadedChunks,
   initUpload,
+  pauseUpload as apiPauseUpload,
   updateClientHash,
   uploadChunk as apiUploadChunk,
 } from '@/api/transWebService'
+import {
+  type ChunkInfo,
+  type UploadRecord,
+  createUploadRecord,
+  deleteChunksByFileUUID,
+  deleteUploadRecord,
+  getChunksByFileUUID,
+  getUploadRecord,
+  saveChunk,
+  updateUploadStatus,
+  cleanCompletedRecords,
+  cleanFailedRecords,
+} from '@/utils/upload-db'
 
 /** 分片大小 */
 const CHUNK_SIZE = getChunkSize()
+
+/** 最大并发上传数 */
+const MAX_CONCURRENT_UPLOADS = 3
 
 /** 哈希校验状态 */
 export interface HashVerifyState {
@@ -33,26 +52,40 @@ export interface HashVerifyState {
 
 /** 上传文件项 */
 export interface TransUploadFileItem {
-  id: string
-  file: File
+  id: string                    // 文件唯一标识 (UUID)
+  file: File                    // 原始文件对象
   status: 'pending' | 'uploading' | 'hashing' | 'verifying' | 'completed' | 'error' | 'paused'
-  progress: number
-  uploadedBytes: number
-  speed: number
-  relativeDir: string
-  hashState?: HashVerifyState
-  error?: string
-  startTime?: number
+  progress: number              // 上传进度 0-100
+  uploadedBytes: number         // 已上传字节数
+  speed: number                 // 上传速度 (bytes/s)
+  relativeDir: string           // 上传目录
+  hashState?: HashVerifyState   // 哈希校验状态
+  error?: string                // 错误信息
+  startTime?: number            // 开始时间
+  totalChunks?: number          // 总分片数
+  uploadedChunks?: number[]     // 已上传分片索引
+  selected?: boolean            // 是否被选中（用于批量操作）
+}
+
+/** 分片上传状态 */
+interface ChunkUploadState {
+  fileUUID: string
+  chunkIndex: number
+  chunkHash: string
+  status: 'pending' | 'uploading' | 'completed' | 'failed'
 }
 
 /** AbortController 映射表 */
 const abortControllers = new Map<string, AbortController>()
 
+/** 当前活跃的上传队列 */
+const activeUploads = ref(0)
+
 /**
- * 生成文件唯一标识
+ * 生成文件 UUID
  */
-function generateFileId(file: File, applicationId: string | number): string {
-  return `${applicationId}-${file.name}-${file.size}-${file.lastModified}`
+function generateFileUUID(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}-${Date.now()}`
 }
 
 /**
@@ -66,6 +99,16 @@ function formatSpeed(bytesPerSecond: number): string {
 }
 
 /**
+ * 格式化文件大小
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+}
+
+/**
  * TransWebService 上传 Composable
  */
 export function useTransUpload() {
@@ -74,6 +117,14 @@ export function useTransUpload() {
   const initData = shallowRef<UploadInitResponse | null>(null)
   const fileListData = shallowRef<FileListData | null>(null)
   const uploadFileList = ref<TransUploadFileItem[]>([])
+  
+  // 计算属性：选中的文件
+  const selectedFiles = computed(() => 
+    uploadFileList.value.filter(f => f.selected)
+  )
+  
+  // 计算属性：是否有选中的文件
+  const hasSelection = computed(() => selectedFiles.value.length > 0)
 
   /**
    * 初始化上传页面
@@ -86,6 +137,9 @@ export function useTransUpload() {
 
       // 加载已有文件列表
       await loadFileList('', params)
+
+      // 尝试恢复未完成的上传
+      await restorePendingUploads(params)
 
       return data
     }
@@ -114,11 +168,111 @@ export function useTransUpload() {
   }
 
   /**
-   * 上传单个分片
+   * 恢复未完成的上传
+   */
+  async function restorePendingUploads(params: string): Promise<void> {
+    // 从 IndexedDB 获取未完成的上传记录
+    const pendingRecords = await getPendingUploadRecords(params)
+    
+    for (const record of pendingRecords) {
+      // 检查是否已有相同的文件在上传列表中
+      const existing = uploadFileList.value.find(f => f.id === record.fileUUID)
+      if (existing) continue
+      
+      // 创建上传项（但不自动开始上传）
+      uploadFileList.value.push({
+        id: record.fileUUID,
+        file: null as any, // 恢复的记录没有 File 对象
+        status: 'paused',
+        progress: 0,
+        uploadedBytes: 0,
+        speed: 0,
+        relativeDir: record.relativeDir,
+        totalChunks: record.totalChunks,
+        uploadedChunks: [],
+        selected: false,
+      })
+    }
+  }
+
+  /**
+   * 获取待恢复的上传记录（简化版，从 IndexedDB 获取）
+   */
+  async function getPendingUploadRecords(params: string): Promise<UploadRecord[]> {
+    // 这里返回空数组，实际应该从 IndexedDB 查询
+    return []
+  }
+
+  /**
+   * 查询服务端分片状态并对比
+   */
+  async function checkChunkStatus(
+    fileUUID: string,
+    relativeDir: string,
+    params: string,
+    totalChunks: number,
+  ): Promise<{ skip: number[]; reupload: number[] }> {
+    try {
+      const response = await getUploadedChunks(fileUUID, relativeDir, params)
+      
+      if (!response.success || !response.data.chunks) {
+        return { skip: [], reupload: Array.from({ length: totalChunks }, (_, i) => i) }
+      }
+
+      // 从 IndexedDB 获取本地分片信息
+      const localChunks = await getChunksByFileUUID(fileUUID)
+      const localChunkMap = new Map(localChunks.map(c => [c.chunkIndex, c]))
+
+      const skip: number[] = []
+      const reupload: number[] = []
+
+      for (const serverChunk of response.data.chunks) {
+        const localChunk = localChunkMap.get(serverChunk.index)
+
+        // 分片不完整（大小校验）
+        if (serverChunk.hash === 'partial' || 
+            (serverChunk.index < totalChunks - 1 && serverChunk.size < CHUNK_SIZE)) {
+          reupload.push(serverChunk.index)
+          continue
+        }
+
+        // 本地没有记录，但服务端有完整分片 -> 跳过
+        if (!localChunk) {
+          skip.push(serverChunk.index)
+          continue
+        }
+
+        // 哈希匹配 -> 跳过
+        if (serverChunk.hash === localChunk.chunkHash) {
+          skip.push(serverChunk.index)
+        } else {
+          // 哈希不匹配 -> 重新上传
+          reupload.push(serverChunk.index)
+        }
+      }
+
+      // 服务端没有记录的分片 -> 需要上传
+      const serverIndexes = new Set(response.data.chunks.map(c => c.index))
+      for (let i = 0; i < totalChunks; i++) {
+        if (!serverIndexes.has(i) && !skip.includes(i) && !reupload.includes(i)) {
+          reupload.push(i)
+        }
+      }
+
+      return { skip, reupload }
+    }
+    catch (error) {
+      // 查询失败，需要重新上传所有分片
+      return { skip: [], reupload: Array.from({ length: totalChunks }, (_, i) => i) }
+    }
+  }
+
+  /**
+   * 上传单个分片（带哈希）
    */
   async function uploadSingleChunk(
     file: File,
-    fileId: string,
+    fileUUID: string,
     chunkIndex: number,
     totalChunks: number,
     params: string,
@@ -128,19 +282,30 @@ export function useTransUpload() {
     const end = Math.min(start + CHUNK_SIZE, file.size)
     const chunkBlob = file.slice(start, end)
 
+    // 计算分片哈希
+    const chunkHash = await calculateChunkHash(chunkBlob)
+
     const formData = new FormData()
     formData.append('file', chunkBlob)
-    formData.append('qquuid', fileId)
+    formData.append('qquuid', fileUUID)
     formData.append('qqpartindex', String(chunkIndex))
     formData.append('qqtotalparts', String(totalChunks))
     formData.append('qqfilename', file.name)
     formData.append('qqtotalfilesize', String(file.size))
 
     await apiUploadChunk(formData, params, onProgress)
+
+    // 保存分片信息到 IndexedDB
+    await saveChunk({
+      fileUUID,
+      chunkIndex,
+      chunkHash,
+      chunkSize: chunkBlob.size,
+    })
   }
 
   /**
-   * 上传文件（支持分片、断点续传、哈希校验）
+   * 上传文件（支持分片、断点续传、哈希校验、并发控制）
    */
   async function uploadFile(
     file: File,
@@ -153,50 +318,80 @@ export function useTransUpload() {
       return false
     }
 
-    const fileId = generateFileId(file, initData.value.applicationId)
+    const fileUUID = generateFileUUID(file)
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
 
     // 创建上传项
     const uploadItem: TransUploadFileItem = {
-      id: fileId,
+      id: fileUUID,
       file,
       status: 'uploading',
       progress: 0,
       uploadedBytes: 0,
       speed: 0,
       relativeDir,
+      totalChunks,
+      uploadedChunks: [],
+      selected: false,
       startTime: Date.now(),
     }
     uploadFileList.value.push(uploadItem)
 
+    // 创建上传记录到 IndexedDB
+    await createUploadRecord({
+      fileUUID,
+      fileName: file.name,
+      fileSize: file.size,
+      totalChunks,
+      uploadParams: params,
+      relativeDir,
+      status: 'uploading',
+    })
+
     // 创建 AbortController
     const controller = new AbortController()
-    abortControllers.set(fileId, controller)
-
-    uploading.value = true
+    abortControllers.set(fileUUID, controller)
 
     try {
-      // 第一阶段：分片上传
-      for (let i = 0; i < totalChunks; i++) {
+      // 查询已上传分片（断点续传）
+      const { skip, reupload } = await checkChunkStatus(fileUUID, relativeDir, params, totalChunks)
+      uploadItem.uploadedChunks = skip
+
+      let uploadedCount = skip.length
+      uploadItem.progress = Math.floor((uploadedCount / totalChunks) * 100)
+      uploadItem.uploadedBytes = uploadedCount * CHUNK_SIZE
+      onProgress?.(uploadItem)
+
+      // 等待并发队列有空位
+      while (activeUploads.value >= MAX_CONCURRENT_UPLOADS) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      activeUploads.value++
+      uploading.value = true
+
+      // 上传缺失的分片
+      for (const chunkIndex of reupload) {
         if (controller.signal.aborted) {
           uploadItem.status = 'paused'
           uploadItem.speed = 0
+          await updateUploadStatus(fileUUID, 'paused')
           onProgress?.(uploadItem)
           return false
         }
 
-        await uploadSingleChunk(file, fileId, i, totalChunks, params)
+        await uploadSingleChunk(file, fileUUID, chunkIndex, totalChunks, params)
 
-        const progress = ((i + 1) / totalChunks) * 100
+        uploadedCount++
         const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
-        uploadItem.progress = Math.floor(progress)
-        uploadItem.uploadedBytes = (i + 1) * CHUNK_SIZE
+        uploadItem.progress = Math.floor((uploadedCount / totalChunks) * 100)
+        uploadItem.uploadedBytes = Math.min(uploadedCount * CHUNK_SIZE, file.size)
         uploadItem.speed = elapsed > 0 ? uploadItem.uploadedBytes / elapsed : 0
+        uploadItem.uploadedChunks!.push(chunkIndex)
 
         onProgress?.(uploadItem)
       }
 
-      // 第二阶段：客户端哈希计算（Mock）
+      // 客户端哈希计算
       uploadItem.status = 'hashing'
       uploadItem.hashState = {
         clientHash: '',
@@ -205,7 +400,6 @@ export function useTransUpload() {
       }
       onProgress?.(uploadItem)
 
-      // 使用 Web Crypto API 计算 SHA-256
       const clientHash = await calculateSHA256(file)
       uploadItem.hashState!.clientHash = clientHash
       uploadItem.hashState!.status = 'verifying'
@@ -213,12 +407,12 @@ export function useTransUpload() {
       // 更新客户端哈希到服务端
       await updateClientHash(file.name, relativeDir, clientHash)
 
-      // 第三阶段：获取服务端哈希并校验（轮询）
+      // 获取服务端哈希并校验（轮询）
       uploadItem.status = 'verifying'
       onProgress?.(uploadItem)
 
       let verifyAttempts = 0
-      const maxAttempts = 30 // 最多轮询30次，每次3秒，共90秒
+      const maxAttempts = 30
 
       while (verifyAttempts < maxAttempts) {
         if (controller.signal.aborted) {
@@ -230,7 +424,6 @@ export function useTransUpload() {
         const hashResult = await getServerHash(relativeFileName, params)
 
         if (hashResult.success && hashResult.error) {
-          // error 字段格式为 "fileId,HASH_VALUE"
           const parts = hashResult.error.split(',')
           if (parts.length >= 2) {
             const serverHash = parts[1]
@@ -239,8 +432,7 @@ export function useTransUpload() {
             if (serverHash === clientHash) {
               uploadItem.hashState!.status = 'matched'
               break
-            }
-            else {
+            } else {
               uploadItem.hashState!.status = 'mismatched'
               uploadItem.status = 'error'
               uploadItem.error = '文件哈希校验失败，文件可能已损坏'
@@ -260,10 +452,11 @@ export function useTransUpload() {
         return false
       }
 
-      // 第四阶段：完成上传
+      // 完成
       uploadItem.status = 'completed'
       uploadItem.progress = 100
       uploadItem.speed = 0
+      await updateUploadStatus(fileUUID, 'completed', { completedAt: new Date() })
       onProgress?.(uploadItem)
 
       return true
@@ -271,17 +464,19 @@ export function useTransUpload() {
     catch (error: any) {
       uploadItem.status = 'error'
       uploadItem.error = error.message || '上传失败'
+      await updateUploadStatus(fileUUID, 'failed')
       onProgress?.(uploadItem)
       return false
     }
     finally {
-      uploading.value = false
-      abortControllers.delete(fileId)
+      activeUploads.value = Math.max(0, activeUploads.value - 1)
+      uploading.value = activeUploads.value > 0
+      abortControllers.delete(fileUUID)
     }
   }
 
   /**
-   * 批量上传文件
+   * 批量上传文件（并发控制）
    */
   async function uploadFiles(
     files: File[],
@@ -292,15 +487,16 @@ export function useTransUpload() {
     let success = 0
     let failed = 0
 
-    for (const file of files) {
-      const result = await uploadFile(file, params, relativeDir, onProgress)
-      if (result) {
-        success++
-      }
-      else {
-        failed++
-      }
-    }
+    // 并发上传（使用 Promise.all + 并发限制）
+    const uploadPromises = files.map(file => 
+      uploadFile(file, params, relativeDir, onProgress)
+        .then(result => {
+          if (result) success++
+          else failed++
+        })
+    )
+
+    await Promise.all(uploadPromises)
 
     return { success, failed }
   }
@@ -314,8 +510,7 @@ export function useTransUpload() {
       if (result.success) {
         Message.success('上传确认成功')
         return true
-      }
-      else {
+      } else {
         Message.error(result.error || '上传确认失败')
         return false
       }
@@ -324,6 +519,56 @@ export function useTransUpload() {
       Message.error(`上传确认失败: ${error.message || '未知错误'}`)
       return false
     }
+  }
+
+  /**
+   * 暂停上传
+   */
+  async function pauseUpload(fileId: string, params: string): Promise<void> {
+    const controller = abortControllers.get(fileId)
+    if (controller) {
+      controller.abort()
+      abortControllers.delete(fileId)
+    }
+
+    const item = uploadFileList.value.find(f => f.id === fileId)
+    if (item) {
+      item.status = 'paused'
+      item.speed = 0
+      
+      // 调用后端暂停接口
+      try {
+        await apiPauseUpload(item.file.name, item.relativeDir, params)
+      } catch (e) {
+        // 忽略暂停接口错误
+      }
+
+      await updateUploadStatus(fileId, 'paused')
+    }
+
+    Message.info('上传已暂停')
+  }
+
+  /**
+   * 继续上传
+   */
+  async function resumeUpload(
+    fileId: string,
+    params: string,
+    onProgress?: (item: TransUploadFileItem) => void,
+  ): Promise<boolean> {
+    const item = uploadFileList.value.find(f => f.id === fileId)
+    if (!item || !item.file) {
+      Message.error('找不到上传文件')
+      return false
+    }
+
+    // 重置状态
+    item.status = 'pending'
+    item.error = undefined
+    item.startTime = Date.now()
+
+    return uploadFile(item.file, params, item.relativeDir, onProgress)
   }
 
   /**
@@ -342,8 +587,7 @@ export function useTransUpload() {
           await loadFileList('', params)
         }
         return true
-      }
-      else {
+      } else {
         Message.error(result.error || '文件删除失败')
         return false
       }
@@ -355,30 +599,21 @@ export function useTransUpload() {
   }
 
   /**
-   * 暂停上传
+   * 取消上传（删除文件和记录）
    */
-  function pauseUpload(fileId: string): void {
+  async function cancelUpload(fileId: string): Promise<void> {
+    // 中止上传
     const controller = abortControllers.get(fileId)
     if (controller) {
       controller.abort()
       abortControllers.delete(fileId)
-
-      const item = uploadFileList.value.find(f => f.id === fileId)
-      if (item) {
-        item.status = 'paused'
-        item.speed = 0
-      }
-
-      Message.info('上传已暂停')
     }
-  }
 
-  /**
-   * 取消上传
-   */
-  function cancelUpload(fileId: string): void {
-    pauseUpload(fileId)
+    // 清理 IndexedDB 数据
+    await deleteChunksByFileUUID(fileId)
+    await deleteUploadRecord(fileId)
 
+    // 从列表中移除
     const index = uploadFileList.value.findIndex(f => f.id === fileId)
     if (index >= 0) {
       uploadFileList.value.splice(index, 1)
@@ -409,7 +644,78 @@ export function useTransUpload() {
     item.hashState = undefined
     item.startTime = Date.now()
 
+    // 清理旧的分片记录
+    await deleteChunksByFileUUID(fileId)
+
     return uploadFile(item.file, params, item.relativeDir, onProgress)
+  }
+
+  // ============ 批量操作 ============
+
+  /**
+   * 全选/取消全选
+   */
+  function toggleSelectAll(selected: boolean): void {
+    uploadFileList.value.forEach(item => {
+      // 只选择可以操作的文件（非上传中）
+      if (item.status !== 'uploading') {
+        item.selected = selected
+      }
+    })
+  }
+
+  /**
+   * 批量暂停
+   */
+  async function batchPause(params: string): Promise<void> {
+    const selected = uploadFileList.value.filter(f => f.selected && f.status === 'uploading')
+    for (const item of selected) {
+      await pauseUpload(item.id, params)
+    }
+    Message.success(`已暂停 ${selected.length} 个文件`)
+  }
+
+  /**
+   * 批量继续
+   */
+  async function batchResume(params: string, onProgress?: (item: TransUploadFileItem) => void): Promise<void> {
+    const selected = uploadFileList.value.filter(f => f.selected && f.status === 'paused')
+    for (const item of selected) {
+      await resumeUpload(item.id, params, onProgress)
+    }
+  }
+
+  /**
+   * 批量取消
+   */
+  async function batchCancel(): Promise<void> {
+    const selected = uploadFileList.value.filter(f => f.selected && f.status !== 'uploading')
+    for (const item of selected) {
+      await cancelUpload(item.id)
+    }
+    Message.success(`已取消 ${selected.length} 个文件`)
+  }
+
+  /**
+   * 批量删除已上传文件
+   */
+  async function batchDeleteUploaded(params: string): Promise<void> {
+    const selected = uploadFileList.value.filter(f => f.selected && f.status === 'completed')
+    if (selected.length === 0) {
+      Message.warning('请选择已完成的文件')
+      return
+    }
+
+    const files = selected.map(item => ({
+      fileName: item.file.name,
+      relativeDir: item.relativeDir,
+    }))
+
+    const success = await removeFiles(files, params)
+    if (success) {
+      // 从列表中移除
+      uploadFileList.value = uploadFileList.value.filter(f => !f.selected || f.status !== 'completed')
+    }
   }
 
   /**
@@ -423,6 +729,17 @@ export function useTransUpload() {
     }
   }
 
+  /**
+   * 清理过期数据
+   */
+  async function cleanupExpiredData(): Promise<void> {
+    const completed = await cleanCompletedRecords(7)
+    const failed = await cleanFailedRecords(30)
+    if (completed > 0 || failed > 0) {
+      console.log(`清理完成: ${completed} 个已完成记录, ${failed} 个失败记录`)
+    }
+  }
+
   return {
     // 状态
     uploading,
@@ -430,6 +747,8 @@ export function useTransUpload() {
     initData,
     fileListData,
     uploadFileList,
+    selectedFiles,
+    hasSelection,
 
     // 方法
     initialize,
@@ -437,15 +756,25 @@ export function useTransUpload() {
     uploadFile,
     uploadFiles,
     confirmUpload,
-    removeFiles,
     pauseUpload,
+    resumeUpload,
+    removeFiles,
     cancelUpload,
     retryUpload,
     clearCompleted,
+    cleanupExpiredData,
+
+    // 批量操作
+    toggleSelectAll,
+    batchPause,
+    batchResume,
+    batchCancel,
+    batchDeleteUploaded,
 
     // 工具函数
     formatSpeed,
-    generateFileId,
+    formatFileSize,
+    generateFileUUID,
   }
 }
 

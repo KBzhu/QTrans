@@ -396,6 +396,69 @@ export async function checkPackageStatus(
   return response.data
 }
 
+// ============ 断点续传相关 API ============
+
+/** 分片状态信息 */
+export interface ChunkStatusInfo {
+  index: number        // 分片索引
+  hash: string         // 分片哈希，"partial" 表示不完整
+  size: number         // 服务端实际接收的字节数
+}
+
+/** 已上传分片查询响应 */
+export interface UploadedChunksResponse {
+  success: boolean
+  data: {
+    totalChunks: number
+    fileSize: number
+    chunkSize: number
+    chunks: ChunkStatusInfo[]
+  }
+  error?: string
+}
+
+/**
+ * 查询文件已上传分片状态
+ * GET /Handler/UploadHandler?act=chunks
+ * 
+ * 用于断点续传，查询服务端已接收的分片信息
+ */
+export async function getUploadedChunks(
+  fileUUID: string,
+  relativeDir: string,
+  params: string,
+): Promise<UploadedChunksResponse> {
+  const response = await transClient.get('/Handler/UploadHandler', {
+    params: {
+      act: 'chunks',
+      qquuid: fileUUID,
+      qqpath: encodeURIComponent(relativeDir),
+      params: params,
+    },
+  })
+  return response.data
+}
+
+/**
+ * 暂停上传
+ * POST /Handler/UploadHandler?act=pause
+ */
+export async function pauseUpload(
+  fileName: string,
+  qqpath: string,
+  params: string,
+): Promise<UploadResponse> {
+  const response = await transClient.post('/Handler/UploadHandler', null, {
+    params: {
+      act: 'pause',
+      name: fileName,
+      qqpath: qqpath,
+      params: params,
+    },
+  })
+  return response.data
+}
+
 // ============ 哈希计算工具（前端Mock实现）============
 
 /**
@@ -474,6 +537,10 @@ export const transApi = {
   completeUpload,
   getServerHash,
   updateClientHash,
+  pauseUpload,
+  
+  // 断点续传
+  getUploadedChunks,
 
   // 下载相关
   downloadFile,
