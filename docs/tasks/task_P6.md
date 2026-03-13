@@ -181,7 +181,7 @@
 
 #### P6.6.1 部门选择器
 
-- [ ] 创建 `src/components/business/DepartmentSelector.vue`
+- [√] 创建 `src/components/business/DepartmentSelector.vue`
   - 使用 `a-tree-select` 展示部门树
   - 支持搜索、清空
   - Props：`modelValue`（v-model 绑定）
@@ -191,27 +191,27 @@
 
 #### P6.6.2 城市选择器
 
-- [ ] 创建 `src/components/business/CitySelector.vue`
-  - 使用 `a-cascader` 展示国家/城市级联
+- [√] 创建 `src/components/business/CitySelector.vue`
+  - 使用 `a-cascader` 展示省份/城市级联
   - 支持搜索、清空
-  - Props：`modelValue`（v-model 绑定，数组格式 `[countryId, cityId]`）
+  - Props：`modelValue`（v-model 绑定，数组格式 `[provinceId, cityId]`）
   - Emits：`update:modelValue`, `change`
-  - 从 Mock 数据加载城市列表（`cityApi.getList()`）
-  - 数据格式：
-    ```typescript
-    [
-      {
-        id: 'CN',
-        name: '中国',
-        cities: [
-          { id: 'cn-beijing', name: '北京' },
-          { id: 'cn-shanghai', name: '上海' }
-        ]
-      }
-    ]
-    ```
+  - 从 Mock 数据加载城市列表
+  - 支持默认城市设置
+- [√] 更新 Mock 数据结构：省份-城市（仅国内）
+- [√] 新增 `DEFAULT_CITY` 默认城市常量
 
-#### P6.6.3 用户选择器
+#### P6.6.3 申请单配置动态化
+
+- [√] 扩展 `UIConfigTab` 类型，新增 `application`
+- [√] 新增 `UIApplicationConfigItem` 类型定义
+- [√] 扩展 `uiConfigApi` 支持申请单配置 CRUD
+- [√] 扩展 `useUIConfig` composable
+- [√] 新增 `useApplicationConfig` composable
+- [√] 界面配置页面新增"申请单配置" Tab
+- [√] `StepOneBasicInfo.vue` 从配置中读取动态数据
+
+#### P6.6.4 用户选择器
 
 - [ ] 创建 `src/components/business/UserSelector.vue`
   - 使用 `a-select` 多选模式

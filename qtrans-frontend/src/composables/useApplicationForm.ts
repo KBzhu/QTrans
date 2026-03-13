@@ -4,6 +4,7 @@ import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
+import { DEFAULT_CITY } from '@/mocks/data/cities'
 
 type SecurityArea = 'green' | 'yellow' | 'red'
 
@@ -117,8 +118,8 @@ function defaultFormData(transferTypeRaw?: string): ApplicationFormData {
     department: '',
     sourceArea: areas.sourceArea,
     targetArea: areas.targetArea,
-    sourceCity: [],
-    targetCity: [],
+    sourceCity: [...DEFAULT_CITY],
+    targetCity: [...DEFAULT_CITY],
     downloaderAccounts: [],
     ccAccounts: [],
     containsCustomerData: 'no',
@@ -182,8 +183,8 @@ export function useApplicationForm(initialTransferType?: string) {
     department: [{ required: true, message: '请选择所属部门' }],
     sourceArea: [{ required: true, message: '请选择源安全域' }],
     targetArea: [{ required: true, message: '请选择目标安全域' }],
-    sourceCity: [{ required: true, type: 'array', min: 1, message: '请选择源国家/城市' }],
-    targetCity: [{ required: true, type: 'array', min: 1, message: '请选择目标国家/城市' }],
+    sourceCity: [{ required: true, type: 'array', min: 1, message: '请选择源省份/城市' }],
+    targetCity: [{ required: true, type: 'array', min: 1, message: '请选择目标省份/城市' }],
     downloaderAccounts: [{ required: true, type: 'array', min: 1, message: '请选择下载人账号' }],
     ccAccounts: [{ required: true, type: 'array', min: 1, message: '请选择抄送人' }],
     srNumber: [{ required: true, message: '请输入 SR 单号' }],

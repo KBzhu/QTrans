@@ -1,4 +1,4 @@
-import type { UIButtonConfigItem, UICardConfigItem, UILanguageConfig, UITranslationItem, UITextConfigItem, UITextTreeNode } from '@/types'
+import type { UIButtonConfigItem, UILanguageConfig, UITranslationItem, UITextConfigItem, UITextTreeNode } from '@/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useUIConfig } from '@/composables/useUIConfig'
 
@@ -6,11 +6,6 @@ const {
   getTextTreeMock,
   getTextItemsMock,
   updateTextItemMock,
-  getCardConfigsMock,
-  createCardConfigMock,
-  updateCardConfigMock,
-  deleteCardConfigMock,
-  sortCardConfigMock,
   getLanguagesMock,
   updateLanguageStatusMock,
   getTranslationsMock,
@@ -26,11 +21,6 @@ const {
   getTextTreeMock: vi.fn(),
   getTextItemsMock: vi.fn(),
   updateTextItemMock: vi.fn(),
-  getCardConfigsMock: vi.fn(),
-  createCardConfigMock: vi.fn(),
-  updateCardConfigMock: vi.fn(),
-  deleteCardConfigMock: vi.fn(),
-  sortCardConfigMock: vi.fn(),
   getLanguagesMock: vi.fn(),
   updateLanguageStatusMock: vi.fn(),
   getTranslationsMock: vi.fn(),
@@ -49,11 +39,6 @@ vi.mock('@/api/uiConfig', () => ({
     getTextTree: getTextTreeMock,
     getTextItems: getTextItemsMock,
     updateTextItem: updateTextItemMock,
-    getCardConfigs: getCardConfigsMock,
-    createCardConfig: createCardConfigMock,
-    updateCardConfig: updateCardConfigMock,
-    deleteCardConfig: deleteCardConfigMock,
-    sortCardConfig: sortCardConfigMock,
     getLanguages: getLanguagesMock,
     updateLanguageStatus: updateLanguageStatusMock,
     getTranslations: getTranslationsMock,
@@ -90,19 +75,6 @@ function createTextItem(overrides: Partial<UITextConfigItem> = {}): UITextConfig
     zhCN: '登录',
     enUS: 'Login',
     description: 'desc',
-    ...overrides,
-  }
-}
-
-function createCard(overrides: Partial<UICardConfigItem> = {}): UICardConfigItem {
-  return {
-    id: 'card-1',
-    name: '基础信息',
-    code: 'base',
-    order: 1,
-    required: true,
-    fieldConfig: '{}',
-    status: 'enabled',
     ...overrides,
   }
 }
@@ -145,7 +117,6 @@ describe('useUIConfig', () => {
     vi.clearAllMocks()
     getTextTreeMock.mockResolvedValue([{ key: 'module:登录', title: '登录', children: [{ key: 'login.title', title: 'login.title', isLeaf: true }] } as UITextTreeNode])
     getTextItemsMock.mockResolvedValue([createTextItem()])
-    getCardConfigsMock.mockResolvedValue([createCard()])
     getLanguagesMock.mockResolvedValue([createLanguage()])
     getTranslationsMock.mockResolvedValue([createTranslation()])
     getButtonConfigsMock.mockResolvedValue([createButton()])
@@ -161,14 +132,6 @@ describe('useUIConfig', () => {
     expect(composable.selectedNodeKey.value).toBe('login.title')
   })
 
-  it('fetchCardConfig updates card list', async () => {
-    const composable = useUIConfig()
-    await composable.fetchCardConfig()
-
-    expect(getCardConfigsMock).toHaveBeenCalled()
-    expect(composable.cardConfigData.value[0]?.code).toBe('base')
-  })
-
   it('handleSaveTextConfig calls update api', async () => {
     updateTextItemMock.mockResolvedValue(createTextItem({ zhCN: '登录页' }))
 
@@ -180,40 +143,6 @@ describe('useUIConfig', () => {
     })
 
     expect(updateTextItemMock).toHaveBeenCalledWith('login.title', expect.objectContaining({ zhCN: '登录页' }))
-  })
-
-  it('handleSaveCardConfig creates when id absent', async () => {
-    createCardConfigMock.mockResolvedValue(createCard({ id: 'card-2' }))
-
-    const composable = useUIConfig()
-    await composable.handleSaveCardConfig({
-      name: '新卡片',
-      code: 'new_card',
-      order: 2,
-      required: false,
-      fieldConfig: '{}',
-      status: 'enabled',
-    })
-
-    expect(createCardConfigMock).toHaveBeenCalled()
-  })
-
-  it('handleSaveCardConfig updates when id exists', async () => {
-    updateCardConfigMock.mockResolvedValue(createCard())
-
-    const composable = useUIConfig()
-    await composable.handleSaveCardConfig(createCard({ id: 'card-9', name: '更新' }))
-
-    expect(updateCardConfigMock).toHaveBeenCalledWith('card-9', expect.objectContaining({ name: '更新' }))
-  })
-
-  it('handleCardSort calls sort api', async () => {
-    sortCardConfigMock.mockResolvedValue([createCard()])
-
-    const composable = useUIConfig()
-    await composable.handleCardSort(['card-1', 'card-2'])
-
-    expect(sortCardConfigMock).toHaveBeenCalledWith(['card-1', 'card-2'])
   })
 
   it('fetchI18nConfig loads languages and translations', async () => {

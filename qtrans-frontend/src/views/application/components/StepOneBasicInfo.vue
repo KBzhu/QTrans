@@ -2,11 +2,11 @@
 import { computed, ref } from 'vue'
 import dayjs from 'dayjs'
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
-import { cities } from '@/mocks/data/cities'
-import { departments, type DepartmentNode } from '@/mocks/data/departments'
 import { users } from '@/mocks/data/users'
 import { useAuthStore } from '@/stores'
-import { Message } from '@arco-design/web-vue'
+import { useApplicationConfig } from '@/composables/useApplicationConfig'
+import DepartmentSelector from '@/components/business/DepartmentSelector.vue'
+import CitySelector from '@/components/business/CitySelector.vue'
 
 interface Props {
   formData: ApplicationFormData
@@ -30,8 +30,7 @@ const emit = defineEmits<Emits>()
 
 const authStore = useAuthStore()
 const formRef = ref<{ validate: () => Promise<void> } | null>(null)
-const departmentDialogVisible = ref(false)
-const departmentSelectedKey = ref('')
+const { getOptionsByType, getItemsByType } = useApplicationConfig()
 
 const areaOptions = [
   { label: '绿区', value: 'green' },
@@ -39,45 +38,10 @@ const areaOptions = [
   { label: '红区', value: 'red' },
 ]
 
-const applicantNotifyOptions = [
-  { label: '应用号消息', value: 'in_app' },
-  { label: 'W3待办', value: 'w3_todo' },
-  { label: '邮件', value: 'email' },
-  { label: '下载邮件的发送通知', value: 'download_email' },
-]
-
-const downloaderNotifyOptions = [
-  { label: '应用号消息', value: 'in_app' },
-  { label: 'W3待办', value: 'w3_todo' },
-  { label: '邮件', value: 'email' },
-]
-
-interface DepartmentTreeOption {
-  title: string
-  key: string
-  children?: DepartmentTreeOption[]
-}
-
-const departmentOptions = computed(() => {
-  const walk = (nodes: DepartmentNode[]): DepartmentTreeOption[] => nodes.map(node => ({
-    title: node.name,
-    key: node.name,
-    children: node.children?.length ? walk(node.children) : undefined,
-  }))
-
-  return walk(departments)
-})
-
-const cityOptions = computed(() => {
-  return cities.map(country => ({
-    label: country.country,
-    value: country.country,
-    children: country.cities.map(city => ({
-      label: city.name,
-      value: city.name,
-    })),
-  }))
-})
+const applicantNotifyOptions = computed(() => getOptionsByType('applicantNotifyOptions'))
+const downloaderNotifyOptions = computed(() => getOptionsByType('downloaderNotifyOptions'))
+const recentTransferTemplates = computed(() => getItemsByType('recentTransferTemplates'))
+const noticeItems = computed(() => getItemsByType('noticeItems'))
 
 const userOptions = computed(() => {
   return users.map(user => ({
@@ -85,17 +49,6 @@ const userOptions = computed(() => {
     value: user.username,
   }))
 })
-
-const recentTransferTemplates = [
-  '新eTrans平台使用传输场景说明：公司内网/绿区之间互传。',
-  '跨安全域传输说明：请确认接收方权限与数据最小化范围。',
-]
-
-const noticeItems = [
-  'eTrans 适用场景：公司内网/绿区之间互传，跨域请按审批流程执行。',
-  '涉及客户网络数据时，需上传客户授权文件并填写 SR 单号。',
-  '请确保下载人与抄送人信息准确，避免审批与通知遗漏。',
-]
 
 const basicInfoRows = computed(() => {
   const user = authStore.currentUser
@@ -119,46 +72,20 @@ function formatRemainDays(dateValue: string) {
   return `${Math.max(days, 0)}天`
 }
 
-function openDepartmentDialog() {
-  departmentSelectedKey.value = props.formData.department || ''
-  departmentDialogVisible.value = true
+function onDepartmentChange(value: string) {
+  emit('update:formData', { ...props.formData, department: value })
 }
 
-function onDepartmentSelect(selectedKeys: Array<string | number>) {
-  departmentSelectedKey.value = selectedKeys[0] ? String(selectedKeys[0]) : ''
+function onSourceCityChange(value: string[]) {
+  emit('update:formData', { ...props.formData, sourceCity: value })
 }
 
-function onConfirmDepartment() {
-  if (!departmentSelectedKey.value) {
-    Message.warning('请选择部门')
-    return false
-  }
-
-  const updated = { ...props.formData, department: departmentSelectedKey.value }
-  emit('update:formData', updated)
-  departmentDialogVisible.value = false
-  return true
+function onTargetCityChange(value: string[]) {
+  emit('update:formData', { ...props.formData, targetCity: value })
 }
 
 async function onCopyRecentTemplate(text: string) {
   emit('copyTemplate', text)
-}
-
-function normalizeCityValue(val: unknown): string[] {
-  if (Array.isArray(val)) {
-    if (val.length === 0)
-      return []
-
-    if (Array.isArray(val[0]))
-      return (val[0] as Array<string | number>).map(item => String(item)).filter(Boolean)
-
-    return (val as Array<string | number>).map(item => String(item)).filter(Boolean)
-  }
-
-  if (typeof val === 'string' || typeof val === 'number')
-    return [String(val)]
-
-  return []
 }
 
 async function validate() {
@@ -208,14 +135,10 @@ defineExpose({
           class="apply-form"
         >
           <a-form-item field="department" label="部门" required>
-            <div class="department-trigger" @click="openDepartmentDialog" style="width: 100%;">
-              <a-input
-                :model-value="formData.department"
-                readonly
-                placeholder="请选择部门"
-                @click.stop="openDepartmentDialog"
-              />
-            </div>
+            <DepartmentSelector
+              :model-value="formData.department"
+              @change="onDepartmentChange"
+            />
           </a-form-item>
 
           <div class="form-grid">
@@ -235,29 +158,19 @@ defineExpose({
               />
             </a-form-item>
 
-            <a-form-item field="sourceCity" label="数据传出国家/城市" required>
-              <a-cascader
+            <a-form-item field="sourceCity" label="数据传出省份/城市" required>
+              <CitySelector
                 :model-value="formData.sourceCity"
-                :options="cityOptions"
-                path-mode
-                allow-clear
-                allow-search
-                placeholder="请输入或选择国家/城市"
-                @change="(val: unknown) => emit('update:formData', { ...formData, sourceCity: normalizeCityValue(val) })"
-
+                :default-to-first="true"
+                @change="onSourceCityChange"
               />
             </a-form-item>
 
-            <a-form-item field="targetCity" label="数据传至国家/城市" required>
-              <a-cascader
+            <a-form-item field="targetCity" label="数据传至省份/城市" required>
+              <CitySelector
                 :model-value="formData.targetCity"
-                :options="cityOptions"
-                path-mode
-                allow-clear
-                allow-search
-                placeholder="请输入或选择国家/城市"
-                @change="(val: unknown) => emit('update:formData', { ...formData, targetCity: normalizeCityValue(val) })"
-
+                :default-to-first="true"
+                @change="onTargetCityChange"
               />
             </a-form-item>
           </div>
@@ -368,22 +281,6 @@ defineExpose({
       </section>
     </aside>
   </div>
-
-  <a-modal
-    v-model:visible="departmentDialogVisible"
-    title="选择部门"
-    ok-text="确认"
-    cancel-text="取消"
-    :on-before-ok="onConfirmDepartment"
-    class="department-modal"
-  >
-    <a-tree
-      :data="departmentOptions"
-      block-node
-      :selected-keys="departmentSelectedKey ? [departmentSelectedKey] : []"
-      @select="onDepartmentSelect"
-    />
-  </a-modal>
 </template>
 
 <style scoped lang="scss">

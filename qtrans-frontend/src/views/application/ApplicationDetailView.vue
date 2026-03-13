@@ -108,7 +108,6 @@ onMounted(async () => {
 
     <header class="application-detail-page__header">
       <div>
-        <h1 class="application-detail-page__title">申请详情</h1>
         <p class="application-detail-page__no">申请单号：{{ detailData?.applicationNo || '-' }}</p>
       </div>
 

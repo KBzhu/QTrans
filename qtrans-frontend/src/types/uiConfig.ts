@@ -1,7 +1,20 @@
 import type { StatusEnum } from './common'
 import type { UserRole } from './user'
 
-export type UIConfigTab = 'text' | 'card' | 'i18n' | 'button'
+export type UIConfigTab = 'text' | 'i18n' | 'button' | 'application' | 'transferTab' | 'transferType'
+
+/** 申请单配置类型 */
+export type UIApplicationConfigType = 'applicantNotifyOptions' | 'downloaderNotifyOptions' | 'recentTransferTemplates' | 'noticeItems'
+
+/** 申请单配置项 */
+export interface UIApplicationConfigItem {
+  id: string
+  type: UIApplicationConfigType
+  label: string
+  value: string
+  order: number
+  status: StatusEnum
+}
 
 export interface UITextConfigItem {
   key: string
@@ -16,16 +29,6 @@ export interface UITextTreeNode {
   title: string
   children?: UITextTreeNode[]
   isLeaf?: boolean
-}
-
-export interface UICardConfigItem {
-  id: string
-  name: string
-  code: string
-  order: number
-  required: boolean
-  fieldConfig: string
-  status: StatusEnum
 }
 
 export interface UILanguageConfig {
@@ -60,16 +63,6 @@ export interface SaveTextConfigRequest {
   description: string
 }
 
-export interface SaveCardConfigRequest {
-  id?: string
-  name: string
-  code: string
-  order: number
-  required: boolean
-  fieldConfig: string
-  status: StatusEnum
-}
-
 export interface SaveButtonConfigRequest {
   id?: string
   name: string
@@ -77,6 +70,33 @@ export interface SaveButtonConfigRequest {
   page: string
   roles: UserRole[]
   condition: string
+  status: StatusEnum
+}
+
+/** 传输类型页签配置 */
+export interface UITransferTabConfigItem {
+  id: string
+  key: string
+  label: string
+  order: number
+  status: StatusEnum
+}
+
+/** 传输类型卡片配置 */
+export interface UITransferTypeConfigItem {
+  id: string
+  key: string
+  title: string
+  desc: string
+  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
+  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
+  fromIcon: string
+  toIcon: string
+  arrowIcon: string
+  level: 'free' | 'l1' | 'l2' | 'l3'
+  levelText: string
+  tabGroup: string
+  order: number
   status: StatusEnum
 }
 

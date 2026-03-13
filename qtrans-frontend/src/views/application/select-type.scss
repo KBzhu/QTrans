@@ -39,10 +39,11 @@
   }
 }
 
-/* ----- 卡片网格 ----- */
+/* ----- 卡片网格（自适应均分）----- */
 .select-type__grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* auto-fit + minmax 实现卡片均分，数量变化时自动调整列数 */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
 }
 
@@ -122,8 +123,12 @@
   background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
 }
 
-/* ----- 卡片标题按钮 ----- */
+/* ----- 卡片标题按钮（固定宽度，居中）----- */
 .type-card__title {
+  /* 固定宽度，不随卡片宽度变化 */
+  width: 252px;
+  max-width: 100%;
+  margin: 0 auto;
   background: #dbeafe;
   border: 1px solid #155dfc;
   border-radius: 8px;
@@ -170,47 +175,42 @@
   }
 }
 
-/* ----- 卡片描述 ----- */
+/* ----- 卡片描述（与标题同宽居中）----- */
 .type-card__desc {
-  margin-top: 8px;
+  width: 252px;
+  max-width: 100%;
+  margin: 8px auto 0;
   text-align: center;
   color: #4a5565;
   font-size: 12px;
 }
 
-/* ----- 例行申请双列大卡片 ----- */
+/* ----- 例行申请双列 ----- */
 .select-type__grid--routine {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 例行申请固定双列，但保持自适应 */
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
 }
 
 .type-card--routine {
-  padding: clamp(28px, 2vw, 40px);
-
-  .type-card__icons {
-    margin-bottom: 28px;
-  }
-
-  .type-card__icon-box {
-    width: clamp(68px, 5vw, 80px);
-    height: clamp(68px, 5vw, 80px);
-  }
+  /* 例行申请卡片稍大，但标题样式保持一致 */
+  padding: clamp(24px, 2vw, 36px);
 }
 
 /* ===== 响应式 ===== */
-@media (max-width: 1400px) {
-  .select-type__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
+/* auto-fit 已自动处理列数调整，仅需调整最小宽度阈值 */
 @media (max-width: 1200px) {
   .select-type__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .select-type__grid--routine {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .select-type__grid {
+  .select-type__grid,
+  .select-type__grid--routine {
     grid-template-columns: 1fr;
   }
 }

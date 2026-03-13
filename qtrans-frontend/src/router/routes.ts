@@ -86,6 +86,32 @@ export const routes: RouteRecordRaw[] = [
     } as AppRouteMeta,
   },
 
+  // TransWebService 上传下载页面（从外部跳转）
+  {
+    path: '/trans/upload',
+    name: 'TransUpload',
+    component: () => import('@/views/trans/TransUploadView.vue'),
+    meta: {
+      title: '文件上传',
+      icon: 'icon-upload',
+      layout: 'blank',
+      requiresAuth: false, // 通过 params 参数验证
+      hidden: true,
+    } as AppRouteMeta,
+  },
+  {
+    path: '/trans/download',
+    name: 'TransDownload',
+    component: () => import('@/views/trans/TransDownloadView.vue'),
+    meta: {
+      title: '文件下载',
+      icon: 'icon-download',
+      layout: 'blank',
+      requiresAuth: false, // 通过 params 参数验证
+      hidden: true,
+    } as AppRouteMeta,
+  },
+
   {
     path: '/application/select-type',
     name: 'SelectType',

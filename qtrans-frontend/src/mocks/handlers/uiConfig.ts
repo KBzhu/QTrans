@@ -1,11 +1,13 @@
 import type {
   UIButtonConfigItem,
-  UICardConfigItem,
   UILanguageConfig,
   UITranslationItem,
   UIConfigTab,
   UITextConfigItem,
   UITextTreeNode,
+  UIApplicationConfigItem,
+  UITransferTabConfigItem,
+  UITransferTypeConfigItem,
 } from '@/types'
 import { http } from 'msw'
 import { failed, mockDelay, success } from './_utils'
@@ -19,12 +21,6 @@ const initialTextItems: UITextConfigItem[] = [
   { key: 'download.batch', module: '下载', zhCN: '批量下载', enUS: 'Batch Download', description: '下载页批量按钮' },
   { key: 'notification.readAll', module: '通知', zhCN: '全部已读', enUS: 'Mark All Read', description: '通知页操作按钮' },
   { key: 'user.create', module: '用户管理', zhCN: '新建用户', enUS: 'Create User', description: '用户管理顶部按钮' },
-]
-
-const initialCards: UICardConfigItem[] = [
-  { id: 'card-1', name: '文件基础信息', code: 'base_info', order: 1, required: true, fieldConfig: '{"fields":["name","size","type"]}', status: 'enabled' },
-  { id: 'card-2', name: '接收方信息', code: 'receiver_info', order: 2, required: true, fieldConfig: '{"fields":["receiver","email"]}', status: 'enabled' },
-  { id: 'card-3', name: '高级选项', code: 'advanced_options', order: 3, required: false, fieldConfig: '{"fields":["watermark","expire"]}', status: 'disabled' },
 ]
 
 const initialLanguages: UILanguageConfig[] = [
@@ -58,13 +54,190 @@ const initialButtons: UIButtonConfigItem[] = [
   },
 ]
 
+const initialApplicationConfig: UIApplicationConfigItem[] = [
+  // 申请人通知选项
+  { id: 'app-opt-1', type: 'applicantNotifyOptions', label: '应用号消息', value: 'in_app', order: 1, status: 'enabled' },
+  { id: 'app-opt-2', type: 'applicantNotifyOptions', label: '邮件', value: 'email', order: 2, status: 'enabled' },
+  { id: 'app-opt-3', type: 'applicantNotifyOptions', label: '下载邮件的发送通知', value: 'download_email', order: 3, status: 'enabled' },
+  // 下载人通知选项
+  { id: 'app-opt-4', type: 'downloaderNotifyOptions', label: '应用号消息', value: 'in_app', order: 1, status: 'enabled' },
+  { id: 'app-opt-5', type: 'downloaderNotifyOptions', label: 'W3待办', value: 'w3_todo', order: 2, status: 'enabled' },
+  { id: 'app-opt-6', type: 'downloaderNotifyOptions', label: '邮件', value: 'email', order: 3, status: 'enabled' },
+  // 最近传输选择
+  { id: 'app-tpl-1', type: 'recentTransferTemplates', label: '场景说明1', value: '新eTrans平台使用传输场景说明：公司内网/绿区之间互传。', order: 1, status: 'enabled' },
+  { id: 'app-tpl-2', type: 'recentTransferTemplates', label: '场景说明2', value: '跨安全域传输说明：请确认接收方权限与数据最小化范围。', order: 2, status: 'enabled' },
+  // 注意事项
+  { id: 'app-notice-1', type: 'noticeItems', label: '注意事项1', value: 'eTrans 适用场景：公司内网/绿区之间互传，跨域请按审批流程执行。', order: 1, status: 'enabled' },
+  { id: 'app-notice-2', type: 'noticeItems', label: '注意事项2', value: '涉及客户网络数据时，需上传客户授权文件并填写 SR 单号。', order: 2, status: 'enabled' },
+  { id: 'app-notice-3', type: 'noticeItems', label: '注意事项3', value: '请确保下载人与抄送人信息准确，避免审批与通知遗漏。', order: 3, status: 'enabled' },
+]
+
+const initialTransferTabs: UITransferTabConfigItem[] = [
+  { id: 'tab-1', key: 'green', label: '绿区传出', order: 1, status: 'enabled' },
+  { id: 'tab-2', key: 'yellow', label: '黄区传出', order: 2, status: 'enabled' },
+  { id: 'tab-3', key: 'red', label: '红区传出', order: 3, status: 'enabled' },
+  { id: 'tab-4', key: 'external', label: '外网传入', order: 4, status: 'enabled' },
+  { id: 'tab-5', key: 'routine', label: '例行申请', order: 5, status: 'enabled' },
+]
+
+const initialTransferTypes: UITransferTypeConfigItem[] = [
+  {
+    id: 'type-1',
+    key: 'green-to-green',
+    title: '绿区传到绿区',
+    desc: '非研发到非研发',
+    fromZone: 'green',
+    toZone: 'green',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/8.svg',
+    level: 'free',
+    levelText: '免审批',
+    tabGroup: 'green',
+    order: 1,
+    status: 'enabled',
+  },
+  {
+    id: 'type-2',
+    key: 'green-to-yellow',
+    title: '绿区传到黄区',
+    desc: '非研发到研发',
+    fromZone: 'green',
+    toZone: 'yellow',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/11.svg',
+    level: 'l1',
+    levelText: '一级审批',
+    tabGroup: 'green',
+    order: 2,
+    status: 'enabled',
+  },
+  {
+    id: 'type-3',
+    key: 'green-to-external',
+    title: '绿区传到外网',
+    desc: '非研发到外网',
+    fromZone: 'green',
+    toZone: 'external',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/14.svg',
+    level: 'l2',
+    levelText: '二级审批',
+    tabGroup: 'green',
+    order: 3,
+    status: 'enabled',
+  },
+  {
+    id: 'type-4',
+    key: 'green-to-red',
+    title: '绿区传到红区',
+    desc: '非研发到红区',
+    fromZone: 'green',
+    toZone: 'red',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/17.svg',
+    level: 'l2',
+    levelText: '二级审批',
+    tabGroup: 'green',
+    order: 4,
+    status: 'enabled',
+  },
+  {
+    id: 'type-5',
+    key: 'green-to-hisilicon',
+    title: '绿区传到海思红区',
+    desc: '非研发到海思红区',
+    fromZone: 'green',
+    toZone: 'hisilicon',
+    fromIcon: '/figma/3830_3/9.svg',
+    toIcon: '/figma/3830_3/9.svg',
+    arrowIcon: '/figma/3830_3/20.svg',
+    level: 'l3',
+    levelText: '三级审批',
+    tabGroup: 'green',
+    order: 5,
+    status: 'enabled',
+  },
+  {
+    id: 'type-6',
+    key: 'yellow-to-yellow',
+    title: '黄区传到黄区',
+    desc: '同安全域内传输，需部门主管审批',
+    fromZone: 'yellow',
+    toZone: 'yellow',
+    fromIcon: '/figma/3971_812/10.svg',
+    toIcon: '/figma/3971_812/10.svg',
+    arrowIcon: '/figma/3971_812/8.svg',
+    level: 'l1',
+    levelText: '一级审批',
+    tabGroup: 'yellow',
+    order: 1,
+    status: 'enabled',
+  },
+  {
+    id: 'type-7',
+    key: 'yellow-to-red',
+    title: '黄区传到红区',
+    desc: '跨安全域传输，需二级审批',
+    fromZone: 'yellow',
+    toZone: 'red',
+    fromIcon: '/figma/3971_812/10.svg',
+    toIcon: '/figma/3971_812/12.svg',
+    arrowIcon: '/figma/3971_812/11.svg',
+    level: 'l2',
+    levelText: '二级审批',
+    tabGroup: 'yellow',
+    order: 2,
+    status: 'enabled',
+  },
+  {
+    id: 'type-8',
+    key: 'red-to-red',
+    title: '红区传到红区',
+    desc: '高安全域内传输，需二级审批',
+    fromZone: 'red',
+    toZone: 'red',
+    fromIcon: '/figma/3971_812/12.svg',
+    toIcon: '/figma/3971_812/12.svg',
+    arrowIcon: '/figma/3971_812/11.svg',
+    level: 'l2',
+    levelText: '二级审批',
+    tabGroup: 'red',
+    order: 1,
+    status: 'enabled',
+  },
+  {
+    id: 'type-9',
+    key: 'cross-country',
+    title: '跨国传输',
+    desc: '跨国数据传输，需三级审批',
+    fromZone: 'cross',
+    toZone: 'cross',
+    fromIcon: '/figma/3971_812/7.svg',
+    toIcon: '/figma/3971_812/12.svg',
+    arrowIcon: '/figma/3971_812/11.svg',
+    level: 'l3',
+    levelText: '三级审批',
+    tabGroup: 'external',
+    order: 1,
+    status: 'enabled',
+  },
+]
+
 let textItems = [...initialTextItems]
-let cardItems = [...initialCards]
 let languageItems = [...initialLanguages]
 let translationMap = structuredClone(initialTranslations)
 let buttonItems = [...initialButtons]
-let cardSeq = 10
+let applicationItems = [...initialApplicationConfig]
+let transferTabItems = [...initialTransferTabs]
+let transferTypeItems = [...initialTransferTypes]
 let buttonSeq = 10
+let applicationSeq = 20
+let transferTabSeq = 10
+let transferTypeSeq = 20
 
 function buildTextTree(items: UITextConfigItem[]): UITextTreeNode[] {
   const modules = [...new Set(items.map(item => item.module))]
@@ -89,15 +262,21 @@ function resetByType(type: UIConfigTab) {
   if (type === 'text') {
     textItems = [...initialTextItems]
   }
-  else if (type === 'card') {
-    cardItems = [...initialCards]
-  }
   else if (type === 'i18n') {
     languageItems = [...initialLanguages]
     translationMap = structuredClone(initialTranslations)
   }
-  else {
+  else if (type === 'button') {
     buttonItems = [...initialButtons]
+  }
+  else if (type === 'application') {
+    applicationItems = [...initialApplicationConfig]
+  }
+  else if (type === 'transferTab') {
+    transferTabItems = [...initialTransferTabs]
+  }
+  else if (type === 'transferType') {
+    transferTypeItems = [...initialTransferTypes]
   }
 }
 
@@ -120,46 +299,6 @@ export const uiConfigHandlers = [
     if (idx === -1) return failed('配置项不存在', 404)
     textItems[idx] = { ...textItems[idx]!, ...body }
     return success(textItems[idx], '保存成功')
-  }),
-
-  http.get('/api/ui-config/cards', async () => {
-    await mockDelay(120)
-    return success(cardItems.sort((a, b) => a.order - b.order))
-  }),
-
-  http.post('/api/ui-config/cards', async ({ request }) => {
-    await mockDelay(150)
-    const body = await request.json() as Omit<UICardConfigItem, 'id'>
-    if (cardItems.some(item => item.code === body.code)) return failed('卡片代码已存在')
-    const created: UICardConfigItem = { ...body, id: `card-${++cardSeq}` }
-    cardItems.push(created)
-    return success(created, '创建成功')
-  }),
-
-  http.put('/api/ui-config/cards/:id', async ({ params, request }) => {
-    await mockDelay(150)
-    const { id } = params as { id: string }
-    const body = await request.json() as Partial<UICardConfigItem>
-    const idx = cardItems.findIndex(item => item.id === id)
-    if (idx === -1) return failed('卡片不存在', 404)
-    if (body.code && cardItems.some(item => item.code === body.code && item.id !== id)) return failed('卡片代码已存在')
-    cardItems[idx] = { ...cardItems[idx]!, ...body }
-    return success(cardItems[idx], '更新成功')
-  }),
-
-  http.put('/api/ui-config/cards/sort', async ({ request }) => {
-    await mockDelay(150)
-    const body = await request.json() as { ids: string[] }
-    const rank = new Map((body.ids || []).map((id, index) => [id, index + 1]))
-    cardItems = cardItems.map(item => ({ ...item, order: rank.get(item.id) || item.order }))
-    return success(cardItems.sort((a, b) => a.order - b.order), '排序成功')
-  }),
-
-  http.delete('/api/ui-config/cards/:id', async ({ params }) => {
-    await mockDelay(120)
-    const { id } = params as { id: string }
-    cardItems = cardItems.filter(item => item.id !== id)
-    return success(true, '删除成功')
   }),
 
   http.get('/api/ui-config/i18n/languages', async () => {
@@ -236,6 +375,157 @@ export const uiConfigHandlers = [
     return success(true, '删除成功')
   }),
 
+  // 申请单配置 API
+  http.get('/api/ui-config/application', async () => {
+    await mockDelay(120)
+    return success(applicationItems.sort((a, b) => a.order - b.order))
+  }),
+
+  http.post('/api/ui-config/application', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as Omit<UIApplicationConfigItem, 'id'>
+    const created: UIApplicationConfigItem = { ...body, id: `app-cfg-${++applicationSeq}` }
+    applicationItems.push(created)
+    return success(created, '创建成功')
+  }),
+
+  http.put('/api/ui-config/application/:id', async ({ params, request }) => {
+    await mockDelay(150)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<UIApplicationConfigItem>
+    const idx = applicationItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('配置项不存在', 404)
+    applicationItems[idx] = { ...applicationItems[idx]!, ...body }
+    return success(applicationItems[idx], '更新成功')
+  }),
+
+  http.put('/api/ui-config/application/sort', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as { ids: string[] }
+    const rank = new Map((body.ids || []).map((id, index) => [id, index + 1]))
+    applicationItems = applicationItems.map(item => ({ ...item, order: rank.get(item.id) || item.order }))
+    return success(applicationItems.sort((a, b) => a.order - b.order), '排序成功')
+  }),
+
+  http.put('/api/ui-config/application/:id/status', async ({ params, request }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    const body = await request.json() as { status: UIApplicationConfigItem['status'] }
+    const idx = applicationItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('配置项不存在', 404)
+    applicationItems[idx] = { ...applicationItems[idx]!, status: body.status === 'disabled' ? 'disabled' : 'enabled' }
+    return success(applicationItems[idx], '状态更新成功')
+  }),
+
+  http.delete('/api/ui-config/application/:id', async ({ params }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    applicationItems = applicationItems.filter(item => item.id !== id)
+    return success(true, '删除成功')
+  }),
+
+  // 传输类型页签配置 API
+  http.get('/api/ui-config/transfer-tabs', async () => {
+    await mockDelay(120)
+    return success(transferTabItems.sort((a, b) => a.order - b.order))
+  }),
+
+  http.post('/api/ui-config/transfer-tabs', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as Omit<UITransferTabConfigItem, 'id'>
+    if (transferTabItems.some(item => item.key === body.key)) return failed('页签 key 已存在')
+    const created: UITransferTabConfigItem = { ...body, id: `tab-${++transferTabSeq}` }
+    transferTabItems.push(created)
+    return success(created, '创建成功')
+  }),
+
+  http.put('/api/ui-config/transfer-tabs/:id', async ({ params, request }) => {
+    await mockDelay(150)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<UITransferTabConfigItem>
+    const idx = transferTabItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('页签不存在', 404)
+    if (body.key && transferTabItems.some(item => item.key === body.key && item.id !== id)) return failed('页签 key 已存在')
+    transferTabItems[idx] = { ...transferTabItems[idx]!, ...body }
+    return success(transferTabItems[idx], '更新成功')
+  }),
+
+  http.put('/api/ui-config/transfer-tabs/sort', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as { ids: string[] }
+    const rank = new Map((body.ids || []).map((id, index) => [id, index + 1]))
+    transferTabItems = transferTabItems.map(item => ({ ...item, order: rank.get(item.id) || item.order }))
+    return success(transferTabItems.sort((a, b) => a.order - b.order), '排序成功')
+  }),
+
+  http.put('/api/ui-config/transfer-tabs/:id/status', async ({ params, request }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    const body = await request.json() as { status: UITransferTabConfigItem['status'] }
+    const idx = transferTabItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('页签不存在', 404)
+    transferTabItems[idx] = { ...transferTabItems[idx]!, status: body.status === 'disabled' ? 'disabled' : 'enabled' }
+    return success(transferTabItems[idx], '状态更新成功')
+  }),
+
+  http.delete('/api/ui-config/transfer-tabs/:id', async ({ params }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    transferTabItems = transferTabItems.filter(item => item.id !== id)
+    return success(true, '删除成功')
+  }),
+
+  // 传输类型卡片配置 API
+  http.get('/api/ui-config/transfer-types', async () => {
+    await mockDelay(120)
+    return success(transferTypeItems.sort((a, b) => a.order - b.order))
+  }),
+
+  http.post('/api/ui-config/transfer-types', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as Omit<UITransferTypeConfigItem, 'id'>
+    if (transferTypeItems.some(item => item.key === body.key)) return failed('类型 key 已存在')
+    const created: UITransferTypeConfigItem = { ...body, id: `type-${++transferTypeSeq}` }
+    transferTypeItems.push(created)
+    return success(created, '创建成功')
+  }),
+
+  http.put('/api/ui-config/transfer-types/:id', async ({ params, request }) => {
+    await mockDelay(150)
+    const { id } = params as { id: string }
+    const body = await request.json() as Partial<UITransferTypeConfigItem>
+    const idx = transferTypeItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('类型不存在', 404)
+    if (body.key && transferTypeItems.some(item => item.key === body.key && item.id !== id)) return failed('类型 key 已存在')
+    transferTypeItems[idx] = { ...transferTypeItems[idx]!, ...body }
+    return success(transferTypeItems[idx], '更新成功')
+  }),
+
+  http.put('/api/ui-config/transfer-types/sort', async ({ request }) => {
+    await mockDelay(150)
+    const body = await request.json() as { ids: string[] }
+    const rank = new Map((body.ids || []).map((id, index) => [id, index + 1]))
+    transferTypeItems = transferTypeItems.map(item => ({ ...item, order: rank.get(item.id) || item.order }))
+    return success(transferTypeItems.sort((a, b) => a.order - b.order), '排序成功')
+  }),
+
+  http.put('/api/ui-config/transfer-types/:id/status', async ({ params, request }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    const body = await request.json() as { status: UITransferTypeConfigItem['status'] }
+    const idx = transferTypeItems.findIndex(item => item.id === id)
+    if (idx === -1) return failed('类型不存在', 404)
+    transferTypeItems[idx] = { ...transferTypeItems[idx]!, status: body.status === 'disabled' ? 'disabled' : 'enabled' }
+    return success(transferTypeItems[idx], '状态更新成功')
+  }),
+
+  http.delete('/api/ui-config/transfer-types/:id', async ({ params }) => {
+    await mockDelay(120)
+    const { id } = params as { id: string }
+    transferTypeItems = transferTypeItems.filter(item => item.id !== id)
+    return success(true, '删除成功')
+  }),
+
   http.post('/api/ui-config/import', async ({ request }) => {
     await mockDelay(150)
     const body = await request.json() as { type: UIConfigTab, payload: unknown }
@@ -247,8 +537,11 @@ export const uiConfigHandlers = [
     await mockDelay(120)
     const { type } = params as { type: UIConfigTab }
     if (type === 'text') return success({ type, items: textItems })
-    if (type === 'card') return success({ type, items: cardItems })
     if (type === 'i18n') return success({ type, languages: languageItems, translations: translationMap })
-    return success({ type, items: buttonItems })
+    if (type === 'button') return success({ type, items: buttonItems })
+    if (type === 'application') return success({ type, items: applicationItems })
+    if (type === 'transferTab') return success({ type, items: transferTabItems })
+    if (type === 'transferType') return success({ type, items: transferTypeItems })
+    return success({ type, items: [] })
   }),
 ]

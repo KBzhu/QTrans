@@ -1,161 +1,21 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useTransferConfig } from '@/composables/useTransferConfig'
 
 const router = useRouter()
-
-/* ===== Tab 定义 ===== */
-interface TabItem {
-  key: string
-  label: string
-}
-
-const tabs: TabItem[] = [
-  { key: 'green', label: '绿区传出' },
-  { key: 'yellow', label: '黄区传出' },
-  { key: 'red', label: '红区传出' },
-  { key: 'external', label: '外网传入' },
-  { key: 'routine', label: '例行申请' },
-]
+const { tabs, transferTypes } = useTransferConfig()
 
 const activeTab = ref('green')
 
-/* ===== 传输类型卡片定义 ===== */
-interface TransferType {
-  key: string
-  title: string
-  desc: string
-  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-  fromIcon: string
-  toIcon: string
-  arrowIcon: string
-  level: 'free' | 'l1' | 'l2' | 'l3'
-  levelText: string
-  tabGroup: string
-}
+/* ===== 按 Tab 过滤卡片 ===== */
+const filteredTypes = computed(() => {
+  return transferTypes.value.filter(t => t.tabGroup === activeTab.value)
+})
 
-const transferTypes: TransferType[] = [
-  {
-    key: 'green-to-green',
-    title: '绿区传到绿区',
-    desc: '非研发到非研发',
-    fromZone: 'green',
-    toZone: 'green',
-    fromIcon: '/figma/3830_3/9.svg',
-    toIcon: '/figma/3830_3/9.svg',
-    arrowIcon: '/figma/3830_3/8.svg',
-    level: 'free',
-    levelText: '免审批',
-    tabGroup: 'green',
-  },
-  {
-    key: 'green-to-yellow',
-    title: '绿区传到黄区',
-    desc: '非研发到研发',
-    fromZone: 'green',
-    toZone: 'yellow',
-    fromIcon: '/figma/3830_3/9.svg',
-    toIcon: '/figma/3830_3/9.svg',
-    arrowIcon: '/figma/3830_3/11.svg',
-    level: 'l1',
-    levelText: '一级审批',
-    tabGroup: 'green',
-  },
-  {
-    key: 'green-to-external',
-    title: '绿区传到外网',
-    desc: '非研发到外网',
-    fromZone: 'green',
-    toZone: 'external',
-    fromIcon: '/figma/3830_3/9.svg',
-    toIcon: '/figma/3830_3/9.svg',
-    arrowIcon: '/figma/3830_3/14.svg',
-    level: 'l2',
-    levelText: '二级审批',
-    tabGroup: 'green',
-  },
-  {
-    key: 'green-to-red',
-    title: '绿区传到红区',
-    desc: '非研发到红区',
-    fromZone: 'green',
-    toZone: 'red',
-    fromIcon: '/figma/3830_3/9.svg',
-    toIcon: '/figma/3830_3/9.svg',
-    arrowIcon: '/figma/3830_3/17.svg',
-    level: 'l2',
-    levelText: '二级审批',
-    tabGroup: 'green',
-  },
-  {
-    key: 'green-to-hisilicon',
-    title: '绿区传到海思红区',
-    desc: '非研发到海思红区',
-    fromZone: 'green',
-    toZone: 'hisilicon',
-    fromIcon: '/figma/3830_3/9.svg',
-    toIcon: '/figma/3830_3/9.svg',
-    arrowIcon: '/figma/3830_3/20.svg',
-    level: 'l3',
-    levelText: '三级审批',
-    tabGroup: 'green',
-  },
-  {
-    key: 'yellow-to-yellow',
-    title: '黄区传到黄区',
-    desc: '同安全域内传输，需部门主管审批',
-    fromZone: 'yellow',
-    toZone: 'yellow',
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/10.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
-    level: 'l1',
-    levelText: '一级审批',
-    tabGroup: 'yellow',
-  },
-  {
-    key: 'yellow-to-red',
-    title: '黄区传到红区',
-    desc: '跨安全域传输，需二级审批',
-    fromZone: 'yellow',
-    toZone: 'red',
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-    level: 'l2',
-    levelText: '二级审批',
-    tabGroup: 'yellow',
-  },
-  {
-    key: 'red-to-red',
-    title: '红区传到红区',
-    desc: '高安全域内传输，需二级审批',
-    fromZone: 'red',
-    toZone: 'red',
-    fromIcon: '/figma/3971_812/12.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-    level: 'l2',
-    levelText: '二级审批',
-    tabGroup: 'red',
-  },
-  {
-    key: 'cross-country',
-    title: '跨国传输',
-    desc: '跨国数据传输，需三级审批',
-    fromZone: 'cross',
-    toZone: 'cross',
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-    level: 'l3',
-    levelText: '三级审批',
-    tabGroup: 'external',
-  },
-]
+const isRoutineTab = computed(() => activeTab.value === 'routine')
 
-/* ===== 例行申请卡片 ===== */
+/* ===== 例行申请卡片（暂时保留硬编码） ===== */
 interface RoutineCard {
   key: string
   title: string
@@ -190,13 +50,6 @@ const routineCards: RoutineCard[] = [
   },
 ]
 
-/* ===== 按 Tab 过滤卡片 ===== */
-const filteredTypes = computed(() => {
-  return transferTypes.filter(t => t.tabGroup === activeTab.value)
-})
-
-const isRoutineTab = computed(() => activeTab.value === 'routine')
-
 /* ===== 点击卡片 ===== */
 function handleCardClick(typeKey: string) {
   router.push({
@@ -226,7 +79,7 @@ function handleTabClick(tabKey: string) {
       </button>
     </div>
 
-    <!-- 传输类型卡片网格 -->
+    <!-- 首页--传输类型卡片网格--绿区传出开始 -->
     <div v-if="!isRoutineTab" class="select-type__grid">
       <article
         v-for="item in filteredTypes"

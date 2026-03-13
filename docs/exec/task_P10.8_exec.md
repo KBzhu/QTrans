@@ -6,10 +6,10 @@
 
 ## 执行清单
 
-- [√] 新增 `src/types/channelManage.ts`
-- [√] 新增 `src/api/channelManage.ts`
-- [√] 新增 `src/mocks/handlers/channelManage.ts`
-- [√] 新增 `src/composables/useChannelManage.ts`
+- [√] 创建 `src/types/channelManage.ts` 类型定义
+- [√] 创建 `src/api/channelManage.ts` API 层
+- [√] 创建 `src/mocks/handlers/channelManage.ts` Mock 数据
+- [√] 创建 `src/composables/useChannelManage.ts` Composable
 - [√] 新增 `src/views/admin/ChannelManageView.vue`
 - [√] 新增 `src/views/admin/ChannelManageModal.vue`
 - [√] 新增 `src/views/admin/ChannelServerModal.vue`
@@ -17,6 +17,7 @@
 - [√] 新增路由入口 `src/views/channel/index.vue` + 路由 `/channels`
 - [√] 更新聚合导出：`src/api/index.ts`、`src/types/index.ts`、`src/mocks/handlers/index.ts`
 - [√] 新增并通过单测 `src/composables/__tests__/useChannelManage.spec.ts`（12 用例）
+- [√] 更新文档（`docs/tasks/task_P10.md`、`docs/exec/task_P10.8_exec.md`、`docs/exec/task_P10_exec.md`、`docs/guides/P10_quickStart.md`、`CHANGELOG`）
 
 ## 产出文件
 

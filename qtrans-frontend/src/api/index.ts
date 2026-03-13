@@ -10,4 +10,5 @@ export * from './channelManage'
 export * from './uiConfig'
 
 export * from './file'
+export * from './transWebService'
 
