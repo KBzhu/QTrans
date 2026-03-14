@@ -11,7 +11,8 @@ import {
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { FileEntity, TransUploadFileItem } from '@/composables/useTransUpload'
+import type {  FileEntity } from '@/api/transWebService'
+import type {  TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
 import { formatFileSize } from '@/utils/format'
@@ -134,6 +135,22 @@ async function handleFiles(files: File[]) {
  */
 function updateUploadProgress(item: TransUploadFileItem) {
   console.log(`Upload progress: ${item.file?.name} - ${item.progress}%`)
+
+  // 上传完成：从上传列表移除，并刷新已上传列表
+  if (item.status === 'completed' && params.value) {
+    const index = uploadFileList.value.findIndex(f => f.id === item.id)
+    if (index >= 0) {
+      uploadFileList.value.splice(index, 1)
+    }
+    loadFileList('', params.value)
+    return
+  }
+
+  // 其他状态：更新列表项
+  const index = uploadFileList.value.findIndex(f => f.id === item.id)
+  if (index >= 0) {
+    uploadFileList.value[index] = { ...item }
+  }
 }
 
 /**

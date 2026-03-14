@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { departments, type DepartmentNode } from '@/mocks/data/departments'
+import { departments, DEFAULT_DEPARTMENT, type DepartmentNode } from '@/mocks/data/departments'
 
 interface Props {
   modelValue?: string
@@ -8,6 +8,7 @@ interface Props {
   disabled?: boolean
   allowClear?: boolean
   allowSearch?: boolean
+  defaultToFirst?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   allowClear: true,
   allowSearch: true,
+  defaultToFirst: false,
 })
 
 interface Emits {
@@ -64,9 +66,20 @@ const selectedValue = ref(props.modelValue)
 watch(
   () => props.modelValue,
   (newVal) => {
-    selectedValue.value = newVal
+    if (newVal) {
+      selectedValue.value = newVal
+    }
   },
+  { immediate: true },
 )
+
+// 初始化默认部门
+if (props.defaultToFirst && !selectedValue.value) {
+  selectedValue.value = DEFAULT_DEPARTMENT
+  emit('update:modelValue', DEFAULT_DEPARTMENT)
+  const node = findDepartmentNode(departments, DEFAULT_DEPARTMENT)
+  emit('change', DEFAULT_DEPARTMENT, node)
+}
 
 // 处理选择变化
 function handleChange(value: string | undefined) {

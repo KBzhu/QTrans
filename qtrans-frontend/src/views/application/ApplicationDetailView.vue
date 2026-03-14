@@ -145,6 +145,7 @@ onMounted(async () => {
           v-else
           :files="files"
           :loading="loading"
+           :status="detailData?.status || ''"
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
         />
@@ -165,7 +166,6 @@ onMounted(async () => {
       <a-button v-if="detailData?.status === 'pending_upload'" type="primary" @click="handleUploadFile">上传文件</a-button>
       <a-button v-if="detailData?.status === 'pending_approval'" status="danger" @click="onWithdraw">关闭申请</a-button>
       <a-button v-if="detailData && ['approved', 'transferring'].includes(detailData.status)" type="primary" @click="handleViewTransferProgress">查看传输进度</a-button>
-      <a-button v-if="detailData?.status === 'completed' && files.length" type="primary" @click="handleDownloadAll">批量下载</a-button>
     </footer>
 
   </section>

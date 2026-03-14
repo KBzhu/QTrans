@@ -137,6 +137,7 @@ defineExpose({
           <a-form-item field="department" label="部门" required>
             <DepartmentSelector
               :model-value="formData.department"
+              :default-to-first="true"
               @change="onDepartmentChange"
             />
           </a-form-item>

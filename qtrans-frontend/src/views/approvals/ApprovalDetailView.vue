@@ -168,6 +168,7 @@ onMounted(async () => {
           v-else
           :files="files"
           :loading="loading"
+          :status="detailData?.status || ''"
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
         />
@@ -181,6 +182,7 @@ onMounted(async () => {
         :status-hint="transferStatusHint"
       />
     </section>
+
 
     <section v-if="canOperate" class="approval-opinion-card">
 

@@ -215,7 +215,6 @@ export async function uploadChunk(
     formData,
     {
       headers: { 'Content-Type': 'multipart/form-data' },
-      params: { act: 'add' },
       onUploadProgress: (progressEvent: AxiosProgressEvent) => {
         if (onProgress && progressEvent.total) {
           const percent = Math.round(
@@ -420,11 +419,12 @@ export interface UploadedChunksResponse {
 /**
  * 查询文件已上传分片状态
  * GET /Handler/UploadHandler?act=chunks
- * 
+ *
  * 用于断点续传，查询服务端已接收的分片信息
  */
 export async function getUploadedChunks(
   fileUUID: string,
+  fileName: string,
   relativeDir: string,
   params: string,
 ): Promise<UploadedChunksResponse> {
@@ -432,6 +432,7 @@ export async function getUploadedChunks(
     params: {
       act: 'chunks',
       qquuid: fileUUID,
+      name: fileName,
       qqpath: encodeURIComponent(relativeDir),
       params: params,
     },

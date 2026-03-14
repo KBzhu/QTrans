@@ -4,6 +4,9 @@ export interface DepartmentNode {
   children?: DepartmentNode[]
 }
 
+// 默认部门（第一个部门的第一个子部门）
+export const DEFAULT_DEPARTMENT = 'dept-rd-platform'
+
 export const departments: DepartmentNode[] = [
   {
     id: 'dept-rd',

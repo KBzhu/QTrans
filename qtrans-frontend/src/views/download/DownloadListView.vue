@@ -148,20 +148,6 @@ onMounted(async () => {
               <template #cell="{ record }">{{ getFileCountByApplicationId(record.id) }}</template>
             </a-table-column>
 
-            <a-table-column title="状态" :width="120">
-              <template #cell="{ record }">
-                <a-tag class="download-status-tag" :class="getStatusClass(record.status)">
-                  {{ statusLabelMap[record.status] }}
-                </a-tag>
-              </template>
-            </a-table-column>
-
-            <a-table-column title="下载进度" :width="120">
-              <template #cell="{ record }">
-                {{ getDownloadStatusLabel(getDownloadStatusByApplicationId(record.id)) }}
-              </template>
-            </a-table-column>
-
             <a-table-column title="申请人" data-index="applicantName" :width="120" />
 
             <a-table-column title="申请原因" :width="170" ellipsis tooltip>

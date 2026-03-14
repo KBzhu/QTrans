@@ -7,11 +7,16 @@ import { formatFileSize, formatDateTime } from '@/utils'
 interface Props {
   files: DetailFileItem[]
   loading?: boolean
+  /** 申请单状态，仅 completed 时显示操作列 */
+  status?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  status: '',
 })
+
+const isCompleted = computed(() => props.status === 'completed' || props.status === '已完成')
 
 interface Emits {
   (e: 'download', file: DetailFileItem): void
@@ -38,8 +43,8 @@ function onBatchDownload() {
 <template>
   <section class="detail-file-table">
     <a-table
-      :data="files"
-      :loading="loading"
+      :data="props.files"
+      :loading="props.loading"
       row-key="id"
       :pagination="false"
       :row-selection="rowSelection"
@@ -70,9 +75,14 @@ function onBatchDownload() {
           </template>
         </a-table-column>
 
-        <a-table-column title="操作" :width="100" align="center">
+        <a-table-column title="操作" v-if="isCompleted" :width="100" align="center">
           <template #cell="{ record }">
-            <a-button type="text" class="detail-file-table__action" @click="emit('download', record)">
+            <a-button
+              v-show="isCompleted"
+              type="text"
+              class="detail-file-table__action"
+              @click="emit('download', record)"
+            >
               <IconDownload />
             </a-button>
           </template>
@@ -80,12 +90,12 @@ function onBatchDownload() {
       </template>
     </a-table>
 
-    <div class="detail-file-table__footer">
+    <div  v-if="isCompleted" class="detail-file-table__footer">
       <a-button type="primary" :disabled="selectedRowKeys.length === 0" @click="onBatchDownload">
         <template #icon>
           <IconDownload />
         </template>
-        批量下载
+        批量下载  
       </a-button>
     </div>
   </section>
