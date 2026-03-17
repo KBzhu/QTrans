@@ -2,7 +2,7 @@ import axios, { type AxiosError, type AxiosRequestConfig, type AxiosResponse } f
 import { Message } from '@arco-design/web-vue'
 
 import type { ApiResponse } from '@/types'
-import { STORAGE_KEYS } from './constants'
+import { useAuthStore } from '@/stores'
 
 const requestClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -10,7 +10,9 @@ const requestClient = axios.create({
 })
 
 requestClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  // 从 pinia store 读取 token（避免与持久化机制冲突）
+  const authStore = useAuthStore()
+  const token = authStore.token
   if (token)
     config.headers.token = token
 
@@ -30,7 +32,9 @@ requestClient.interceptors.response.use(
     const status = error.response?.status
 
     if (status === 401) {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+      // 通过 store 清理认证状态
+      const authStore = useAuthStore()
+      authStore.clearAuthState()
       if (!window.location.pathname.includes('/login'))
         window.location.href = '/login'
     }

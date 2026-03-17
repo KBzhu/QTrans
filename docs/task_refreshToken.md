@@ -14,6 +14,8 @@
 - [√] 6. 修改请求头字段为 `token`（非 `Authorization: Bearer`）
 - [√] 7. 修复 useLogin.ts 调用参数（store.login 已改为无参数版本）
 - [√] 8. 修复持久化机制冲突（移除手动 localStorage 操作，统一使用 pinia 插件）
+- [√] 9. 修复 request.ts 从 pinia store 读取 token（而非直接读 localStorage）
+- [√] 10. 修复 auth.ts login 方法响应解析（request.raw 返回的是 data 字段值，即 token 字符串）
 
 ## 技术实现
 

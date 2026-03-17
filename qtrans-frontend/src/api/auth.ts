@@ -10,13 +10,6 @@ interface RealLoginRequest {
   }
 }
 
-/** 真实后端登录响应格式（data 直接是 token 字符串） */
-interface RealLoginResponse {
-  code: number
-  message: string
-  data: string | null
-}
-
 export const authApi = {
   /**
    * 登录 - 调用真实后端接口
@@ -30,13 +23,13 @@ export const authApi = {
         loginType: '2',
       },
     }
-    const res = await request.raw<RealLoginResponse>(
+    // request.raw 返回的是响应拦截器处理后的 data 字段（即 token 字符串）
+    const token = await request.raw<string>(
       '/service/v1/userCenter/authentication/login',
       payload,
     )
-    // res.data 直接是 token 字符串
     return {
-      token: res.data || '',
+      token: token || '',
       user: {
         id: '1',
         username: 'ywx1420846',
