@@ -52,6 +52,45 @@ requestClient.interceptors.response.use(
   },
 )
 
+/**
+ * 真实后端请求客户端
+ * 用于调用真实后端接口，响应格式与 mock API 不同
+ * 成功响应格式: { applicationId, isRedirectToUploadServer, uploadUrl, ... }
+ * 错误响应格式: { code, httpCode, message, ... }
+ */
+const rawClient = axios.create({
+  baseURL: '',
+  timeout: 30000,
+})
+
+rawClient.interceptors.request.use((config) => {
+  const authStore = useAuthStore()
+  const token = authStore.token
+  if (token)
+    config.headers.token = token
+
+  return config
+})
+
+rawClient.interceptors.response.use(
+  (response) => {
+    const data = response.data
+    // 检查是否是错误响应（有 code 字段且不是成功状态）
+    if (data && typeof data.code === 'string' && data.code !== 'success' && data.code !== '0') {
+      return Promise.reject(new Error(data.message || '请求失败'))
+    }
+    // 成功响应直接返回 data
+    return data
+  },
+  (error: AxiosError<any>) => {
+    // HTTP 错误处理
+    const errorData = error.response?.data
+    const message = errorData?.message || error.message || '网络异常'
+    Message.error(message)
+    return Promise.reject(new Error(message))
+  },
+)
+
 export const request = {
   get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return requestClient.get<unknown, T>(url, config)
@@ -66,10 +105,10 @@ export const request = {
     return requestClient.delete<unknown, T>(url, config)
   },
   /**
-   * 发送请求（跳过 baseURL，直接使用完整 URL）
-   * 用于调用真实后端接口，不走 /api 前缀
+   * 发送请求到真实后端（使用 rawClient 处理真实后端响应格式）
+   * 用于调用真实后端接口，响应格式与 mock API 不同
    */
   raw<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    return requestClient.post<unknown, T>(url, data, { ...config, baseURL: '' })
+    return rawClient.post<unknown, T>(url, data, config)
   },
 }

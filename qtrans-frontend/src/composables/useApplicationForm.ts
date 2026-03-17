@@ -158,6 +158,8 @@ export function useApplicationForm(initialTransferType?: string) {
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
   const isApplicationCreated = ref(false) // 标记申请单是否已在第一步创建
+  const uploadUrl = ref<string>('') // 真实后端返回的上传地址
+  const uploadParams = ref<string>('') // 从 uploadUrl 中提取的 params 参数
   const uploadingFiles = ref<UploadingFileState[]>([])
   const uploadedFiles = ref<UploadedFileState[]>([])
   const lastSavedSnapshot = ref(JSON.stringify(formData.value))
@@ -424,13 +426,31 @@ export function useApplicationForm(initialTransferType?: string) {
 
       const result = await applicationApi.createReal(payload)
 
+      // 真实后端响应格式: { applicationId, isRedirectToUploadServer, uploadUrl, ftpAddress, ftpUserName, ftpPassword }
+      // 错误响应已被 rawClient 拦截器处理，这里只需处理成功响应
+
+      // 从 uploadUrl 中提取 params 参数
+      // 格式: https://xxx/valid?params=security%3A...
+      const url = result?.uploadUrl || ''
+      let extractedParams = ''
+      if (url) {
+        const paramsMatch = url.match(/params=([^&]+)/)
+        if (paramsMatch) {
+          extractedParams = paramsMatch[1]
+        }
+      }
+
+      // 存储上传地址和参数
+      uploadUrl.value = url
+      uploadParams.value = extractedParams
+
       // 标记申请单已创建
       isApplicationCreated.value = true
 
       // 设置已提交的申请单信息
       submittedApplication.value = {
-        id: result?.applicationId || result?.id || `real-${Date.now()}`,
-        applicationNo: result?.applicationNo || result?.applicationId || '',
+        id: String(result?.applicationId || `real-${Date.now()}`),
+        applicationNo: String(result?.applicationId || ''),
         ...formData.value,
         containsCustomerData: formData.value.containsCustomerData === 'yes',
         status: 'pending_approval',
@@ -599,6 +619,8 @@ export function useApplicationForm(initialTransferType?: string) {
     currentDraftId,
     submittedApplication,
     isApplicationCreated,
+    uploadUrl,
+    uploadParams,
     uploadingFiles,
     uploadedFiles,
     selectedUploadingUids,
