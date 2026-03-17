@@ -68,7 +68,8 @@ export function useLogin() {
     errorMessage.value = ''
 
     try {
-      const user = await authStore.login(loginForm.username, loginForm.password)
+      // 调用真实后端登录接口（参数在 API 层写死）
+      const user = await authStore.login()
       handleRememberMe()
 
       const redirect = route.query.redirect as string | undefined

@@ -14,9 +14,7 @@ export function setupRouterGuards(router: Router) {
   router.beforeEach((to) => {
     const authStore = useAuthStore()
 
-    if (!authStore.token)
-      authStore.initAuth()
-
+    // pinia-plugin-persistedstate 会自动恢复状态，无需手动 initAuth
     const isLoggedIn = authStore.isLoggedIn
     const requiresAuth = to.meta.requiresAuth === true
 

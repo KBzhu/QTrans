@@ -10,14 +10,11 @@ interface RealLoginRequest {
   }
 }
 
-/** 真实后端登录响应格式 */
+/** 真实后端登录响应格式（data 直接是 token 字符串） */
 interface RealLoginResponse {
   code: number
   message: string
-  data: {
-    token: string
-    userInfo: Partial<User>
-  }
+  data: string | null
 }
 
 export const authApi = {
@@ -37,18 +34,19 @@ export const authApi = {
       '/service/v1/userCenter/authentication/login',
       payload,
     )
+    // res.data 直接是 token 字符串
     return {
-      token: res.data.token,
+      token: res.data || '',
       user: {
-        id: res.data.userInfo.id || '1',
-        username: res.data.userInfo.username || 'ywx1420846',
-        name: res.data.userInfo.name || '测试用户',
-        email: res.data.userInfo.email || 'test@example.com',
-        phone: res.data.userInfo.phone || '',
-        department: res.data.userInfo.department || '',
-        departmentName: res.data.userInfo.departmentName || '',
-        roles: (res.data.userInfo.roles as User['roles']) || ['submitter'],
-        status: res.data.userInfo.status || 'enabled',
+        id: '1',
+        username: 'ywx1420846',
+        name: '测试用户',
+        email: 'test@example.com',
+        phone: '',
+        department: '',
+        departmentName: '',
+        roles: ['submitter'],
+        status: 'enabled',
       },
     }
   },

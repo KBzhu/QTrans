@@ -9,6 +9,8 @@ The format is based on Keep a Changelog.
 ### Added
 - **Token 定时刷新**: 使用 VueUse `useIntervalFn` 在 auth store 实现全局 token 定时刷新（15分钟间隔），登录成功自动启动、登出自动停止；新增 `isRefreshing`、`isTokenRefreshActive`、`refreshToken()`、`pauseRefresh()`、`resumeRefresh()` 状态与方法。
 - **真实登录接口对接**: 修改 `authApi.login()` 调用真实后端 `/service/v1/userCenter/authentication/login`，参数暂写死；`vite.config.ts` 新增 `/service` 代理到 `http://127.0.0.1:8087`。
+- **请求头适配**: 修改 `request.ts` 请求头从 `Authorization: Bearer` 改为 `token` 字段；适配真实登录响应格式（`data` 直接是 token 字符串）。
+- **持久化机制修复**: 修复 pinia 插件与手动 localStorage 操作冲突问题，统一使用 pinia 插件持久化，配置自定义 serializer 与 `STORAGE_KEYS` 一致；移除 `persistAuthState()`、`initAuth()` 函数。
 - **创建申请单接口对接**: 新增 `src/utils/payloadConverter.ts`（前端表单到后端接口请求体转换器）；新增 `applicationApi.createReal` 方法调用真实后端接口 `POST /workflowService/services/frontendService/frontend/application/create`；新增 `useApplicationForm.handleSubmitReal` 方法；`vite.config.ts` 新增 `/workflowService` 代理配置。
 - **第一步提交申请单**: 新增 `isApplicationCreated` 状态标记申请单是否已创建；新增 `handleNextWithSubmit` 方法在第一步点击"下一步"时调用真实接口创建申请单。
 - **真实接口 Mock 兜底**: 在 `src/mocks/handlers/application.ts` 中新增对 `/workflowService/services/frontendService/frontend/application/create` 的 mock 拦截，当后端调不通时自动返回 mock 数据。

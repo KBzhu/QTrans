@@ -28,25 +28,16 @@ export const useAuthStore = defineStore('auth', () => {
   const userRoles = computed(() => currentUser.value?.roles || [])
   const isAdmin = computed(() => userRoles.value.includes('admin'))
 
-  function persistAuthState() {
-    if (token.value)
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token.value)
-
-    if (currentUser.value)
-      localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(currentUser.value))
-  }
-
+  /** 清理认证状态（pinia 插件会自动清理 localStorage） */
   function clearAuthState() {
     token.value = ''
     currentUser.value = null
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER_INFO)
   }
 
   /**
    * 刷新 Token
    * - 调用后端刷新接口获取新 token
-   * - 刷新成功后更新本地存储
+   * - 刷新成功后 token 自动持久化（由 pinia 插件处理）
    * - 刷新失败则登出用户
    */
   async function refreshToken() {
@@ -57,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authApi.refreshToken()
       token.value = result.token
-      persistAuthState()
+      // pinia 插件自动持久化
     }
     catch {
       // 刷新失败，登出用户
@@ -93,8 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
     const result = await authApi.login()
     token.value = result.token
     currentUser.value = result.user
-    persistAuthState()
-    // 登录成功后启动刷新定时器（由 watch 自动处理）
+    // pinia 插件自动持久化
     return result.user
   }
 
@@ -105,25 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
     finally {
       pauseRefresh() // 停止刷新定时器
       clearAuthState()
+      // pinia 插件会自动清理 localStorage
       if (!window.location.pathname.includes('/login'))
         window.location.href = '/login'
-    }
-  }
-
-  function initAuth() {
-    const cachedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-    const cachedUser = localStorage.getItem(STORAGE_KEYS.USER_INFO)
-
-    if (cachedToken)
-      token.value = cachedToken
-
-    if (cachedUser) {
-      try {
-        currentUser.value = JSON.parse(cachedUser) as User
-      }
-      catch {
-        currentUser.value = null
-      }
     }
   }
 
@@ -151,7 +125,6 @@ export const useAuthStore = defineStore('auth', () => {
     isTokenRefreshActive: isActive,
     login,
     logout,
-    initAuth,
     hasRole,
     hasPermission,
     clearAuthState,
@@ -161,7 +134,32 @@ export const useAuthStore = defineStore('auth', () => {
   }
 }, {
   persist: {
+    key: 'auth',
+    storage: localStorage,
     pick: ['token', 'currentUser'],
+    // 使用 serializer 确保 token 直接存储为字符串，user 存储为 JSON
+    serializer: {
+      serialize: (state) => {
+        const obj: Record<string, unknown> = {}
+        if (state.token)
+          obj[STORAGE_KEYS.AUTH_TOKEN] = state.token
+        if (state.currentUser)
+          obj[STORAGE_KEYS.USER_INFO] = JSON.stringify(state.currentUser)
+        return JSON.stringify(obj)
+      },
+      deserialize: (str) => {
+        try {
+          const obj = JSON.parse(str)
+          const token = obj[STORAGE_KEYS.AUTH_TOKEN] || ''
+          const userStr = obj[STORAGE_KEYS.USER_INFO]
+          const currentUser = userStr ? JSON.parse(userStr) : null
+          return { token, currentUser }
+        }
+        catch {
+          return { token: '', currentUser: null }
+        }
+      },
+    },
   },
 })
 
