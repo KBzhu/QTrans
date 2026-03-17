@@ -45,6 +45,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        // UserCenter 代理 - 用户认证服务
+        '/service': {
+          target: 'http://127.0.0.1:8087',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     define: {

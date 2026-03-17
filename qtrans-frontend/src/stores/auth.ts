@@ -1,8 +1,12 @@
 import type { User, UserRole } from '@/types'
+import { useIntervalFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { authApi } from '@/api/auth'
 import { STORAGE_KEYS } from '@/utils/constants'
+
+/** Token 刷新间隔：15 分钟 */
+const TOKEN_REFRESH_INTERVAL = 15 * 60 * 1000
 
 const permissionMap: Record<UserRole, string[]> = {
   submitter: ['application:create', 'application:update', 'application:submit'],
@@ -18,6 +22,7 @@ const permissionMap: Record<UserRole, string[]> = {
 export const useAuthStore = defineStore('auth', () => {
   const token = ref('')
   const currentUser = ref<User | null>(null)
+  const isRefreshing = ref(false)
 
   const isLoggedIn = computed(() => Boolean(token.value && currentUser.value))
   const userRoles = computed(() => currentUser.value?.roles || [])
@@ -38,11 +43,58 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(STORAGE_KEYS.USER_INFO)
   }
 
-  async function login(username: string, password: string) {
-    const result = await authApi.login({ username, password })
+  /**
+   * 刷新 Token
+   * - 调用后端刷新接口获取新 token
+   * - 刷新成功后更新本地存储
+   * - 刷新失败则登出用户
+   */
+  async function refreshToken() {
+    if (!token.value || isRefreshing.value)
+      return
+
+    isRefreshing.value = true
+    try {
+      const result = await authApi.refreshToken()
+      token.value = result.token
+      persistAuthState()
+    }
+    catch {
+      // 刷新失败，登出用户
+      await logout()
+    }
+    finally {
+      isRefreshing.value = false
+    }
+  }
+
+  // 使用 VueUse 的 useIntervalFn 实现定时刷新
+  const { pause: pauseRefresh, resume: resumeRefresh, isActive } = useIntervalFn(
+    refreshToken,
+    TOKEN_REFRESH_INTERVAL,
+    { immediate: false },
+  )
+
+  // 监听登录状态，自动启停刷新定时器
+  watch(isLoggedIn, (loggedIn) => {
+    if (loggedIn) {
+      resumeRefresh()
+    }
+    else {
+      pauseRefresh()
+    }
+  }, { immediate: true })
+
+  /**
+   * 登录 - 调用真实后端接口
+   * TODO: 当前参数在 API 层写死，后续改为动态传入
+   */
+  async function login() {
+    const result = await authApi.login()
     token.value = result.token
     currentUser.value = result.user
     persistAuthState()
+    // 登录成功后启动刷新定时器（由 watch 自动处理）
     return result.user
   }
 
@@ -51,6 +103,7 @@ export const useAuthStore = defineStore('auth', () => {
       await authApi.logout()
     }
     finally {
+      pauseRefresh() // 停止刷新定时器
       clearAuthState()
       if (!window.location.pathname.includes('/login'))
         window.location.href = '/login'
@@ -94,12 +147,17 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     userRoles,
     isAdmin,
+    isRefreshing,
+    isTokenRefreshActive: isActive,
     login,
     logout,
     initAuth,
     hasRole,
     hasPermission,
     clearAuthState,
+    refreshToken,
+    pauseRefresh,
+    resumeRefresh,
   }
 }, {
   persist: {
