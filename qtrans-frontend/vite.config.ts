@@ -39,12 +39,12 @@ export default defineConfig(({ mode }) => {
           // 如果后端路径不包含 /transWeb 前缀，取消下面的注释
           // rewrite: (path) => path.replace(/^\/transWeb/, ''),
         },
-        // 通用 API 代理（如需要可配置）
-        // '/api': {
-        //   target: 'https://localhost.huawei.com:其他端口',
-        //   changeOrigin: true,
-        //   secure: false,
-        // },
+        // WorkflowService 代理 - 申请单创建等服务
+        '/workflowService': {
+          target: 'http://127.0.0.1:8109',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     define: {

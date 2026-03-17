@@ -15,13 +15,13 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const stepOneRef = ref<InstanceType<typeof StepOneBasicInfo> | null>(null)
-const customerAuthInputRef = ref<HTMLInputElement | null>(null)
 const uploadInputRef = ref<HTMLInputElement | null>(null)
 
 const {
   formData,
   currentStep,
   submittedApplication,
+  isApplicationCreated,
   uploadingFiles,
   uploadedFiles,
   selectedUploadingUids,
@@ -32,11 +32,10 @@ const {
   transferTypeLabel,
   hasUnsavedChanges,
   handleNext,
+  handleNextWithSubmit,
   handlePrev,
-  handleSaveDraft,
-  handleSubmit,
+  handleSubmitReal,
   loadDraft,
-  setCustomerAuthFile,
   addUploadFiles,
   removeUploadingFile,
   removeUploadFile,
@@ -66,32 +65,22 @@ async function validateStepOne() {
 }
 
 async function onClickNext() {
-  await handleNext(validateStepOne)
+  // 第一步：验证表单并调用创建接口
+  if (currentStep.value === 0) {
+    await handleNextWithSubmit(validateStepOne)
+  }
+  else {
+    // 第二步：进入第三步
+    await handleNext()
+  }
 }
 
 async function onClickSubmit() {
-  await handleSubmit()
-}
-
-async function onClickSaveDraft() {
-  await handleSaveDraft()
+  await handleSubmitReal()
 }
 
 function onCancel() {
   router.back()
-}
-
-function onSelectCustomerAuth() {
-  customerAuthInputRef.value?.click()
-}
-
-function onCustomerAuthChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file)
-    return
-
-  setCustomerAuthFile(file.name)
 }
 
 function onSelectUploadFiles() {
@@ -187,12 +176,10 @@ onBeforeRouteLeave(() => {
           :show-customer-data-fields="showCustomerDataFields"
           :draft-application-no="draftApplicationNo"
           :submitted-application="submittedApplication"
+          :readonly="isApplicationCreated"
           @update:form-data="(val) => formData = val"
           @copy-template="onCopyRecentTemplate"
-          @select-customer-auth="onSelectCustomerAuth"
-          @customer-auth-change="onCustomerAuthChange"
         />
-        <input ref="customerAuthInputRef" type="file" class="hidden-input" @change="onCustomerAuthChange" />
       </template>
 
       <template v-else-if="currentStep === 1">
@@ -233,12 +220,15 @@ onBeforeRouteLeave(() => {
     </div>
 
     <div v-if="currentStep < 2" class="create-application-page__actions">
-      <a-button @click="onCancel">取消</a-button>
       <a-button v-if="currentStep > 0" @click="handlePrev">上一步</a-button>
-      <a-button v-if="currentStep < 1" type="outline" @click="onClickSaveDraft">保存草稿</a-button>
-      <a-button v-if="currentStep < 2" type="primary" @click="currentStep === 1 ? onClickSubmit() : onClickNext()">
-        {{ currentStep === 1 ? '提交申请' : '下一步' }}
+            <a-button v-if="currentStep === 0" type="primary" :loading="false" @click="onClickNext">
+        下一步
       </a-button>
+      <a-button v-if="currentStep === 1" type="primary" @click="onClickSubmit">
+        提交申请
+      </a-button>
+      <a-button @click="onCancel">取消</a-button>
+
     </div>
   </section>
 </template>

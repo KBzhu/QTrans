@@ -7,6 +7,26 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- **创建申请单接口对接**: 新增 `src/utils/payloadConverter.ts`（前端表单到后端接口请求体转换器）；新增 `applicationApi.createReal` 方法调用真实后端接口 `POST /workflowService/services/frontendService/frontend/application/create`；新增 `useApplicationForm.handleSubmitReal` 方法；`vite.config.ts` 新增 `/workflowService` 代理配置。
+- **第一步提交申请单**: 新增 `isApplicationCreated` 状态标记申请单是否已创建；新增 `handleNextWithSubmit` 方法在第一步点击"下一步"时调用真实接口创建申请单。
+- **真实接口 Mock 兜底**: 在 `src/mocks/handlers/application.ts` 中新增对 `/workflowService/services/frontendService/frontend/application/create` 的 mock 拦截，当后端调不通时自动返回 mock 数据。
+
+### Changed
+- **request 工具函数**: 新增 `request.raw()` 方法，用于发送跳过 baseURL 的请求，直接使用完整 URL 路径。
+
+### Changed
+- **创建申请流程调整**: 第一步点击"下一步"时调用 `createReal` 接口创建申请单，成功后进入第二步上传文件；返回"上一步"时表单变为只读不可编辑；移除"保存草稿"按钮；接口失败时停留在当前步骤允许修改后重试。
+- **StepOneBasicInfo 组件**: 新增 `readonly` 属性支持，当 `readonly=true` 时禁用所有表单控件（部门选择器、区域选择、城市选择、下载人账号、抄送人、客户数据选项、SR单号、申请原因、通知选项）。
+- **CreateApplicationView 组件**: 移除"保存草稿"按钮及相关逻辑；更新 `onClickNext` 方法支持第一步调用创建接口；传递 `readonly` 属性给 `StepOneBasicInfo`。
+
+### Changed
+- **创建申请单数据结构调整**: 移除废弃字段 `storageSize`、`uploadExpireTime`、`downloadExpireTime`、`customerAuthFile`；新增字段 `departmentId`、`sourceCityId`、`targetCityId`；更新 `types/application.ts`、`useApplicationForm.ts` 类型定义和默认值。
+- **DepartmentSelector 组件**: 返回值改为 `{ deptId, deptName }` 格式，`deptName` 为完整路径格式如 `"研发部/平台研发组"`。
+- **CitySelector 组件**: 返回值改为 `{ province, city, cityId }` 格式；`CityItem` 接口新增 `id` 字段。
+- **StepOneBasicInfo 组件**: 移除废弃字段展示（存储空间大小、上传/下载有效期、客户授权文件）；适配新的 change 事件格式。
+- **CreateApplicationView 组件**: 提交按钮改为调用 `handleSubmitReal` 使用真实接口；移除 `setCustomerAuthFile` 相关逻辑。
+
+### Added
 - **P11 TransWebService 文件上传下载**: 新增 `src/api/transWebService.ts`（完整类型定义、Token 管理、初始化/文件列表/分片上传/哈希校验/文件下载 API 封装）；新增 `src/composables/useTransUpload.ts`（初始化、分片上传、客户端 SHA-256 哈希计算 Mock、服务端哈希轮询校验、暂停/继续/取消、确认完成）；新增 `src/composables/useTransDownload.ts`（初始化、目录导航、文件/文件夹下载、打包状态检查、批量下载）；新增 `src/views/trans/TransUploadView.vue` + `trans-upload.scss`（拖拽上传区域、上传列表、哈希校验状态、已上传文件管理）；新增 `src/views/trans/TransDownloadView.vue` + `trans-download.scss`（文件列表、目录导航、批量选择下载、下载进度提示）；新增路由 `/trans/upload` 和 `/trans/download`（从外部跳转、通过 params 参数验证）。
 - **传输类型配置动态化**: 新增传输页签配置 (`UITransferTabConfigItem`) 和传输类型配置 (`UITransferTypeConfigItem`)，支持动态配置 `/dashboard` 菜单下的 Tab（绿区传出、黄区传出...）和每个 Tab 下的传输类型卡片；界面配置页面新增"传输页签配置"和"传输类型配置"两个 Tab，支持完整的 CRUD、排序、状态切换；新增 `useTransferConfig` composable 供页面使用；`SelectTypeView.vue` 改为从配置 API 获取数据，移除硬编码数据。
 - **P6.6.3 申请单配置动态化**: 新增 `application` 配置类型，扩展 `UIConfigTab`、`UIApplicationConfigItem` 类型；扩展 `uiConfigApi` 支持申请单配置 CRUD；扩展 `useUIConfig` composable；新增 `useApplicationConfig` composable 提供配置读取方法；界面配置页面新增"申请单配置" Tab，支持四种配置类型（申请人通知选项、下载人通知选项、最近传输模板、注意事项）的新增/编辑/删除/排序；`StepOneBasicInfo.vue` 改为从配置中读取动态数据。

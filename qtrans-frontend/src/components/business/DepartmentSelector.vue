@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 interface Emits {
   (e: 'update:modelValue', value: string): void
-  (e: 'change', value: string, node: DepartmentNode | null): void
+  (e: 'change', value: { deptId: string, deptName: string }): void
 }
 
 const emit = defineEmits<Emits>()
@@ -59,6 +59,19 @@ function findDepartmentNode(nodes: DepartmentNode[], id: string): DepartmentNode
   return null
 }
 
+// 递归查找部门节点的完整路径
+function findDepartmentPath(nodes: DepartmentNode[], id: string, path: string[] = []): string[] | null {
+  for (const node of nodes) {
+    const currentPath = [...path, node.name]
+    if (node.id === id) return currentPath
+    if (node.children) {
+      const found = findDepartmentPath(node.children, id, currentPath)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 // 当前选中的值
 const selectedValue = ref(props.modelValue)
 
@@ -77,8 +90,11 @@ watch(
 if (props.defaultToFirst && !selectedValue.value) {
   selectedValue.value = DEFAULT_DEPARTMENT
   emit('update:modelValue', DEFAULT_DEPARTMENT)
-  const node = findDepartmentNode(departments, DEFAULT_DEPARTMENT)
-  emit('change', DEFAULT_DEPARTMENT, node)
+  const path = findDepartmentPath(departments, DEFAULT_DEPARTMENT)
+  emit('change', { 
+    deptId: DEFAULT_DEPARTMENT, 
+    deptName: path ? path.join('/') : '' 
+  })
 }
 
 // 处理选择变化
@@ -87,9 +103,17 @@ function handleChange(value: string | undefined) {
   selectedValue.value = newValue
   emit('update:modelValue', newValue)
 
-  // 查找选中节点并触发 change 事件
-  const node = newValue ? findDepartmentNode(departments, newValue) : null
-  emit('change', newValue, node)
+  // 查找选中节点并触发 change 事件，返回完整路径格式
+  if (newValue) {
+    const path = findDepartmentPath(departments, newValue)
+    emit('change', { 
+      deptId: newValue, 
+      deptName: path ? path.join('/') : '' 
+    })
+  }
+  else {
+    emit('change', { deptId: '', deptName: '' })
+  }
 }
 </script>
 

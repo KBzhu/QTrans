@@ -1,0 +1,295 @@
+Date : 2026-03-16 14:57:13
+Directory : d:\VibeCoding\QTrans-0302new\qtrans-frontend\src
+Total : 210 files,  25096 codes, 640 comments, 4127 blanks, all 29863 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| TypeScript |        116 |     12,793 |        531 |      2,253 |     15,577 |
+| vue        |         57 |      8,387 |         66 |      1,107 |      9,560 |
+| SCSS       |         35 |      3,845 |         43 |        757 |      4,645 |
+| CSS        |          1 |         70 |          0 |         10 |         80 |
+| XML        |          1 |          1 |          0 |          0 |          1 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                      | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                         |        210 |     25,096 |        640 |      4,127 |     29,863 |
+| . (Files)                                                                                                 |          6 |        276 |         17 |         29 |        322 |
+| api                                                                                                       |         12 |        676 |        133 |        148 |        957 |
+| assets                                                                                                    |          5 |         54 |          0 |         12 |         66 |
+| assets (Files)                                                                                            |          1 |          1 |          0 |          0 |          1 |
+| assets\styles                                                                                             |          4 |         53 |          0 |         12 |         65 |
+| components                                                                                                |         29 |      2,895 |         38 |        496 |      3,429 |
+| components (Files)                                                                                        |          1 |         35 |          0 |          7 |         42 |
+| components\business                                                                                       |         19 |      2,229 |         38 |        374 |      2,641 |
+| components\business (Files)                                                                               |         11 |      1,687 |         37 |        260 |      1,984 |
+| components\business\__tests__                                                                             |          2 |        186 |          1 |         49 |        236 |
+| components\business\approval                                                                              |          2 |        142 |          0 |         25 |        167 |
+| components\business\detail                                                                                |          4 |        214 |          0 |         40 |        254 |
+| components\common                                                                                         |          9 |        631 |          0 |        115 |        746 |
+| components\common (Files)                                                                                 |          5 |        298 |          0 |         53 |        351 |
+| components\common\styles                                                                                  |          4 |        333 |          0 |         62 |        395 |
+| composables                                                                                               |         34 |      6,712 |        262 |      1,210 |      8,184 |
+| composables (Files)                                                                                       |         21 |      4,706 |        260 |        784 |      5,750 |
+| composables\__tests__                                                                                     |         13 |      2,006 |          2 |        426 |      2,434 |
+| directives                                                                                                |          1 |         26 |          0 |          7 |         33 |
+| layouts                                                                                                   |          2 |         64 |          0 |         14 |         78 |
+| mocks                                                                                                     |         23 |      2,430 |         36 |        369 |      2,835 |
+| mocks (Files)                                                                                             |          2 |         41 |          0 |          9 |         50 |
+| mocks\data                                                                                                |          6 |        542 |          2 |         29 |        573 |
+| mocks\handlers                                                                                            |         15 |      1,847 |         34 |        331 |      2,212 |
+| router                                                                                                    |          4 |        434 |          2 |         44 |        480 |
+| router (Files)                                                                                            |          3 |        362 |          1 |         32 |        395 |
+| router\__tests__                                                                                          |          1 |         72 |          1 |         12 |         85 |
+| stores                                                                                                    |         11 |      1,196 |          0 |        221 |      1,417 |
+| stores (Files)                                                                                            |          6 |        692 |          0 |        136 |        828 |
+| stores\__tests__                                                                                          |          5 |        504 |          0 |         85 |        589 |
+| types                                                                                                     |         12 |        415 |          5 |         77 |        497 |
+| utils                                                                                                     |         13 |        529 |         75 |        113 |        717 |
+| utils (Files)                                                                                             |          9 |        451 |         75 |         90 |        616 |
+| utils\__tests__                                                                                           |          4 |         78 |          0 |         23 |        101 |
+| views                                                                                                     |         58 |      9,389 |         72 |      1,387 |     10,848 |
+| views\admin                                                                                               |         16 |      2,986 |         16 |        336 |      3,338 |
+| views\application                                                                                         |         11 |      2,456 |         22 |        411 |      2,889 |
+| views\application (Files)                                                                                 |          8 |      1,828 |         20 |        341 |      2,189 |
+| views\application\components                                                                              |          3 |        628 |          2 |         70 |        700 |
+| views\applications                                                                                        |          1 |          6 |          0 |          2 |          8 |
+| views\approvals                                                                                           |          4 |        654 |          0 |        108 |        762 |
+| views\auth                                                                                                |          2 |        244 |          0 |         37 |        281 |
+| views\channel                                                                                             |          1 |          6 |          0 |          2 |          8 |
+| views\dashboard                                                                                           |          1 |        174 |          0 |         27 |        201 |
+| views\download                                                                                            |          2 |        326 |          0 |         54 |        380 |
+| views\error                                                                                               |          2 |         48 |          0 |          8 |         56 |
+| views\login                                                                                               |          1 |         98 |          0 |         15 |        113 |
+| views\notification                                                                                        |          2 |        491 |          0 |         88 |        579 |
+| views\notifications                                                                                       |          1 |          6 |          0 |          3 |          9 |
+| views\profile                                                                                             |          1 |         26 |          0 |          5 |         31 |
+| views\region                                                                                              |          1 |          6 |          0 |          2 |          8 |
+| views\settings                                                                                            |          1 |          6 |          0 |          3 |          9 |
+| views\trans                                                                                               |          5 |      1,452 |         34 |        215 |      1,701 |
+| views\transfer                                                                                            |          3 |        386 |          0 |         63 |        449 |
+| views\transfers                                                                                           |          1 |          6 |          0 |          3 |          9 |
+| views\ui-config                                                                                           |          1 |          6 |          0 |          2 |          8 |
+| views\users                                                                                               |          1 |          6 |          0 |          3 |          9 |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                                                  | language   | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\App.vue                                                  | vue        |         17 |          0 |          4 |         21 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\application.ts                                       | TypeScript |         35 |          5 |          3 |         43 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\approval.ts                                          | TypeScript |         25 |          0 |          4 |         29 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\auditLog.ts                                          | TypeScript |          7 |          0 |          2 |          9 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\auth.ts                                              | TypeScript |         16 |          0 |          2 |         18 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\channelManage.ts                                     | TypeScript |         30 |          0 |          9 |         39 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\index.ts                                             | TypeScript |         11 |          0 |          2 |         13 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\notification.ts                                      | TypeScript |         23 |          0 |          3 |         26 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\regionManage.ts                                      | TypeScript |         35 |          3 |         11 |         49 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\systemConfig.ts                                      | TypeScript |          5 |          9 |          4 |         18 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\transWebService.ts                                   | TypeScript |        379 |        114 |         70 |        563 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\uiConfig.ts                                          | TypeScript |         62 |          2 |         33 |         97 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\api\user.ts                                              | TypeScript |         48 |          0 |          5 |         53 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\assets\styles\global.scss                                | SCSS       |         16 |          0 |          4 |         20 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\assets\styles\index.scss                                 | SCSS       |         14 |          0 |          3 |         17 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\assets\styles\mixins.scss                                | SCSS       |         16 |          0 |          4 |         20 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\assets\styles\variables.scss                             | SCSS       |          7 |          0 |          1 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\assets\vue.svg                                           | XML        |          1 |          0 |          0 |          1 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\auto-imports.d.ts                                        | TypeScript |         82 |          8 |          1 |         91 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components.d.ts                                          | TypeScript |         66 |          8 |          3 |         77 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\HelloWorld.vue                                | vue        |         35 |          0 |          7 |         42 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\CitySelector.scss                    | SCSS       |         22 |          0 |          6 |         28 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\CitySelector.vue                     | vue        |        103 |          0 |         17 |        120 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\DepartmentSelector.scss              | SCSS       |         22 |          0 |          6 |         28 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\DepartmentSelector.vue               | vue        |        120 |          0 |         16 |        136 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\FileList.vue                         | vue        |        177 |          4 |         24 |        205 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\TransFileTable.vue                   | vue        |        527 |         24 |         52 |        603 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\TransferProgress.scss                | SCSS       |         68 |          0 |         13 |         81 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\TransferProgress.vue                 | vue        |        163 |          0 |         31 |        194 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\__tests__\DepartmentSelector.spec.ts | TypeScript |         85 |          1 |         22 |        108 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\__tests__\TransferProgress.spec.ts   | TypeScript |        101 |          0 |         27 |        128 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\approval\ApprovalTimeline.vue        | vue        |        109 |          0 |         19 |        128 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\approval\approval-timeline.scss      | SCSS       |         33 |          0 |          6 |         39 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\detail\DetailFileTable.vue           | vue        |         89 |          0 |         16 |        105 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\detail\DetailInfoSection.vue         | vue        |         25 |          0 |          5 |         30 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\detail\detail-file-table.scss        | SCSS       |         47 |          0 |         10 |         57 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\detail\detail-info-section.scss      | SCSS       |         53 |          0 |          9 |         62 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\file-list.scss                       | SCSS       |         36 |          0 |          8 |         44 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\file-upload.scss                     | SCSS       |        152 |          0 |         29 |        181 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\business\trans-file-table.scss                | SCSS       |        297 |          9 |         58 |        364 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\AppHeader.vue                          | vue        |         94 |          0 |         17 |        111 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\AppSidebar.vue                         | vue        |         83 |          0 |         15 |         98 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\PageContainer.vue                      | vue        |         17 |          0 |          5 |         22 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\RoleSwitcher.vue                       | vue        |         74 |          0 |         11 |         85 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\ViewPlaceholder.vue                    | vue        |         30 |          0 |          5 |         35 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\styles\app-header.scss                 | SCSS       |        162 |          0 |         25 |        187 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\styles\app-sidebar.scss                | SCSS       |         68 |          0 |         13 |         81 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\styles\page-container.scss             | SCSS       |         35 |          0 |         10 |         45 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\components\common\styles\role-switcher.scss              | SCSS       |         68 |          0 |         14 |         82 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useApplicationList.spec.ts         | TypeScript |         59 |          0 |          7 |         66 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useApprovalDetail.spec.ts          | TypeScript |        246 |          0 |         52 |        298 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useApprovalList.spec.ts            | TypeScript |         68 |          0 |         22 |         90 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useAuditLog.spec.ts                | TypeScript |        129 |          0 |         30 |        159 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useChannelManage.spec.ts           | TypeScript |        201 |          0 |         46 |        247 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useDownloadList.spec.ts            | TypeScript |        143 |          0 |         28 |        171 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useNotificationList.spec.ts        | TypeScript |        153 |          0 |         24 |        177 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useRegionManage.spec.ts            | TypeScript |        227 |          2 |         53 |        282 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useSystemConfig.spec.ts            | TypeScript |        176 |          0 |         47 |        223 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useTransferManage.spec.ts          | TypeScript |        188 |          0 |         30 |        218 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useTransferSimulator.spec.ts       | TypeScript |         51 |          0 |         19 |         70 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useUIConfig.spec.ts                | TypeScript |        185 |          0 |         32 |        217 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\__tests__\useUserManage.spec.ts              | TypeScript |        180 |          0 |         36 |        216 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApplicationConfig.ts                      | TypeScript |         44 |          1 |          8 |         53 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApplicationDetail.ts                      | TypeScript |        193 |          1 |         36 |        230 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApplicationForm.ts                        | TypeScript |        511 |         19 |        102 |        632 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApplicationList.ts                        | TypeScript |        169 |          0 |         38 |        207 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApprovalDetail.ts                         | TypeScript |        274 |          0 |         60 |        334 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useApprovalList.ts                           | TypeScript |        143 |          0 |         26 |        169 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useAuditLog.ts                               | TypeScript |        163 |          0 |         26 |        189 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useChannelManage.ts                          | TypeScript |        201 |          0 |         26 |        227 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useDownloadList.ts                           | TypeScript |        243 |          0 |         50 |        293 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useFileChunk.ts                              | TypeScript |         33 |          0 |         10 |         43 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useLogin.ts                                  | TypeScript |        100 |          0 |         18 |        118 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useNotificationList.ts                       | TypeScript |        126 |          0 |         33 |        159 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useRegionManage.ts                           | TypeScript |        277 |         13 |         30 |        320 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useSystemConfig.ts                           | TypeScript |        230 |         39 |         23 |        292 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useTransDownload.ts                          | TypeScript |        310 |         51 |         37 |        398 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useTransUpload.ts                            | TypeScript |        571 |        135 |        105 |        811 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useTransferConfig.ts                         | TypeScript |         33 |          1 |          5 |         39 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useTransferManage.ts                         | TypeScript |        241 |          0 |         47 |        288 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useTransferSimulator.ts                      | TypeScript |        156 |          0 |         29 |        185 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useUIConfig.ts                               | TypeScript |        502 |          0 |         53 |        555 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\composables\useUserManage.ts                             | TypeScript |        186 |          0 |         22 |        208 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\directives\permission.ts                                 | TypeScript |         26 |          0 |          7 |         33 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\env.d.ts                                                 | TypeScript |         10 |          1 |          4 |         15 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\layouts\BlankLayout.vue                                  | vue        |         10 |          0 |          2 |         12 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\layouts\DefaultLayout.vue                                | vue        |         54 |          0 |         12 |         66 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\main.ts                                                  | TypeScript |         31 |          0 |          7 |         38 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\browser.ts                                         | TypeScript |          5 |          0 |          3 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\applications.ts                               | TypeScript |        146 |          0 |          4 |        150 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\cities.ts                                     | TypeScript |         92 |          1 |          4 |         97 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\demo-init.ts                                  | TypeScript |        181 |          0 |         13 |        194 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\departments.ts                                | TypeScript |         42 |          1 |          3 |         46 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\index.ts                                      | TypeScript |          4 |          0 |          1 |          5 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\data\users.ts                                      | TypeScript |         77 |          0 |          4 |         81 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\db.ts                                              | TypeScript |         36 |          0 |          6 |         42 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\_utils.ts                                 | TypeScript |         47 |          0 |          6 |         53 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\application.ts                            | TypeScript |        173 |          7 |         42 |        222 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\approval.ts                               | TypeScript |        185 |          0 |         50 |        235 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\auditLog.ts                               | TypeScript |         77 |          0 |         14 |         91 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\auth.ts                                   | TypeScript |         44 |          0 |         15 |         59 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\channelManage.ts                          | TypeScript |        190 |          0 |         34 |        224 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\city.ts                                   | TypeScript |         25 |          0 |          7 |         32 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\department.ts                             | TypeScript |         10 |          0 |          2 |         12 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\file.ts                                   | TypeScript |         64 |         10 |         18 |         92 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\index.ts                                  | TypeScript |         28 |          0 |          5 |         33 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\notification.ts                           | TypeScript |         61 |          0 |         24 |         85 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\regionManage.ts                           | TypeScript |        185 |          2 |         22 |        209 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\systemConfig.ts                           | TypeScript |        146 |          8 |         10 |        164 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\uiConfig.ts                               | TypeScript |        497 |          7 |         44 |        548 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\mocks\handlers\user.ts                                   | TypeScript |        115 |          0 |         38 |        153 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\router\__tests__\guards.spec.ts                          | TypeScript |         72 |          1 |         12 |         85 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\router\guards.ts                                         | TypeScript |         33 |          0 |         14 |         47 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\router\index.ts                                          | TypeScript |         10 |          0 |          4 |         14 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\router\routes.ts                                         | TypeScript |        319 |          1 |         14 |        334 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\__tests__\application.spec.ts                     | TypeScript |         64 |          0 |         10 |         74 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\__tests__\approval.spec.ts                        | TypeScript |         54 |          0 |          9 |         63 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\__tests__\auth.spec.ts                            | TypeScript |         77 |          0 |         15 |         92 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\__tests__\file.spec.ts                            | TypeScript |        189 |          0 |         27 |        216 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\__tests__\notification.spec.ts                    | TypeScript |        120 |          0 |         24 |        144 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\application.ts                                    | TypeScript |        151 |          0 |         24 |        175 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\approval.ts                                       | TypeScript |         82 |          0 |         16 |         98 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\auth.ts                                           | TypeScript |         93 |          0 |         17 |        110 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\file.ts                                           | TypeScript |        239 |          0 |         43 |        282 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\index.ts                                          | TypeScript |          5 |          0 |          1 |          6 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\stores\notification.ts                                   | TypeScript |        122 |          0 |         35 |        157 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\style.css                                                | CSS        |         70 |          0 |         10 |         80 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\application.ts                                     | TypeScript |         48 |          1 |          7 |         56 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\approval.ts                                        | TypeScript |         12 |          0 |          3 |         15 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\auditLog.ts                                        | TypeScript |         20 |          0 |          4 |         24 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\channelManage.ts                                   | TypeScript |         52 |          0 |         10 |         62 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\common.ts                                          | TypeScript |         25 |          0 |          7 |         32 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\detail.ts                                          | TypeScript |         12 |          0 |          2 |         14 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\file.ts                                            | TypeScript |         55 |          0 |          8 |         63 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\index.ts                                           | TypeScript |         11 |          0 |          3 |         14 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\notification.ts                                    | TypeScript |         13 |          0 |          3 |         16 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\regionManage.ts                                    | TypeScript |         47 |          0 |          9 |         56 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\uiConfig.ts                                        | TypeScript |         88 |          4 |         15 |        107 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\types\user.ts                                            | TypeScript |         32 |          0 |          6 |         38 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\__tests__\file.spec.ts                             | TypeScript |         16 |          0 |          5 |         21 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\__tests__\format.spec.ts                           | TypeScript |         21 |          0 |          6 |         27 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\__tests__\storage.spec.ts                          | TypeScript |         21 |          0 |          6 |         27 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\__tests__\validate.spec.ts                         | TypeScript |         20 |          0 |          6 |         26 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\constants.ts                                       | TypeScript |         52 |          0 |          7 |         59 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\file.ts                                            | TypeScript |         19 |          0 |          7 |         26 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\format.ts                                          | TypeScript |         35 |          0 |         13 |         48 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\index.ts                                           | TypeScript |          6 |          0 |          1 |          7 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\payloadConverter.ts                                | TypeScript |        102 |         18 |         10 |        130 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\request.ts                                         | TypeScript |         57 |          4 |         11 |         72 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\storage.ts                                         | TypeScript |         20 |          0 |          5 |         25 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\upload-db.ts                                       | TypeScript |        142 |         53 |         31 |        226 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\utils\validate.ts                                        | TypeScript |         18 |          0 |          5 |         23 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\AuditLogView.vue                             | vue        |        159 |          0 |         18 |        177 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\ChannelManageModal.vue                       | vue        |        126 |          0 |         20 |        146 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\ChannelManageView.vue                        | vue        |        182 |          0 |         20 |        202 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\ChannelServerModal.vue                       | vue        |        149 |          0 |         27 |        176 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\RegionManageModal.vue                        | vue        |        228 |          3 |         29 |        260 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\RegionManageView.vue                         | vue        |        286 |          9 |         24 |        319 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\SystemConfigView.vue                         | vue        |        305 |          4 |         19 |        328 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\UIConfigView.vue                             | vue        |        822 |          0 |         75 |        897 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\UserManageModal.vue                          | vue        |        213 |          0 |         23 |        236 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\UserManageView.vue                           | vue        |        196 |          0 |         16 |        212 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\audit-log.scss                               | SCSS       |         34 |          0 |          7 |         41 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\channel-manage.scss                          | SCSS       |         90 |          0 |         18 |        108 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\region-manage.scss                           | SCSS       |         77 |          0 |         13 |         90 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\system-config.scss                           | SCSS       |         43 |          0 |         12 |         55 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\ui-config.scss                               | SCSS       |         48 |          0 |         10 |         58 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\admin\user-manage.scss                             | SCSS       |         28 |          0 |          5 |         33 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\ApplicationDetailView.vue              | vue        |        146 |          0 |         27 |        173 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\ApplicationListView.vue                | vue        |        338 |          0 |         57 |        395 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\CreateApplicationView.vue              | vue        |        204 |          0 |         33 |        237 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\SelectTypeView.vue                     | vue        |        122 |          3 |         13 |        138 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\application-detail.scss                | SCSS       |        132 |          0 |         23 |        155 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\application-list.scss                  | SCSS       |        175 |          0 |         37 |        212 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\components\StepOneBasicInfo.vue        | vue        |        257 |          0 |         36 |        293 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\components\StepThreeSubmitSuccess.vue  | vue        |         57 |          0 |         11 |         68 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\components\StepTwoUploadFile.vue       | vue        |        314 |          2 |         23 |        339 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\create-application.scss                | SCSS       |        544 |          1 |        117 |        662 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\application\select-type.scss                       | SCSS       |        167 |         16 |         34 |        217 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\applications\index.vue                             | vue        |          6 |          0 |          2 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\approvals\ApprovalDetailView.vue                   | vue        |        176 |          0 |         30 |        206 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\approvals\ApprovalListView.vue                     | vue        |        219 |          0 |         30 |        249 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\approvals\approval-detail.scss                     | SCSS       |        158 |          0 |         28 |        186 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\approvals\approval-list.scss                       | SCSS       |        101 |          0 |         20 |        121 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\auth\LoginView.vue                                 | vue        |        114 |          0 |         13 |        127 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\auth\login.scss                                    | SCSS       |        130 |          0 |         24 |        154 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\channel\index.vue                                  | vue        |          6 |          0 |          2 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\dashboard\index.vue                                | vue        |        174 |          0 |         27 |        201 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\download\DownloadListView.vue                      | vue        |        190 |          0 |         28 |        218 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\download\download-list.scss                        | SCSS       |        136 |          0 |         26 |        162 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\error\403.vue                                      | vue        |         24 |          0 |          4 |         28 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\error\404.vue                                      | vue        |         24 |          0 |          4 |         28 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\login\index.vue                                    | vue        |         98 |          0 |         15 |        113 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\notification\NotificationListView.vue              | vue        |        244 |          0 |         41 |        285 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\notification\notification-list.scss                | SCSS       |        247 |          0 |         47 |        294 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\notifications\index.vue                            | vue        |          6 |          0 |          3 |          9 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\profile\index.vue                                  | vue        |         26 |          0 |          5 |         31 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\region\index.vue                                   | vue        |          6 |          0 |          2 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\settings\index.vue                                 | vue        |          6 |          0 |          3 |          9 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\trans\TransDownloadView.vue                        | vue        |        154 |          4 |         22 |        180 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\trans\TransFileTableDemo.vue                       | vue        |        445 |          5 |         55 |        505 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\trans\TransUploadView.vue                          | vue        |        349 |          8 |         45 |        402 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\trans\trans-download.scss                          | SCSS       |        227 |          8 |         41 |        276 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\trans\trans-upload.scss                            | SCSS       |        277 |          9 |         52 |        338 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\transfer\TransferManageView.vue                    | vue        |        265 |          0 |         37 |        302 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\transfer\index.vue                                 | vue        |          6 |          0 |          2 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\transfer\transfer-manage.scss                      | SCSS       |        115 |          0 |         24 |        139 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\transfers\index.vue                                | vue        |          6 |          0 |          3 |          9 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\ui-config\index.vue                                | vue        |          6 |          0 |          2 |          8 |
+| d:\VibeCoding\QTrans-0302new\qtrans-frontend\src\views\users\index.vue                                    | vue        |          6 |          0 |          3 |          9 |
+| Total                                                                                                     |            |     25,096 |        640 |      4,127 |     29,863 |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

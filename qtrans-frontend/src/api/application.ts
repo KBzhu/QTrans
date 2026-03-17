@@ -28,4 +28,15 @@ export const applicationApi = {
   getDrafts(): Promise<Application[]> {
     return request.get<Application[]>('/applications/drafts')
   },
+  /**
+   * 创建申请单 - 真实后端接口
+   * POST /workflowService/services/frontendService/frontend/application/create
+   * 使用 request.raw 跳过 baseURL 前缀
+   */
+  createReal(payload: Record<string, any>): Promise<any> {
+    return request.raw<any>(
+      '/workflowService/services/frontendService/frontend/application/create',
+      payload
+    )
+  },
 }

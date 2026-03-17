@@ -6,7 +6,13 @@ import { failed, getPagination, mockDelay, success } from './_utils'
 function nextApplicationNo() {
   const seed = Math.floor(1000 + Math.random() * 9000)
   return `QT${new Date().toISOString().slice(0, 10).split('-').join('')}${seed}`
+}
 
+function nextRealApplicationNo() {
+  // 模拟真实后端申请单号格式: MWEHR + 时间戳后6位 + 随机4位
+  const timestamp = Date.now().toString().slice(-6)
+  const random = Math.floor(1000 + Math.random() * 9000)
+  return `MWEHR${timestamp}${random}`
 }
 
 export const applicationHandlers = [
@@ -154,6 +160,62 @@ export const applicationHandlers = [
     return success(current, '草稿已保存')
 
 
+  }),
+
+  // ========================================
+  // 真实后端接口 Mock（兜底方案）
+  // 当后端调不通时，MSW 会拦截此请求返回 mock 数据
+  // ========================================
+  http.post('/workflowService/services/frontendService/frontend/application/create', async ({ request }) => {
+    await mockDelay(500)
+
+    const payload = await request.json() as Record<string, any>
+    const state = getDemoState()
+    const now = new Date().toISOString()
+    const applicationId = `real-${Date.now()}`
+    const applicationNo = nextRealApplicationNo()
+
+    // 创建本地申请单记录（用于列表展示）
+    const created: Application = {
+      id: applicationId,
+      applicationNo,
+      transferType: payload.appBaseInfo?.transferType || 'green-to-green',
+      department: payload.appBaseInfo?.department || '',
+      departmentId: payload.appBaseInfo?.departmentId,
+      sourceArea: payload.appBaseCountryCityRegionRelation?.sourceAreaType === 1 ? 'green'
+        : payload.appBaseCountryCityRegionRelation?.sourceAreaType === 2 ? 'yellow' : 'red',
+      targetArea: payload.appBaseCountryCityRegionRelation?.targetAreaType === 1 ? 'green'
+        : payload.appBaseCountryCityRegionRelation?.targetAreaType === 2 ? 'yellow' : 'red',
+      sourceCountry: '中国',
+      sourceCity: [payload.appBaseCountryCityRegionRelation?.sourceProvince || '', payload.appBaseCountryCityRegionRelation?.sourceCity || ''],
+      sourceCityId: payload.appBaseCountryCityRegionRelation?.sourceCityId,
+      targetCountry: '中国',
+      targetCity: [payload.appBaseCountryCityRegionRelation?.targetProvince || '', payload.appBaseCountryCityRegionRelation?.targetCity || ''],
+      targetCityId: payload.appBaseCountryCityRegionRelation?.targetCityId,
+      downloaderAccounts: payload.appBaseUploadDownloadInfo?.downloadW3Account?.split(',') || [],
+      containsCustomerData: payload.appBaseInfo?.ifCustomerData === 1,
+      srNumber: payload.appBaseInfo?.srNo,
+      minDeptSupervisor: payload.appBaseInfo?.minDeptManager,
+      applyReason: payload.appBaseInfo?.applyReason || '',
+      applicantNotifyOptions: payload.appBaseInfo?.applicantNotifyType ? ['in_app'] : [],
+      downloaderNotifyOptions: payload.appBaseUploadDownloadInfo?.downloaderNotifyType ? ['in_app'] : [],
+      status: 'pending_approval',
+      applicantId: 'u_submitter',
+      applicantName: '张提交',
+      currentApprovalLevel: 1,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    state.applications.unshift(created)
+
+    // 返回真实后端接口格式
+    return success({
+      applicationId,
+      applicationNo,
+      status: 'pending_approval',
+      message: '申请单创建成功',
+    }, '操作成功')
   }),
 
 ]

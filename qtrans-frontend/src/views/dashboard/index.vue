@@ -72,6 +72,8 @@ const helpDocs = [
 
 <style scoped>
 .dashboard {
+  margin-right: 20px;
+  margin-left: 20px;
   display: grid;
   gap: clamp(12px, 1.1vw, 20px);
 }

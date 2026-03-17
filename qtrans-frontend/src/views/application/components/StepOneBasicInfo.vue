@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import dayjs from 'dayjs'
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { users } from '@/mocks/data/users'
 import { useAuthStore } from '@/stores'
@@ -15,6 +14,7 @@ interface Props {
   showCustomerDataFields: boolean
   draftApplicationNo: string
   submittedApplication: any
+  readonly?: boolean
 }
 
 const props = defineProps<Props>()
@@ -22,8 +22,6 @@ const props = defineProps<Props>()
 interface Emits {
   (e: 'update:formData', value: ApplicationFormData): void
   (e: 'copyTemplate', text: string): void
-  (e: 'selectCustomerAuth'): void
-  (e: 'customerAuthChange', event: Event): void
 }
 
 const emit = defineEmits<Emits>()
@@ -59,29 +57,31 @@ const basicInfoRows = computed(() => {
     { label: '申请人', value: applicant },
     { label: '申请单号', value: props.submittedApplication?.applicationNo || props.draftApplicationNo },
     { label: '当前处理人', value: handler },
-    { label: '存储空间大小', value: `${props.formData.storageSize}G` },
-    { label: '上传有效期', value: formatRemainDays(props.formData.uploadExpireTime) },
-    { label: '下载有效期', value: formatRemainDays(props.formData.downloadExpireTime) },
   ]
 })
 
-function formatRemainDays(dateValue: string) {
-  const days = dayjs(dateValue).diff(dayjs(), 'day')
-  if (Number.isNaN(days))
-    return '--'
-  return `${Math.max(days, 0)}天`
+function onDepartmentChange(value: { deptId: string, deptName: string }) {
+  emit('update:formData', { 
+    ...props.formData, 
+    department: value.deptName,
+    departmentId: value.deptId,
+  })
 }
 
-function onDepartmentChange(value: string) {
-  emit('update:formData', { ...props.formData, department: value })
+function onSourceCityChange(value: { province: string, city: string, cityId: number }) {
+  emit('update:formData', { 
+    ...props.formData, 
+    sourceCity: [value.province, value.city],
+    sourceCityId: value.cityId,
+  })
 }
 
-function onSourceCityChange(value: string[]) {
-  emit('update:formData', { ...props.formData, sourceCity: value })
-}
-
-function onTargetCityChange(value: string[]) {
-  emit('update:formData', { ...props.formData, targetCity: value })
+function onTargetCityChange(value: { province: string, city: string, cityId: number }) {
+  emit('update:formData', { 
+    ...props.formData, 
+    targetCity: [value.province, value.city],
+    targetCityId: value.cityId,
+  })
 }
 
 async function onCopyRecentTemplate(text: string) {
@@ -138,6 +138,7 @@ defineExpose({
             <DepartmentSelector
               :model-value="formData.department"
               :default-to-first="true"
+              :disabled="readonly"
               @change="onDepartmentChange"
             />
           </a-form-item>
@@ -147,6 +148,7 @@ defineExpose({
               <a-select
                 :model-value="formData.sourceArea"
                 :options="areaOptions"
+                :disabled="readonly"
                 @change="(val: any) => emit('update:formData', { ...formData, sourceArea: val })"
               />
             </a-form-item>
@@ -155,6 +157,7 @@ defineExpose({
               <a-select
                 :model-value="formData.targetArea"
                 :options="areaOptions"
+                :disabled="readonly"
                 @change="(val: any) => emit('update:formData', { ...formData, targetArea: val })"
               />
             </a-form-item>
@@ -163,6 +166,7 @@ defineExpose({
               <CitySelector
                 :model-value="formData.sourceCity"
                 :default-to-first="true"
+                :disabled="readonly"
                 @change="onSourceCityChange"
               />
             </a-form-item>
@@ -171,6 +175,7 @@ defineExpose({
               <CitySelector
                 :model-value="formData.targetCity"
                 :default-to-first="true"
+                :disabled="readonly"
                 @change="onTargetCityChange"
               />
             </a-form-item>
@@ -180,6 +185,7 @@ defineExpose({
             <a-select
               :model-value="formData.downloaderAccounts"
               :options="userOptions"
+              :disabled="readonly"
               multiple
               allow-clear
               allow-search
@@ -192,6 +198,7 @@ defineExpose({
             <a-select
               :model-value="formData.ccAccounts"
               :options="userOptions"
+              :disabled="readonly"
               multiple
               allow-clear
               allow-search
@@ -203,6 +210,7 @@ defineExpose({
           <a-form-item label="包含客户网络数据" required>
             <a-radio-group
               :model-value="formData.containsCustomerData"
+              :disabled="readonly"
               @change="(val: any) => emit('update:formData', { ...formData, containsCustomerData: val })"
             >
               <a-radio value="yes">是</a-radio>
@@ -211,22 +219,14 @@ defineExpose({
           </a-form-item>
 
           <template v-if="showCustomerDataFields">
-            <div class="form-grid">
-              <a-form-item field="customerAuthFile" label="客户授权文件" required>
-                <div class="inline-file-field">
-                  <a-input :model-value="formData.customerAuthFile" readonly placeholder="请选择客户授权文件" />
-                  <a-button type="outline" @click="emit('selectCustomerAuth')">上传</a-button>
-                </div>
-              </a-form-item>
-
-              <a-form-item field="srNumber" label="SR单号" required>
-                <a-input
-                  :model-value="formData.srNumber"
-                  placeholder="请输入 SR 单号"
-                  @input="(val: string) => emit('update:formData', { ...formData, srNumber: val })"
-                />
-              </a-form-item>
-            </div>
+            <a-form-item field="srNumber" label="SR单号" required>
+              <a-input
+                :model-value="formData.srNumber"
+                :disabled="readonly"
+                placeholder="请输入 SR 单号"
+                @input="(val: string) => emit('update:formData', { ...formData, srNumber: val })"
+              />
+            </a-form-item>
 
             <a-form-item field="minDeptSupervisor" label="最小部门主管">
               <a-input :model-value="formData.minDeptSupervisor" readonly />
@@ -237,6 +237,7 @@ defineExpose({
             <a-textarea
               :model-value="formData.applyReason"
               :max-length="1000"
+              :disabled="readonly"
               show-word-limit
               placeholder="请填写申请原因"
               @input="(val: string) => emit('update:formData', { ...formData, applyReason: val })"
@@ -248,6 +249,7 @@ defineExpose({
               <a-checkbox-group
                 :model-value="formData.applicantNotifyOptions"
                 :options="applicantNotifyOptions"
+                :disabled="readonly"
                 @change="(val: any) => emit('update:formData', { ...formData, applicantNotifyOptions: val })"
               />
             </a-form-item>
@@ -255,6 +257,7 @@ defineExpose({
               <a-checkbox-group
                 :model-value="formData.downloaderNotifyOptions"
                 :options="downloaderNotifyOptions"
+                :disabled="readonly"
                 @change="(val: any) => emit('update:formData', { ...formData, downloaderNotifyOptions: val })"
               />
             </a-form-item>

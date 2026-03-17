@@ -61,4 +61,11 @@ export const request = {
   delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return requestClient.delete<unknown, T>(url, config)
   },
+  /**
+   * 发送请求（跳过 baseURL，直接使用完整 URL）
+   * 用于调用真实后端接口，不走 /api 前缀
+   */
+  raw<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return requestClient.post<unknown, T>(url, data, { ...config, baseURL: '' })
+  },
 }

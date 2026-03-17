@@ -20,9 +20,15 @@ const props = withDefaults(defineProps<Props>(), {
   defaultToFirst: false,
 })
 
+interface CityChangeValue {
+  province: string
+  city: string
+  cityId: number
+}
+
 interface Emits {
   (e: 'update:modelValue', value: string[]): void
-  (e: 'change', value: string[], cityInfo: CityItem | null): void
+  (e: 'change', value: CityChangeValue): void
 }
 
 const emit = defineEmits<Emits>()
@@ -70,6 +76,10 @@ watch(
 if (props.defaultToFirst && selectedValue.value.length === 0) {
   selectedValue.value = [...DEFAULT_CITY]
   emit('update:modelValue', selectedValue.value)
+  const cityInfo = findCityInfo(DEFAULT_CITY[0], DEFAULT_CITY[1])
+  if (cityInfo) {
+    emit('change', { province: DEFAULT_CITY[0], city: cityInfo.name, cityId: cityInfo.id })
+  }
 }
 
 // 处理选择变化
@@ -81,10 +91,12 @@ function handleChange(value: string[] | undefined) {
   // 查找选中城市并触发 change 事件
   if (newValue.length >= 2) {
     const cityInfo = findCityInfo(newValue[0], newValue[1])
-    emit('change', newValue, cityInfo)
+    if (cityInfo) {
+      emit('change', { province: newValue[0], city: cityInfo.name, cityId: cityInfo.id })
+    }
   }
   else {
-    emit('change', newValue, null)
+    emit('change', { province: '', city: '', cityId: 0 })
   }
 }
 </script>

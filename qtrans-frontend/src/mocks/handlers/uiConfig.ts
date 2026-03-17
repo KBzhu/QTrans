@@ -64,8 +64,8 @@ const initialApplicationConfig: UIApplicationConfigItem[] = [
   { id: 'app-opt-5', type: 'downloaderNotifyOptions', label: 'W3待办', value: 'w3_todo', order: 2, status: 'enabled' },
   { id: 'app-opt-6', type: 'downloaderNotifyOptions', label: '邮件', value: 'email', order: 3, status: 'enabled' },
   // 最近传输选择
-  { id: 'app-tpl-1', type: 'recentTransferTemplates', label: '场景说明1', value: '新eTrans平台使用传输场景说明：公司内网/绿区之间互传。', order: 1, status: 'enabled' },
-  { id: 'app-tpl-2', type: 'recentTransferTemplates', label: '场景说明2', value: '跨安全域传输说明：请确认接收方权限与数据最小化范围。', order: 2, status: 'enabled' },
+  { id: 'app-tpl-1', type: 'recentTransferTemplates', label: '场景说明1', value: '公司内网/绿区之间互传。', order: 1, status: 'enabled' },
+  { id: 'app-tpl-2', type: 'recentTransferTemplates', label: '场景说明2', value: '绿区传外网', order: 2, status: 'enabled' },
   // 注意事项
   { id: 'app-notice-1', type: 'noticeItems', label: '注意事项1', value: 'eTrans 适用场景：公司内网/绿区之间互传，跨域请按审批流程执行。', order: 1, status: 'enabled' },
   { id: 'app-notice-2', type: 'noticeItems', label: '注意事项2', value: '涉及客户网络数据时，需上传客户授权文件并填写 SR 单号。', order: 2, status: 'enabled' },

@@ -1,10 +1,10 @@
 import type { Application, NotifyChannel, TransferType } from '@/types'
 import { Message } from '@arco-design/web-vue'
 
-import dayjs from 'dayjs'
 import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
+import { applicationApi } from '@/api/application'
 
 type SecurityArea = 'green' | 'yellow' | 'red'
 
@@ -33,23 +33,23 @@ interface UploadedFileState {
 export interface ApplicationFormData {
   transferType: TransferType
   department: string
+  departmentId?: string       // 新增：部门ID
   sourceArea: SecurityArea
   targetArea: SecurityArea
   sourceCity: string[]
+  sourceCityId?: number       // 新增：源城市ID
   targetCity: string[]
+  targetCityId?: number       // 新增：目标城市ID
   downloaderAccounts: string[]
   ccAccounts: string[]
   containsCustomerData: 'yes' | 'no'
 
-  customerAuthFile?: string
   srNumber: string
   minDeptSupervisor: string
   applyReason: string
   applicantNotifyOptions: NotifyChannel[]
   downloaderNotifyOptions: NotifyChannel[]
-  storageSize: number
-  uploadExpireTime: string
-  downloadExpireTime: string
+  // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
 }
 
 const transferTypeAlias: Record<string, TransferType> = {
@@ -116,23 +116,22 @@ function defaultFormData(transferTypeRaw?: string): ApplicationFormData {
   return {
     transferType,
     department: '',
+    departmentId: '',
     sourceArea: areas.sourceArea,
     targetArea: areas.targetArea,
     sourceCity: [...DEFAULT_CITY],
+    sourceCityId: 0,
     targetCity: [...DEFAULT_CITY],
+    targetCityId: 0,
     downloaderAccounts: [],
     ccAccounts: [],
     containsCustomerData: 'no',
 
-    customerAuthFile: '',
     srNumber: '',
     minDeptSupervisor: '',
     applyReason: '',
     applicantNotifyOptions: ['in_app'],
     downloaderNotifyOptions: ['in_app'],
-    storageSize: 50,
-    uploadExpireTime: dayjs().add(7, 'day').format('YYYY-MM-DD'),
-    downloadExpireTime: dayjs().add(30, 'day').format('YYYY-MM-DD'),
   }
 }
 
@@ -158,6 +157,7 @@ export function useApplicationForm(initialTransferType?: string) {
   const currentStep = ref(0)
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
+  const isApplicationCreated = ref(false) // 标记申请单是否已在第一步创建
   const uploadingFiles = ref<UploadingFileState[]>([])
   const uploadedFiles = ref<UploadedFileState[]>([])
   const lastSavedSnapshot = ref(JSON.stringify(formData.value))
@@ -179,7 +179,6 @@ export function useApplicationForm(initialTransferType?: string) {
   })
 
   const formRules: Record<string, any[]> = {
-
     department: [{ required: true, message: '请选择所属部门' }],
     sourceArea: [{ required: true, message: '请选择源安全域' }],
     targetArea: [{ required: true, message: '请选择目标安全域' }],
@@ -189,10 +188,6 @@ export function useApplicationForm(initialTransferType?: string) {
     ccAccounts: [{ required: true, type: 'array', min: 1, message: '请选择抄送人' }],
     srNumber: [{ required: true, message: '请输入 SR 单号' }],
     applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
-
-    storageSize: [{ required: true, type: 'number', min: 1, max: 50, message: '存储大小需在 1~50GB' }],
-    uploadExpireTime: [{ required: true, message: '请选择上传有效期' }],
-    downloadExpireTime: [{ required: true, message: '请选择下载有效期' }],
   }
 
   let autoSaveTimer: number | null = null
@@ -204,7 +199,6 @@ export function useApplicationForm(initialTransferType?: string) {
   function watchCustomerDataField() {
     watch(() => formData.value.containsCustomerData, (newVal) => {
       if (newVal === 'no') {
-        formData.value.customerAuthFile = ''
         formData.value.srNumber = ''
         formData.value.minDeptSupervisor = ''
         return
@@ -213,10 +207,6 @@ export function useApplicationForm(initialTransferType?: string) {
       if (!formData.value.minDeptSupervisor)
         formData.value.minDeptSupervisor = '最小部门主管-自动带出'
     }, { immediate: true })
-  }
-
-  function setCustomerAuthFile(fileName: string) {
-    formData.value.customerAuthFile = fileName
   }
 
   function addUploadFiles(files: File[]) {
@@ -361,47 +351,35 @@ export function useApplicationForm(initialTransferType?: string) {
       id: currentDraftId.value || undefined,
       transferType: formData.value.transferType,
       department: formData.value.department,
+      departmentId: formData.value.departmentId,
       sourceArea: formData.value.sourceArea,
       targetArea: formData.value.targetArea,
       sourceCountry: formData.value.sourceCity[0] || '',
       sourceCity: formData.value.sourceCity,
+      sourceCityId: formData.value.sourceCityId,
       targetCountry: formData.value.targetCity[0] || '',
       targetCity: formData.value.targetCity,
+      targetCityId: formData.value.targetCityId,
       downloaderAccounts: formData.value.downloaderAccounts,
       ccAccounts: formData.value.ccAccounts,
       containsCustomerData: formData.value.containsCustomerData === 'yes',
 
-      customerAuthFile: formData.value.customerAuthFile || undefined,
       srNumber: formData.value.srNumber || undefined,
       minDeptSupervisor: formData.value.minDeptSupervisor || undefined,
       applyReason: formData.value.applyReason,
       applicantNotifyOptions: formData.value.applicantNotifyOptions,
       downloaderNotifyOptions: formData.value.downloaderNotifyOptions,
-      storageSize: formData.value.storageSize,
-      uploadExpireTime: dayjs(formData.value.uploadExpireTime).toISOString(),
-      downloadExpireTime: dayjs(formData.value.downloadExpireTime).toISOString(),
       status,
       applicantId: user?.id || 'u_submitter',
       applicantName: user?.name || user?.username || '提交人',
       currentApprovalLevel: status === 'pending_approval'
         ? (APPROVAL_LEVEL_MAP[formData.value.transferType] > 0 ? 1 : 0)
         : 0,
-
     }
   }
 
   async function handleNext(validateCurrentStep?: () => Promise<boolean>) {
-    if (currentStep.value === 0 && validateCurrentStep) {
-      const valid = await validateCurrentStep()
-      if (!valid)
-        return false
-
-      if (showCustomerDataFields.value && (!formData.value.customerAuthFile || !formData.value.srNumber)) {
-        Message.error('请补充客户授权文件与 SR 单号')
-        return false
-      }
-    }
-
+    // 第二步进入第三步
     if (currentStep.value === 1 && uploadedFiles.value.length === 0 && uploadingFiles.value.length === 0) {
       Message.error('请至少上传一个文件')
       return false
@@ -414,6 +392,63 @@ export function useApplicationForm(initialTransferType?: string) {
 
     currentStep.value = Math.min(2, currentStep.value + 1)
     return true
+  }
+
+  /**
+   * 第一步点击"下一步"时调用 - 先验证表单，再调用创建接口
+   */
+  async function handleNextWithSubmit(validateCurrentStep?: () => Promise<boolean>) {
+    // 如果申请单已创建，直接进入下一步
+    if (isApplicationCreated.value) {
+      currentStep.value = 1
+      return true
+    }
+
+    // 验证表单
+    if (validateCurrentStep) {
+      const valid = await validateCurrentStep()
+      if (!valid)
+        return false
+
+      // 检查客户数据相关字段
+      if (showCustomerDataFields.value && !formData.value.srNumber) {
+        Message.error('请补充 SR 单号')
+        return false
+      }
+    }
+
+    // 调用真实接口创建申请单
+    try {
+      const { buildCreatePayload } = await import('@/utils/payloadConverter')
+      const payload = buildCreatePayload(formData.value)
+
+      const result = await applicationApi.createReal(payload)
+
+      // 标记申请单已创建
+      isApplicationCreated.value = true
+
+      // 设置已提交的申请单信息
+      submittedApplication.value = {
+        id: result?.applicationId || result?.id || `real-${Date.now()}`,
+        applicationNo: result?.applicationNo || result?.applicationId || '',
+        ...formData.value,
+        containsCustomerData: formData.value.containsCustomerData === 'yes',
+        status: 'pending_approval',
+        applicantId: authStore.currentUser?.id || '',
+        applicantName: authStore.currentUser?.name || '',
+        createdAt: new Date().toISOString(),
+      } as Application
+
+      currentStep.value = 1
+      updateSnapshot()
+      Message.success('申请单创建成功，请上传文件')
+
+      return true
+    }
+    catch (error: any) {
+      Message.error(error?.message || '创建申请单失败，请稍后重试')
+      return false
+    }
   }
 
   function handlePrev() {
@@ -463,6 +498,37 @@ export function useApplicationForm(initialTransferType?: string) {
     return created
   }
 
+  /**
+   * 提交申请 - 调用真实后端接口
+   */
+  async function handleSubmitReal() {
+    const { buildCreatePayload } = await import('@/utils/payloadConverter')
+    const payload = buildCreatePayload(formData.value)
+
+    const result = await applicationApi.createReal(payload)
+
+    // 如果有草稿，删除草稿
+    if (currentDraftId.value)
+      applicationStore.deleteDraft(currentDraftId.value)
+
+    submittedApplication.value = {
+      id: result?.applicationId || result?.id || `real-${Date.now()}`,
+      applicationNo: result?.applicationNo || result?.applicationId || '',
+      ...formData.value,
+      containsCustomerData: formData.value.containsCustomerData === 'yes',
+      status: 'pending_approval',
+      applicantId: authStore.currentUser?.id || '',
+      applicantName: authStore.currentUser?.name || '',
+      createdAt: new Date().toISOString(),
+    } as Application
+
+    currentStep.value = 2
+    updateSnapshot()
+    Message.success('申请提交成功')
+
+    return result
+  }
+
   function autoSaveDraft() {
     if (autoSaveTimer)
       window.clearInterval(autoSaveTimer)
@@ -498,23 +564,22 @@ export function useApplicationForm(initialTransferType?: string) {
     formData.value = cloneFormData({
       transferType: draft.transferType,
       department: draft.department,
+      departmentId: draft.departmentId,
       sourceArea: draft.sourceArea,
       targetArea: draft.targetArea,
       sourceCity: draft.sourceCity,
+      sourceCityId: draft.sourceCityId,
       targetCity: draft.targetCity,
+      targetCityId: draft.targetCityId,
       downloaderAccounts: draft.downloaderAccounts,
       ccAccounts: draft.ccAccounts || [],
       containsCustomerData: draft.containsCustomerData ? 'yes' : 'no',
 
-      customerAuthFile: draft.customerAuthFile || '',
       srNumber: draft.srNumber || '',
       minDeptSupervisor: draft.minDeptSupervisor || '',
       applyReason: draft.applyReason,
       applicantNotifyOptions: draft.applicantNotifyOptions,
       downloaderNotifyOptions: draft.downloaderNotifyOptions,
-      storageSize: draft.storageSize,
-      uploadExpireTime: dayjs(draft.uploadExpireTime).format('YYYY-MM-DD'),
-      downloadExpireTime: dayjs(draft.downloadExpireTime).format('YYYY-MM-DD'),
     })
 
     updateSnapshot()
@@ -533,6 +598,7 @@ export function useApplicationForm(initialTransferType?: string) {
     currentStep,
     currentDraftId,
     submittedApplication,
+    isApplicationCreated,
     uploadingFiles,
     uploadedFiles,
     selectedUploadingUids,
@@ -543,13 +609,14 @@ export function useApplicationForm(initialTransferType?: string) {
     transferTypeLabel,
     hasUnsavedChanges,
     handleNext,
+    handleNextWithSubmit,
     handlePrev,
     handleSaveDraft,
     handleSubmit,
+    handleSubmitReal,
     autoSaveDraft,
     loadDraft,
     watchCustomerDataField,
-    setCustomerAuthFile,
     addUploadFiles,
     removeUploadingFile,
     removeUploadFile,
