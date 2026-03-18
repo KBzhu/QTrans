@@ -259,7 +259,7 @@ export function useApplicationForm(initialTransferType?: string) {
       if (currentFile.progress >= 100) {
         window.clearInterval(timer)
         uploadTimers.delete(uid)
-        
+
         const uploadedFile: UploadedFileState = {
           uid: currentFile.uid,
           name: currentFile.name,
@@ -436,7 +436,13 @@ export function useApplicationForm(initialTransferType?: string) {
       if (url) {
         const paramsMatch = url.match(/params=([^&]+)/)
         if (paramsMatch) {
-          extractedParams = paramsMatch[1]
+          // 对 URL 编码的参数进行解码（如 %3A -> :）
+          try {
+            extractedParams = decodeURIComponent(paramsMatch[1])
+          }
+          catch {
+            extractedParams = paramsMatch[1]
+          }
         }
       }
 
@@ -521,19 +527,23 @@ export function useApplicationForm(initialTransferType?: string) {
   /**
    * 提交申请 - 调用真实后端接口
    */
+  import { completeUpload } from '@/api/transWebService'
   async function handleSubmitReal() {
     const { buildCreatePayload } = await import('@/utils/payloadConverter')
     const payload = buildCreatePayload(formData.value)
 
-    const result = await applicationApi.createReal(payload)
-
+    const uploadResult = await completeUpload(uploadParams.value)
+    if (!uploadResult.success) {
+      Message.error(uploadResult.error || '上传确认失败')
+      return
+    }
     // 如果有草稿，删除草稿
     if (currentDraftId.value)
       applicationStore.deleteDraft(currentDraftId.value)
 
     submittedApplication.value = {
-      id: result?.applicationId || result?.id || `real-${Date.now()}`,
-      applicationNo: result?.applicationNo || result?.applicationId || '',
+      id: `real-${Date.now()}`,
+      applicationNo: '',
       ...formData.value,
       containsCustomerData: formData.value.containsCustomerData === 'yes',
       status: 'pending_approval',
@@ -546,7 +556,7 @@ export function useApplicationForm(initialTransferType?: string) {
     updateSnapshot()
     Message.success('申请提交成功')
 
-    return result
+    return
   }
 
   function autoSaveDraft() {

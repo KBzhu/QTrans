@@ -1,108 +1,141 @@
+<!-- StepTwoUploadFile.vue -->
 <script setup lang="ts">
-import { computed } from 'vue'
-import { IconDelete, IconFile, IconFolder, IconPauseCircle, IconPlayCircle, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
-import { formatFileSize } from '@/utils'
-import dayjs from 'dayjs'
-
-
-interface UploadingFileState {
-  uid: string
-  name: string
-  size: number
-  progress: number
-  status: 'uploading' | 'paused'
-  failedCount: number
-  usedTime: number
-  remainingTime: number
-  raw?: File
-}
-
-interface UploadedFileState {
-  uid: string
-  name: string
-  size: number
-  fileType: string
-  lastModified: string
-  sha256: string
-  raw?: File
-}
+import { IconDelete, IconFile, IconRefresh } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
+import { onMounted, ref } from 'vue'
+import type { FileEntity } from '@/api/transWebService'
+import type { TransUploadFileItem } from '@/composables/useTransUpload'
+import { useTransUpload } from '@/composables/useTransUpload'
+import TransFileTable from '@/components/business/TransFileTable.vue'
+import { formatFileSize } from '@/utils/format'
 
 interface Props {
-  uploadingFiles: UploadingFileState[]
-  uploadedFiles: UploadedFileState[]
-  selectedUploadingUids: string[]
-  selectedUploadedUids: string[]
+  params:string
+  lang?: string
   autoSubmitAfterUpload: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { lang: 'zh_CN' })
 
-interface Emits {
-  (e: 'update:selectedUploadingUids', value: string[]): void
-  (e: 'update:selectedUploadedUids', value: string[]): void
+const emit = defineEmits<{
   (e: 'update:autoSubmitAfterUpload', value: boolean): void
-  (e: 'selectUploadFiles'): void
-  (e: 'pauseUploadFile', uid: string): void
-  (e: 'resumeUploadFile', uid: string): void
-  (e: 'removeUploadingFile', uid: string): void
-  (e: 'removeUploadFile', uid: string): void
-  (e: 'batchPauseUploading'): void
-  (e: 'batchResumeUploading'): void
-  (e: 'batchRemoveUploading'): void
-  (e: 'batchRemoveUploaded'): void
-  (e: 'refreshUploadedList'): void
+  (e: 'confirmed'): void
+}>()
+
+const {
+  uploading,
+  initLoading,
+  initData,
+  fileListData,
+  uploadFileList,
+  initialize,
+  loadFileList,
+  uploadFiles,
+  confirmUpload,
+  pauseUpload,
+  resumeUpload,
+  cancelUpload,
+  retryUpload,
+  clearCompleted,
+  batchPause,
+  batchResume,
+  batchCancel,
+  removeFiles,
+} = useTransUpload()
+
+const isDragging = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedUploadedFiles = ref<FileEntity[]>([])
+
+onMounted(() => initPage())
+
+async function initPage() {
+  debugger
+  if (!props.params) return Message.error('缺少必要参数 params')
+  const ok = await initialize(props.params, props.lang)
+  if (!ok) Message.error('初始化失败，请检查参数是否正确')
 }
 
-const emit = defineEmits<Emits>()
+async function handleFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.files?.length) return
+  await handleFiles(Array.from(input.files))
+  input.value = ''
+}
 
-const allUploadingSelected = computed({
-  get: () => props.uploadingFiles.length > 0 && props.selectedUploadingUids.length === props.uploadingFiles.length,
-  set: (val) => {
-    emit('update:selectedUploadingUids', val ? props.uploadingFiles.map(f => f.uid) : [])
-  },
-})
+async function handleDrop(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = false
+  if (!e.dataTransfer?.files?.length) return
+  await handleFiles(Array.from(e.dataTransfer.files))
+}
 
-const allUploadedSelected = computed({
-  get: () => props.uploadedFiles.length > 0 && props.selectedUploadedUids.length === props.uploadedFiles.length,
-  set: (val) => {
-    emit('update:selectedUploadedUids', val ? props.uploadedFiles.map(f => f.uid) : [])
-  },
-})
-
-function getFileIcon(fileName: string): string {
-  const ext = fileName.split('.').pop()?.toLowerCase() || ''
-  const iconMap: Record<string, string> = {
-    'doc': '34',
-    'docx': '34',
-    'xls': '31',
-    'xlsx': '31',
-    'zip': '37',
-    'ppt': '40',
-    'pptx': '40',
+async function handleFiles(files: File[]) {
+  const maxCount = initData.value?.maxLength4Name ? 1000 : 20
+  if (uploadFileList.value.length + files.length > maxCount)
+    return Message.error(`最多只能上传 ${maxCount} 个文件`)
+  const maxSize = (initData.value?.applicationSize || 1024) * 1024 * 1024
+  for (const file of files) {
+    if (file.size > maxSize)
+      return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
-  const iconNum = iconMap[ext] || '34'
-  return `/figma/3883_5466/${iconNum}.svg`
+  await uploadFiles(files, props.params, '', updateUploadProgress)
 }
 
-function formatTime(seconds: number): string {
-  if (seconds < 60)
-    return `${seconds}s`
-  const minutes = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${minutes}m${secs}s`
+function updateUploadProgress(item: TransUploadFileItem) {
+  if (item.status === 'completed') {
+    const index = uploadFileList.value.findIndex(f => f.id === item.id)
+    if (index >= 0) uploadFileList.value.splice(index, 1)
+    loadFileList('', props.params)
+    return
+  }
+  const index = uploadFileList.value.findIndex(f => f.id === item.id)
+  if (index >= 0) uploadFileList.value[index] = { ...item }
+}
+
+const handlePause = (id: string) => pauseUpload(id, props.params)
+const handleResume = (id: string) => resumeUpload(id, props.params, updateUploadProgress)
+const handleDelete = (id: string) => cancelUpload(id)
+const handleRetry = (id: string) => retryUpload(id, props.params, updateUploadProgress)
+const handleToggleSelect = (id: string) => {
+  const item = uploadFileList.value.find(f => f.id === id)
+  if (item) item.selected = !item.selected
+}
+const handleBatchPause = () => batchPause(props.params)
+const handleBatchResume = () => batchResume(props.params, updateUploadProgress)
+const handleBatchDelete = () => batchCancel()
+
+async function handleRefresh() {
+  await loadFileList('', props.params)
+}
+
+function handleToggleSelectUploaded(file: FileEntity) {
+  const index = selectedUploadedFiles.value.indexOf(file)
+  index >= 0
+    ? selectedUploadedFiles.value.splice(index, 1)
+    : selectedUploadedFiles.value.push(file)
+}
+
+async function handleDeleteSelectedUploaded() {
+  if (!selectedUploadedFiles.value.length) return Message.warning('请先选择要删除的文件')
+  await removeFiles(
+    selectedUploadedFiles.value.map(f => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
+    props.params,
+  )
+  selectedUploadedFiles.value = []
 }
 </script>
 
 <template>
   <div class="upload-step">
+    <!-- 顶部操作栏 -->
     <div class="upload-step__header">
       <div class="upload-step__actions">
-        <a-button type="primary" @click="emit('selectUploadFiles')">
-          <template #icon>
-            <IconUpload />
-          </template>
+        <a-button type="primary" @click="fileInputRef?.click()">
+          <template #icon><IconUpload /></template>
           上传
         </a-button>
+        <input ref="fileInputRef" type="file" multiple hidden @change="handleFileSelect" />
         <a-checkbox
           :model-value="autoSubmitAfterUpload"
           @change="(val: boolean) => emit('update:autoSubmitAfterUpload', val)"
@@ -111,228 +144,108 @@ function formatTime(seconds: number): string {
         </a-checkbox>
       </div>
       <a-button type="text" class="privacy-link">
-        <template #icon>
-          <IconFile />
-        </template>
+        <template #icon><IconFile /></template>
         隐私政策
       </a-button>
-
     </div>
 
-    <!-- 传输任务表格 -->
-    <section class="upload-section">
-      <div class="upload-section__header">
-        <h3 class="upload-section__title">传输任务</h3>
-        <div class="upload-section__toolbar">
-          <a-button
-            type="text"
-            size="small"
-            :disabled="selectedUploadingUids.length === 0"
-            @click="emit('batchPauseUploading')"
-          >
-            <template #icon>
-              <IconPauseCircle />
-            </template>
+    <div v-if="initLoading" class="upload-step__loading">
+      <a-spin />
+    </div>
 
-            批量暂停
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="success"
-            :disabled="selectedUploadingUids.length === 0"
-            @click="emit('batchResumeUploading')"
-          >
-            <template #icon>
-              <IconPlayCircle />
-            </template>
+    <template v-else-if="initData">
+      <!-- 拖拽上传区 -->
+      <div
+        class="upload-dropzone"
+        :class="{ 'is-dragging': isDragging }"
+        @drop="handleDrop"
+        @dragover.prevent="isDragging = true"
+        @dragleave="isDragging = false"
+        @click="fileInputRef?.click()"
+      >
+        <IconUpload class="dropzone-icon" />
+        <p>点击或拖拽文件到此处上传</p>
+        <p class="dropzone-hint">
+          单个文件不超过 {{ formatFileSize((initData.applicationSize || 10) * 1024 * 1024 * 1024) }}
+        </p>
+      </div>
 
-            批量继续
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            :disabled="selectedUploadingUids.length === 0"
-            @click="emit('batchRemoveUploading')"
-          >
-            <template #icon>
-              <IconDelete />
-            </template>
-            批量删除
-          </a-button>
+      <!-- 传输任务 -->
+      <section v-if="uploadFileList.length > 0" class="upload-section">
+        <TransFileTable
+          :files="uploadFileList"
+          mode="upload"
+          :show-batch-actions="true"
+          :show-hash-status="true"
+          @pause="handlePause"
+          @resume="handleResume"
+          @delete="handleDelete"
+          @retry="handleRetry"
+          @toggle-select="handleToggleSelect"
+          @batch-pause="handleBatchPause"
+          @batch-resume="handleBatchResume"
+          @batch-delete="handleBatchDelete"
+          @clear-completed="clearCompleted"
+        />
+      </section>
+
+      <!-- 已上传文件列表 -->
+      <section v-if="fileListData?.fileList.length" class="upload-section">
+        <div class="upload-section__header">
+          <h3 class="upload-section__title">已上传文件 ({{ fileListData.totalFileCount }})</h3>
+          <div class="upload-section__toolbar">
+            <a-button type="text" size="small" status="success" @click="handleRefresh">
+              <template #icon><IconRefresh /></template>
+              刷新
+            </a-button>
+            <a-button
+              v-if="selectedUploadedFiles.length > 0"
+              type="text"
+              size="small"
+              status="danger"
+              @click="handleDeleteSelectedUploaded"
+            >
+              <template #icon><IconDelete /></template>
+              删除选中 ({{ selectedUploadedFiles.length }})
+            </a-button>
+          </div>
         </div>
-      </div>
-
-      <div class="upload-table-wrapper">
-        <a-table
-          :data="uploadingFiles"
-          :pagination="false"
-          row-key="uid"
-          :row-selection="{
-            type: 'checkbox',
-            selectedRowKeys: selectedUploadingUids,
-            onlyCurrent: false,
-          }"
-          @select="(rowKeys: string[]) => emit('update:selectedUploadingUids', rowKeys)"
-          @select-all="(checked: boolean) => allUploadingSelected = checked"
-        >
-          <template #columns>
-            <a-table-column title="文件名称" data-index="name" :width="500">
-              <template #cell="{ record }">
-                <div class="file-name-cell">
-                  <img :src="getFileIcon(record.name)" alt="file" class="file-icon" />
-                  <span class="file-name-text">{{ record.name }}</span>
-                </div>
-                <a-progress
-                  :percent="record.progress / 100"
-                  :show-text="false"
-                  class="file-progress"
-                  :status="record.status === 'uploading' ? 'normal' : 'warning'"
-                />
-              </template>
-            </a-table-column>
-            <a-table-column title="文件大小" :width="200">
-              <template #cell="{ record }">{{ formatFileSize(record.size) }}</template>
-            </a-table-column>
-            <a-table-column title="失败次数" data-index="failedCount" :width="200" />
-            <a-table-column title="使用时间" :width="200">
-              <template #cell="{ record }">{{ formatTime(record.usedTime) }}</template>
-            </a-table-column>
-            <a-table-column title="剩余时间" :width="200">
-              <template #cell="{ record }">{{ formatTime(record.remainingTime) }}</template>
-            </a-table-column>
-            <a-table-column title="操作" :width="220" align="center">
-              <template #cell="{ record }">
-                <div class="table-actions">
-                  <a-button
-                    v-if="record.status === 'uploading'"
-                    type="text"
-                    size="small"
-                    @click="emit('pauseUploadFile', record.uid)"
-                  >
-                    <template #icon>
-                      <IconPauseCircle />
-                    </template>
-                  </a-button>
-                  <a-button
-                    v-else
-                    type="text"
-                    size="small"
-                    status="success"
-                    @click="emit('resumeUploadFile', record.uid)"
-                  >
-                    <template #icon>
-                      <IconPlayCircle />
-                    </template>
-                  </a-button>
-                  <a-button
-                    type="text"
-                    size="small"
-                    status="danger"
-                    @click="emit('removeUploadingFile', record.uid)"
-                  >
-                    <template #icon>
-                      <IconDelete />
-                    </template>
-                  </a-button>
-                </div>
-              </template>
-            </a-table-column>
-          </template>
-        </a-table>
-      </div>
-    </section>
-
-    <!-- 已上传文件列表 -->
-    <section class="upload-section">
-      <div class="upload-section__header">
-        <h3 class="upload-section__title">已上传文件列表</h3>
-        <div class="upload-section__toolbar">
-          <a-button type="text" size="small" status="success" @click="emit('refreshUploadedList')">
-            <template #icon>
-              <IconRefresh />
-            </template>
-            刷新
-          </a-button>
-          <a-button type="text" size="small">
-            <template #icon>
-              <IconFolder />
-            </template>
-            返回上层
-          </a-button>
-          <a-button
-            type="text"
-            size="small"
-            status="danger"
-            :disabled="selectedUploadedUids.length === 0"
-            @click="emit('batchRemoveUploaded')"
-          >
-            <template #icon>
-              <IconDelete />
-            </template>
-            删除文件
-          </a-button>
-
-        </div>
-      </div>
-
-      <div class="upload-table-wrapper">
-        <a-table
-          :data="uploadedFiles"
-          :pagination="false"
-          row-key="uid"
-          :row-selection="{
-            type: 'checkbox',
-            selectedRowKeys: selectedUploadedUids,
-            onlyCurrent: false,
-          }"
-          @select="(rowKeys: string[]) => emit('update:selectedUploadedUids', rowKeys)"
-          @select-all="(checked: boolean) => allUploadedSelected = checked"
-        >
-          <template #columns>
-            <a-table-column title="文件名称" data-index="name" :width="450">
-              <template #cell="{ record }">
-                <div class="file-name-cell">
-                  <img :src="getFileIcon(record.name)" alt="file" class="file-icon" />
-                  <span class="file-name-text file-name-link">{{ record.name }}</span>
-                </div>
-              </template>
-            </a-table-column>
-            <a-table-column title="文件大小" :width="150">
-              <template #cell="{ record }">{{ formatFileSize(record.size) }}</template>
-            </a-table-column>
-            <a-table-column title="文件类型" data-index="fileType" :width="150" />
-            <a-table-column title="最后修改时间" :width="300">
-              <template #cell="{ record }">{{ dayjs(record.lastModified).format('YYYY-MM-DD HH:mm:ss') }}</template>
-            </a-table-column>
-            <a-table-column title="服务器sha256" :width="360">
-              <template #cell="{ record }">
-                <span class="sha256-text">{{ record.sha256 }}</span>
-              </template>
-            </a-table-column>
-            <a-table-column title="操作" :width="110" align="center">
-              <template #cell="{ record }">
-                <a-button
-                  type="text"
-                  size="small"
-                  status="danger"
-                  @click="emit('removeUploadFile', record.uid)"
-                >
-                  <template #icon>
-                    <IconDelete />
-                  </template>
-                </a-button>
-
-              </template>
-            </a-table-column>
-          </template>
-        </a-table>
-      </div>
-    </section>
+        <TransFileTable
+          :files="[]"
+          mode="uploaded"
+          :show-batch-actions="false"
+          :uploaded-files="fileListData.fileList"
+          :selected-uploaded-files="selectedUploadedFiles"
+          @toggle-select-uploaded="handleToggleSelectUploaded"
+          @batch-delete="handleDeleteSelectedUploaded"
+        />
+      </section>
+    </template>
   </div>
 </template>
 
 <style scoped lang="scss">
-// 样式继承自父组件的 create-application.scss
+.upload-dropzone {
+  border: 2px dashed var(--color-border-2);
+  border-radius: 4px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &.is-dragging {
+    border-color: rgb(var(--primary-6));
+    background: var(--color-primary-light-1);
+  }
+
+  .dropzone-icon {
+    font-size: 32px;
+    color: var(--color-text-3);
+  }
+
+  .dropzone-hint {
+    color: var(--color-text-3);
+    font-size: 12px;
+  }
+}
 </style>

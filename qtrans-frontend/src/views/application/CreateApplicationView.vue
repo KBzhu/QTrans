@@ -31,6 +31,7 @@ const {
   showCustomerDataFields,
   transferTypeLabel,
   hasUnsavedChanges,
+  uploadParams,
   handleNext,
   handleNextWithSubmit,
   handlePrev,
@@ -189,6 +190,7 @@ onBeforeRouteLeave(() => {
           :selected-uploading-uids="selectedUploadingUids"
           :selected-uploaded-uids="selectedUploadedUids"
           :auto-submit-after-upload="autoSubmitAfterUpload"
+          :params="uploadParams"
           @update:selected-uploading-uids="(val: string[]) => selectedUploadingUids = val"
           @update:selected-uploaded-uids="(val: string[]) => selectedUploadedUids = val"
           @update:auto-submit-after-upload="(val: boolean) => autoSubmitAfterUpload = val"
