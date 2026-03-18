@@ -22,6 +22,7 @@ const {
   currentStep,
   submittedApplication,
   isApplicationCreated,
+  submitting,
   uploadingFiles,
   uploadedFiles,
   selectedUploadingUids,
@@ -222,15 +223,14 @@ onBeforeRouteLeave(() => {
     </div>
 
     <div v-if="currentStep < 2" class="create-application-page__actions">
-      <a-button v-if="currentStep > 0" @click="handlePrev">上一步</a-button>
-            <a-button v-if="currentStep === 0" type="primary" :loading="false" @click="onClickNext">
+      <a-button v-if="currentStep > 0" :disabled="submitting" @click="handlePrev">上一步</a-button>
+      <a-button v-if="currentStep === 0" type="primary" :loading="submitting" @click="onClickNext">
         下一步
       </a-button>
-      <a-button v-if="currentStep === 1" type="primary" @click="onClickSubmit">
+      <a-button v-if="currentStep === 1" type="primary" :loading="submitting" @click="onClickSubmit">
         提交申请
       </a-button>
-      <a-button @click="onCancel">取消</a-button>
-
+      <a-button :disabled="submitting" @click="onCancel">取消</a-button>
     </div>
   </section>
 </template>

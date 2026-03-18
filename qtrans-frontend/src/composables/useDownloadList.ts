@@ -1,22 +1,65 @@
-import type { Application, ApplicationStatus, TransferType } from '@/types'
-import dayjs from 'dayjs'
-import { computed, reactive, ref, watch } from 'vue'
-import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
-import { STORAGE_KEYS } from '@/utils/constants'
-import { getLocalStorage, setLocalStorage } from '@/utils/storage'
+import type { WaitingDownloadItem } from '@/api/application'
+import { applicationApi } from '@/api/application'
+import { Message } from '@arco-design/web-vue'
+import { reactive, ref } from 'vue'
 
+// ─── 下载状态映射 ─────────────────────────────────────────────────────────────
+// 真实字段: downloadStatus = "Wait Download" | "Downloading" | "Downloaded"
+// Mock 枚举: 'not_started' | 'partial' | 'completed'
 export type DownloadStatus = 'not_started' | 'partial' | 'completed'
 
-interface DownloadRecord {
-  applicationId: string
-  fileId: string
-  userId: string
-  downloadedAt: string
+const downloadStatusMap: Record<string, DownloadStatus> = {
+  'Wait Download': 'not_started',
+  'Downloading': 'partial',
+  'Downloaded': 'completed',
+}
+
+const downloadStatusLabelMap: Record<DownloadStatus, string> = {
+  not_started: '未下载',
+  partial: '部分下载',
+  completed: '已下载',
+}
+
+// ─── 申请状态映射 ─────────────────────────────────────────────────────────────
+// 真实字段: currentStatus = "Notification Download" | ... (英文描述)
+// Mock 枚举: 'pending_upload' | 'pending_approval' | 'approved' | ...
+// 【字段差异】真实接口无 mock 中的 status 枚举，用 currentStatus 英文字符串代替
+const currentStatusLabelMap: Record<string, string> = {
+  'Notification Download': '通知下载',
+  'Pending Approval': '待审批',
+  'Approved': '已批准',
+  'Rejected': '已驳回',
+  'Transferring': '传输中',
+  'Completed': '已完成',
+}
+
+// ─── 传输方式映射 ──────────────────────────────────────────────────────────────
+// 真实字段: transWay = "Green Zone,Green Zone" (英文逗号分隔)
+// Mock 字段: transferType = 'green-to-green' 枚举
+// 【字段差异】真实接口返回英文描述，非枚举，需本地转换显示
+function formatTransWay(transWay: string): string {
+  if (!transWay) return '-'
+  const map: Record<string, string> = {
+    'Green Zone': '绿区',
+    'Yellow Zone': '黄区',
+    'Red Zone': '红区',
+  }
+  return transWay
+    .split(',')
+    .map(s => map[s.trim()] || s.trim())
+    .join(' → ')
+}
+
+// ─── 文件数 ────────────────────────────────────────────────────────────────────
+// 【字段差异】真实接口未返回文件数，mock 通过 fileStore 获取
+// 目前用 0 填充，后续有文件列表接口后可补充
+function getMockFileCount(_applicationId: string): number {
+  return 0
 }
 
 export interface DownloadListFilters {
   keyword: string
-  status: 'all' | ApplicationStatus
+  status: string // 对应 currentStatus 英文值，或 'all'
   downloadStatus: 'all' | DownloadStatus
 }
 
@@ -26,215 +69,71 @@ export interface DownloadListPagination {
   total: number
 }
 
-const transferTypeLabelMap: Record<TransferType, string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
-}
-
-const downloadStatusLabelMap: Record<DownloadStatus, string> = {
-  not_started: '未下载',
-  partial: '部分下载',
-  completed: '已下载',
-}
-
-function normalizeAccount(value: unknown): string {
-  return String(value || '').trim().toLowerCase()
-}
-
-function triggerBrowserDownload(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-}
-
 export function useDownloadList() {
-  const applicationStore = useApplicationStore()
-  const authStore = useAuthStore()
-  const fileStore = useFileStore()
-
   const loading = ref(false)
+
   const filters = reactive<DownloadListFilters>({
     keyword: '',
     status: 'all',
     downloadStatus: 'all',
   })
+
   const pagination = reactive<DownloadListPagination>({
     current: 1,
     pageSize: 10,
     total: 0,
   })
 
-  const downloadRecords = ref<DownloadRecord[]>(getLocalStorage<DownloadRecord[]>(STORAGE_KEYS.DOWNLOAD_RECORDS) || [])
+  // 原始接口数据
+  const rawList = ref<WaitingDownloadItem[]>([])
+  // 经过前端过滤后展示的数据
+  const listData = ref<WaitingDownloadItem[]>([])
 
-  function syncDownloadRecords() {
-    setLocalStorage(STORAGE_KEYS.DOWNLOAD_RECORDS, downloadRecords.value)
-  }
-
-  const currentUserMatchSet = computed(() => {
-    const user = authStore.currentUser
-    if (!user)
-      return new Set<string>()
-
-    return new Set<string>([
-      user.id,
-      user.username,
-      user.email,
-      user.name,
-    ].map(normalizeAccount).filter(Boolean))
-  })
-
-  function isDownloaderApplication(application: Application) {
-    if (application.status === 'draft')
-      return false
-
-    if (currentUserMatchSet.value.size === 0)
-      return false
-
-    return application.downloaderAccounts
-      .map(normalizeAccount)
-      .some(account => currentUserMatchSet.value.has(account))
-  }
-
-  function getFileCountByApplicationId(applicationId: string) {
-    return fileStore.getFilesByApplicationId(applicationId).length
-  }
-
-  function getDownloadedFileIdsByApplicationId(applicationId: string) {
-    const userId = authStore.currentUser?.id
-    if (!userId)
-      return new Set<string>()
-
-    return new Set(
-      downloadRecords.value
-        .filter(record => record.applicationId === applicationId && record.userId === userId)
-        .map(record => record.fileId),
-    )
-  }
-
-  function getDownloadStatusByApplicationId(applicationId: string): DownloadStatus {
-    const files = fileStore.getFilesByApplicationId(applicationId)
-    if (files.length === 0)
-      return 'not_started'
-
-    const downloadedFileIds = getDownloadedFileIdsByApplicationId(applicationId)
-    const downloadedCount = files.filter(file => downloadedFileIds.has(file.id)).length
-
-    if (downloadedCount === 0)
-      return 'not_started'
-
-    if (downloadedCount >= files.length)
-      return 'completed'
-
-    return 'partial'
-  }
-
-  function markDownloaded(applicationId: string, fileId: string) {
-    const userId = authStore.currentUser?.id
-    if (!userId)
-      return
-
-    const exists = downloadRecords.value.some(record =>
-      record.applicationId === applicationId
-      && record.fileId === fileId
-      && record.userId === userId,
-    )
-
-    if (exists)
-      return
-
-    downloadRecords.value.push({
-      applicationId,
-      fileId,
-      userId,
-      downloadedAt: new Date().toISOString(),
-    })
-    syncDownloadRecords()
-  }
-
-  function handleDownloadApplication(applicationId: string) {
-    const files = fileStore.getFilesByApplicationId(applicationId)
-    if (files.length === 0)
-      return { downloaded: 0, total: 0, fallback: 0 }
-
-    let fallbackCount = 0
-
-    files.forEach((file) => {
-      if (file.fileBlob) {
-        triggerBrowserDownload(file.fileBlob, file.fileName)
-      }
-      else {
-        const fallbackBlob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
-        triggerBrowserDownload(fallbackBlob, file.fileName)
-        fallbackCount += 1
-      }
-
-      markDownloaded(applicationId, file.id)
-    })
-
-    return {
-      downloaded: files.length,
-      total: files.length,
-      fallback: fallbackCount,
-    }
-  }
-
-  const allDownloadList = computed(() => {
-    return applicationStore.applications
-      .filter(isDownloaderApplication)
-      .slice()
-      .sort((a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf())
-  })
-
-  const filteredList = computed(() => {
+  function applyFilters() {
     const keyword = filters.keyword.trim().toLowerCase()
+    let result = rawList.value
 
-    return allDownloadList.value.filter((item) => {
-      const statusMatched = filters.status === 'all' ? true : item.status === filters.status
-      const downloadStatusMatched = filters.downloadStatus === 'all'
-        ? true
-        : getDownloadStatusByApplicationId(item.id) === filters.downloadStatus
+    if (filters.status !== 'all') {
+      result = result.filter(item => item.currentStatus === filters.status)
+    }
 
-      const keywordMatched = keyword
-        ? [
-            item.applicationNo,
-            item.applyReason,
-            transferTypeLabelMap[item.transferType],
-            item.applicantName,
-          ].join(' ').toLowerCase().includes(keyword)
-        : true
+    if (filters.downloadStatus !== 'all') {
+      result = result.filter(item => {
+        const mapped = downloadStatusMap[item.downloadStatus] || 'not_started'
+        return mapped === filters.downloadStatus
+      })
+    }
 
-      return statusMatched && downloadStatusMatched && keywordMatched
-    })
-  })
+    if (keyword) {
+      result = result.filter(item =>
+        [
+          item.applicationId,
+          item.reason,
+          item.applicantW3Account,
+          formatTransWay(item.transWay),
+        ].join(' ').toLowerCase().includes(keyword)
+      )
+    }
 
-  const listData = computed(() => {
-    const start = (pagination.current - 1) * pagination.pageSize
-    const end = start + pagination.pageSize
-    return filteredList.value.slice(start, end)
-  })
-
-  watch(filteredList, (list) => {
-    pagination.total = list.length
-    const maxPage = Math.max(1, Math.ceil(list.length / pagination.pageSize))
-    if (pagination.current > maxPage)
-      pagination.current = maxPage
-  }, { immediate: true })
+    // 注意：真实接口已经分页，前端过滤在当前页数据上进行
+    // 若需要跨页过滤，需改为每次过滤后重新请求（当前仅在已加载数据中过滤）
+    listData.value = result
+    pagination.total = result.length
+  }
 
   async function fetchList() {
     loading.value = true
     try {
-      await applicationStore.fetchApplications({ pageNum: 1, pageSize: 200 })
+      const res = await applicationApi.getWaitingDownloadList(
+        pagination.pageSize,
+        pagination.current,
+      )
+      rawList.value = res.result || []
+      pagination.total = res.pageVO?.totalRows ?? rawList.value.length
+      applyFilters()
+    }
+    catch (err: any) {
+      Message.error(err?.message || '获取待下载列表失败')
     }
     finally {
       loading.value = false
@@ -254,21 +153,62 @@ export function useDownloadList() {
     await fetchList()
   }
 
-  function handlePageChange(page: number) {
+  async function handlePageChange(page: number) {
     pagination.current = page
+    await fetchList()
   }
 
-  function handlePageSizeChange(pageSize: number) {
+  async function handlePageSizeChange(pageSize: number) {
     pagination.pageSize = pageSize
     pagination.current = 1
+    await fetchList()
   }
 
-  function getTransferTypeLabel(type: TransferType) {
-    return transferTypeLabelMap[type]
+  // ─── 工具函数 ───────────────────────────────────────────────────────────────
+
+  function getFileCountByApplicationId(applicationId: string): number {
+    return getMockFileCount(applicationId)
   }
 
-  function getDownloadStatusLabel(status: DownloadStatus) {
+  function getDownloadStatusByApplicationId(applicationId: string): DownloadStatus {
+    const item = rawList.value.find(i => i.applicationId === applicationId)
+    if (!item) return 'not_started'
+    return downloadStatusMap[item.downloadStatus] || 'not_started'
+  }
+
+  function getDownloadStatusLabel(status: DownloadStatus): string {
     return downloadStatusLabelMap[status]
+  }
+
+  function getTransferTypeLabel(transWay: string): string {
+    return formatTransWay(transWay)
+  }
+
+  function getCurrentStatusLabel(currentStatus: string): string {
+    return currentStatusLabelMap[currentStatus] || currentStatus
+  }
+
+  /**
+   * 下载 - 路由到 /trans/download?params=原URL中params后面的部分
+   * 例: downloadUrl = "https://xxx/transWeb/valid?params=security%3A..."
+   *  → router.push('/trans/download?params=security%3A...')
+   */
+  function getDownloadRoute(applicationId: string): { path: string, query: Record<string, string> } | null {
+    const item = rawList.value.find(i => i.applicationId === applicationId)
+    if (!item || !item.downloadUrl) return null
+    // 提取原 URL 中 params= 后面的值（已编码的字符串）
+    const urlObj = new URL(item.downloadUrl)
+    const paramsValue = urlObj.searchParams.get('params')
+    if (!paramsValue) return null
+    return { path: '/trans/download', query: { params: paramsValue } }
+  }
+
+  function handleDownloadApplication(applicationId: string): { downloaded: number, total: number, fallback: number } {
+    const item = rawList.value.find(i => i.applicationId === applicationId)
+    if (!item || !item.downloadUrl) {
+      return { downloaded: 0, total: 0, fallback: 0 }
+    }
+    return { downloaded: 1, total: 1, fallback: 0 }
   }
 
   return {
@@ -276,7 +216,7 @@ export function useDownloadList() {
     filters,
     pagination,
     listData,
-    filteredList,
+    rawList,
     fetchList,
     handleSearch,
     handleReset,
@@ -286,7 +226,9 @@ export function useDownloadList() {
     getDownloadStatusByApplicationId,
     getDownloadStatusLabel,
     getTransferTypeLabel,
+    getCurrentStatusLabel,
     handleDownloadApplication,
-    markDownloaded,
+    getDownloadRoute,
+    formatTransWay,
   }
 }

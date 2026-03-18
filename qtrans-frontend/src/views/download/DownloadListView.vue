@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import type { Application, ApplicationStatus } from '@/types'
+import type { WaitingDownloadItem } from '@/api/application'
 import { Message } from '@arco-design/web-vue'
 import { IconDownload, IconEye, IconSearch } from '@arco-design/web-vue/es/icon'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDownloadList } from '@/composables/useDownloadList'
-import { formatDateTime } from '@/utils'
 import './download-list.scss'
 
 const router = useRouter()
@@ -24,17 +23,20 @@ const {
   getDownloadStatusByApplicationId,
   getDownloadStatusLabel,
   getTransferTypeLabel,
+  getCurrentStatusLabel,
   handleDownloadApplication,
+  getDownloadRoute,
 } = useDownloadList()
 
+// 申请状态筛选 - 对应真实接口 currentStatus 英文值
 const statusOptions = [
   { label: '全部状态', value: 'all' },
-  { label: '待上传', value: 'pending_upload' },
-  { label: '待审批', value: 'pending_approval' },
-  { label: '已批准', value: 'approved' },
-  { label: '已驳回', value: 'rejected' },
-  { label: '传输中', value: 'transferring' },
-  { label: '已完成', value: 'completed' },
+  { label: '通知下载', value: 'Notification Download' },
+  { label: '待审批', value: 'Pending Approval' },
+  { label: '已批准', value: 'Approved' },
+  { label: '已驳回', value: 'Rejected' },
+  { label: '传输中', value: 'Transferring' },
+  { label: '已完成', value: 'Completed' },
 ]
 
 const downloadStatusOptions = [
@@ -44,38 +46,35 @@ const downloadStatusOptions = [
   { label: '已下载', value: 'completed' },
 ]
 
-const statusLabelMap: Record<ApplicationStatus, string> = {
-  draft: '草稿',
-  pending_upload: '待上传',
-  pending_approval: '待审批',
-  approved: '已批准',
-  rejected: '已驳回',
-  transferring: '传输中',
-  completed: '已完成',
+// currentStatus -> CSS class 后缀（真实字段转为 kebab-case）
+function getStatusClass(currentStatus: string) {
+  const classMap: Record<string, string> = {
+    'Notification Download': 'approved',
+    'Pending Approval': 'pending_approval',
+    'Approved': 'approved',
+    'Rejected': 'rejected',
+    'Transferring': 'transferring',
+    'Completed': 'completed',
+  }
+  return `download-status-tag--${classMap[currentStatus] || 'pending_approval'}`
 }
 
-function getStatusClass(status: ApplicationStatus) {
-  return `download-status-tag--${status}`
+function onViewDetail(record: WaitingDownloadItem) {
+  router.push(`/application/${record.applicationId}`)
 }
 
-function onViewDetail(record: Application) {
-  router.push(`/application/${record.id}`)
-}
-
-function onDownload(record: Application) {
-  const result = handleDownloadApplication(record.id)
+function onDownload(record: WaitingDownloadItem) {
+  const result = handleDownloadApplication(record.applicationId)
 
   if (result.total === 0) {
-    Message.warning('当前申请暂无可下载文件')
+    Message.warning('当前申请暂无可下载链接')
     return
   }
 
-  if (result.fallback > 0) {
-    Message.warning(`已开始下载 ${result.downloaded} 个文件（其中 ${result.fallback} 个为模拟下载）`)
-    return
+  const route = getDownloadRoute(record.applicationId)
+  if (route) {
+    router.push({ path: route.path, query: route.query })
   }
-
-  Message.success(`已开始下载 ${result.downloaded} 个文件`)
 }
 
 onMounted(async () => {
@@ -90,7 +89,7 @@ onMounted(async () => {
         <a-input
           v-model="filters.keyword"
           class="filter-keyword"
-          placeholder="搜索申请单号或申请类型..."
+          placeholder="搜索申请单号或申请原因..."
           allow-clear
           @press-enter="handleSearch"
         >
@@ -123,7 +122,7 @@ onMounted(async () => {
           :data="listData"
           :loading="loading"
           :pagination="false"
-          row-key="id"
+          row-key="applicationId"
         >
           <template #columns>
             <a-table-column title="序号" :width="72">
@@ -132,34 +131,55 @@ onMounted(async () => {
               </template>
             </a-table-column>
 
-            <a-table-column title="申请单号" data-index="applicationNo" :width="220">
+            <a-table-column title="申请单号" data-index="applicationId" :width="180">
               <template #cell="{ record }">
                 <button type="button" class="application-no-link" @click="onViewDetail(record)">
-                  {{ record.applicationNo }}
+                  {{ record.applicationId }}
                 </button>
               </template>
             </a-table-column>
 
             <a-table-column title="申请类型" :width="160" ellipsis tooltip>
-              <template #cell="{ record }">{{ getTransferTypeLabel(record.transferType) }}</template>
+              <template #cell="{ record }">{{ getTransferTypeLabel(record.transWay) }}</template>
             </a-table-column>
 
-            <a-table-column title="文件数" :width="110" align="center">
-              <template #cell="{ record }">{{ getFileCountByApplicationId(record.id) }}</template>
+            <!-- 文件数：真实接口暂无此字段，用 mock 0 填充 -->
+            <a-table-column title="文件数" :width="90" align="center">
+              <template #cell="{ record }">{{ getFileCountByApplicationId(record.applicationId) }}</template>
             </a-table-column>
 
-            <a-table-column title="申请人" data-index="applicantName" :width="120" />
+            <!-- 申请人：真实字段 applicantW3Account，无姓名 -->
+            <a-table-column title="申请人账号" :width="140">
+              <template #cell="{ record }">{{ record.applicantW3Account || '-' }}</template>
+            </a-table-column>
 
+            <!-- 申请原因：真实字段 reason，对应 mock 的 applyReason -->
             <a-table-column title="申请原因" :width="170" ellipsis tooltip>
-              <template #cell="{ record }">{{ record.applyReason || '-' }}</template>
+              <template #cell="{ record }">{{ record.reason || '-' }}</template>
             </a-table-column>
 
+            <!-- 创建时间：真实字段 creationDate，对应 mock 的 createdAt -->
             <a-table-column title="创建时间" :width="170">
-              <template #cell="{ record }">{{ formatDateTime(record.createdAt).replace(/-/g, '/') }}</template>
+              <template #cell="{ record }">{{ record.creationDate ? record.creationDate.replace(/-/g, '/') : '-' }}</template>
             </a-table-column>
 
+            <!-- 结束时间：真实字段 downloadEndDate，对应 mock 的 downloadExpireTime -->
             <a-table-column title="结束时间" :width="170">
-              <template #cell="{ record }">{{ formatDateTime(record.downloadExpireTime).replace(/-/g, '/') }}</template>
+              <template #cell="{ record }">{{ record.downloadEndDate ? record.downloadEndDate.replace(/-/g, '/') : '-' }}</template>
+            </a-table-column>
+
+            <a-table-column title="申请状态" :width="130">
+              <template #cell="{ record }">
+                <span class="download-status-tag" :class="getStatusClass(record.currentStatus)">
+                  {{ getCurrentStatusLabel(record.currentStatus) }}
+                </span>
+              </template>
+            </a-table-column>
+
+            <a-table-column title="下载状态" :width="110">
+              <template #cell="{ record }">
+                {{ getDownloadStatusLabel(getDownloadStatusByApplicationId(record.applicationId)) }}
+              </template>
             </a-table-column>
 
             <a-table-column title="操作" :width="120" align="center" fixed="right">

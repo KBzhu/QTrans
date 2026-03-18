@@ -5,6 +5,7 @@ import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
+import { completeUpload } from '@/api/transWebService'
 
 type SecurityArea = 'green' | 'yellow' | 'red'
 
@@ -158,6 +159,7 @@ export function useApplicationForm(initialTransferType?: string) {
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
   const isApplicationCreated = ref(false) // 标记申请单是否已在第一步创建
+  const submitting = ref(false) // 提交/创建接口请求中
   const uploadUrl = ref<string>('') // 真实后端返回的上传地址
   const uploadParams = ref<string>('') // 从 uploadUrl 中提取的 params 参数
   const uploadingFiles = ref<UploadingFileState[]>([])
@@ -421,6 +423,7 @@ export function useApplicationForm(initialTransferType?: string) {
 
     // 调用真实接口创建申请单
     try {
+      submitting.value = true
       const { buildCreatePayload } = await import('@/utils/payloadConverter')
       const payload = buildCreatePayload(formData.value)
 
@@ -475,6 +478,9 @@ export function useApplicationForm(initialTransferType?: string) {
       Message.error(error?.message || '创建申请单失败，请稍后重试')
       return false
     }
+    finally {
+      submitting.value = false
+    }
   }
 
   function handlePrev() {
@@ -527,34 +533,37 @@ export function useApplicationForm(initialTransferType?: string) {
   /**
    * 提交申请 - 调用真实后端接口
    */
-  import { completeUpload } from '@/api/transWebService'
   async function handleSubmitReal() {
-    const { buildCreatePayload } = await import('@/utils/payloadConverter')
-    const payload = buildCreatePayload(formData.value)
+    try {
+      submitting.value = true
 
-    const uploadResult = await completeUpload(uploadParams.value)
-    if (!uploadResult.success) {
-      Message.error(uploadResult.error || '上传确认失败')
-      return
+      const uploadResult = await completeUpload(uploadParams.value)
+      if (!uploadResult.success) {
+        Message.error(uploadResult.error || '上传确认失败')
+        return
+      }
+      // 如果有草稿，删除草稿
+      if (currentDraftId.value)
+        applicationStore.deleteDraft(currentDraftId.value)
+
+      submittedApplication.value = {
+        id: `real-${Date.now()}`,
+        applicationNo: '',
+        ...formData.value,
+        containsCustomerData: formData.value.containsCustomerData === 'yes',
+        status: 'pending_approval',
+        applicantId: authStore.currentUser?.id || '',
+        applicantName: authStore.currentUser?.name || '',
+        createdAt: new Date().toISOString(),
+      } as Application
+
+      currentStep.value = 2
+      updateSnapshot()
+      Message.success('申请提交成功')
     }
-    // 如果有草稿，删除草稿
-    if (currentDraftId.value)
-      applicationStore.deleteDraft(currentDraftId.value)
-
-    submittedApplication.value = {
-      id: `real-${Date.now()}`,
-      applicationNo: '',
-      ...formData.value,
-      containsCustomerData: formData.value.containsCustomerData === 'yes',
-      status: 'pending_approval',
-      applicantId: authStore.currentUser?.id || '',
-      applicantName: authStore.currentUser?.name || '',
-      createdAt: new Date().toISOString(),
-    } as Application
-
-    currentStep.value = 2
-    updateSnapshot()
-    Message.success('申请提交成功')
+    finally {
+      submitting.value = false
+    }
 
     return
   }
@@ -629,6 +638,7 @@ export function useApplicationForm(initialTransferType?: string) {
     currentDraftId,
     submittedApplication,
     isApplicationCreated,
+    submitting,
     uploadUrl,
     uploadParams,
     uploadingFiles,

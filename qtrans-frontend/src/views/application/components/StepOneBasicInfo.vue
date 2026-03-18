@@ -27,7 +27,7 @@ interface Emits {
 const emit = defineEmits<Emits>()
 
 const authStore = useAuthStore()
-const formRef = ref<{ validate: () => Promise<void> } | null>(null)
+const formRef = ref<{ validate: () => Promise<undefined | Record<string, any>> } | null>(null)
 const { getOptionsByType, getItemsByType } = useApplicationConfig()
 
 const areaOptions = [
@@ -89,17 +89,12 @@ async function onCopyRecentTemplate(text: string) {
 }
 
 async function validate() {
-
   if (!formRef.value)
     return true
 
-  try {
-    await formRef.value.validate()
-    return true
-  }
-  catch {
-    return false
-  }
+  const errors = await formRef.value.validate()
+  // validate() 返回 undefined 表示通过，返回错误对象表示失败
+  return errors === undefined
 }
 
 defineExpose({

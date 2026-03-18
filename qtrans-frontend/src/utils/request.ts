@@ -111,4 +111,10 @@ export const request = {
   raw<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     return rawClient.post<unknown, T>(url, data, config)
   },
+  /**
+   * 发送 GET 请求到真实后端
+   */
+  rawGet<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return rawClient.get<unknown, T>(url, config)
+  },
 }
