@@ -156,8 +156,9 @@ interface ApplicationFormData {
 ```typescript
 const REGION_TYPE_MAP = {
   green: '1',   // 绿区
-  yellow: '2',  // 黄区
+  yellow: '0',  // 黄区
   red: '3',     // 红区
+  blue:'2' //外网/蓝区
 }
 ```
 
