@@ -1,119 +1,57 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { cities, type ProvinceCities, type CityItem, DEFAULT_CITY } from '@/mocks/data/cities'
+import { computed } from 'vue'
+import type { CityItem } from '@/api/application'
 
 interface Props {
   modelValue?: string[]
-  placeholder?: string
+  options?: CityItem[]
+  loading?: boolean
   disabled?: boolean
-  allowClear?: boolean
-  allowSearch?: boolean
-  defaultToFirst?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: () => [],
-  placeholder: '请选择省份/城市',
-  disabled: false,
-  allowClear: true,
-  allowSearch: true,
-  defaultToFirst: false,
-})
-
-interface CityChangeValue {
-  province: string
-  city: string
-  cityId: number
-}
+const props = defineProps<Props>()
 
 interface Emits {
-  (e: 'update:modelValue', value: string[]): void
-  (e: 'change', value: CityChangeValue): void
+  (e: 'change', value: { province: string; city: string; cityId: number; regionId: number }): void
 }
 
 const emit = defineEmits<Emits>()
 
-// 将城市数据转换为 a-cascader 需要的格式
-interface CascaderOption {
-  label: string
-  value: string
-  children?: CascaderOption[]
-}
-
-const cascaderData = computed<CascaderOption[]>(() => {
-  return cities.map(province => ({
-    label: province.province,
-    value: province.provinceCode,
-    children: province.cities.map(city => ({
-      label: city.name,
-      value: city.code,
-    })),
-  }))
-})
-
-// 查找城市信息
-function findCityInfo(provinceCode: string, cityCode: string): CityItem | null {
-  const province = cities.find(p => p.provinceCode === provinceCode)
-  if (!province) return null
-  return province.cities.find(c => c.code === cityCode) || null
-}
-
-// 当前选中的值
-const selectedValue = ref<string[]>(props.modelValue)
-
-// 监听外部传入的值变化
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (newVal && newVal.length > 0) {
-      selectedValue.value = newVal
-    }
-  },
-  { immediate: true },
+const selectOptions = computed(() =>
+  (props.options || []).map(c => ({ label: c.cityName, value: String(c.cityId) })),
 )
 
-// 初始化默认城市
-if (props.defaultToFirst && selectedValue.value.length === 0) {
-  selectedValue.value = [...DEFAULT_CITY]
-  emit('update:modelValue', selectedValue.value)
-  const cityInfo = findCityInfo(DEFAULT_CITY[0], DEFAULT_CITY[1])
-  if (cityInfo) {
-    emit('change', { province: DEFAULT_CITY[0], city: cityInfo.name, cityId: cityInfo.id })
-  }
-}
+// 根据 modelValue[1]（城市名）反查当前选中的 cityId
+const selectedCityId = computed(() => {
+  const cityName = props.modelValue?.[1]
+  if (!cityName || !props.options) return undefined
+  const found = props.options.find(c => c.cityName === cityName)
+  return found ? String(found.cityId) : undefined
+})
 
-// 处理选择变化
-function handleChange(value: string[] | undefined) {
-  const newValue = Array.isArray(value) ? value : []
-  selectedValue.value = newValue
-  emit('update:modelValue', newValue)
-
-  // 查找选中城市并触发 change 事件
-  if (newValue.length >= 2) {
-    const cityInfo = findCityInfo(newValue[0], newValue[1])
-    if (cityInfo) {
-      emit('change', { province: newValue[0], city: cityInfo.name, cityId: cityInfo.id })
-    }
-  }
-  else {
-    emit('change', { province: '', city: '', cityId: 0 })
-  }
+function onChange(val: string) {
+  const city = props.options?.find(c => String(c.cityId) === val)
+  if (!city) return
+  emit('change', {
+    province: city.countryName,
+    city: city.cityName,
+    cityId: city.cityId,
+    regionId: city.regionId,
+  })
 }
 </script>
 
 <template>
-  <a-cascader
-    :model-value="selectedValue"
-    :options="cascaderData"
-    :placeholder="placeholder"
+  <a-select
+    :model-value="selectedCityId"
+    :options="selectOptions"
+    :loading="loading"
     :disabled="disabled"
-    :allow-clear="allowClear"
-    :allow-search="allowSearch"
-    path-mode
-    class="city-selector"
-    @change="handleChange"
+    placeholder="请选择城市"
+    allow-search
+    @change="onChange"
   />
 </template>
 
-<style src="./CitySelector.scss" lang="scss" scoped />
-
+<style scoped lang="scss">
+</style>

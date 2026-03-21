@@ -7,7 +7,7 @@ import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
 
-type SecurityArea = 'green' | 'yellow' | 'red'
+type SecurityArea = 'green' | 'yellow' | 'red' | 'external'
 
 interface UploadingFileState {
   uid: string
@@ -44,9 +44,9 @@ export interface ApplicationFormData {
   downloaderAccounts: string[]
   ccAccounts: string[]
   containsCustomerData: 'yes' | 'no'
-
   srNumber: string
   minDeptSupervisor: string
+    securityLevel?: string
   applyReason: string
   applicantNotifyOptions: NotifyChannel[]
   downloaderNotifyOptions: NotifyChannel[]
@@ -191,6 +191,7 @@ export function useApplicationForm(initialTransferType?: string) {
     downloaderAccounts: [{ required: true, type: 'array', min: 1, message: '请选择下载人账号' }],
     ccAccounts: [{ required: true, type: 'array', min: 1, message: '请选择抄送人' }],
     srNumber: [{ required: true, message: '请输入 SR 单号' }],
+   securityLevel: [{ required: true, message: '请选择文件最高密级' }],
     applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
   }
 

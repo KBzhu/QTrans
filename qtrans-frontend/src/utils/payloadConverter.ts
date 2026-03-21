@@ -7,10 +7,11 @@ import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { useAuthStore } from '@/stores'
 
 // 区域类型映射: green/yellow/red → "1"/"2"/"3"
-const REGION_TYPE_MAP: Record<string, string> = {
-  green: '1',
-  yellow: '2',
-  red: '3',
+const REGION_TYPE_MAP: Record<string, number> = {
+  green: 1,
+  yellow: 0,
+  red: 4,
+  external: 2
 }
 
 // 通知渠道映射: 应用号/W3代办/邮件 → 1/2/3
@@ -56,8 +57,8 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
       isCustomerData: formData.containsCustomerData === 'yes' ? 1 : 0,
       isContainLargeModel: 0,
       selectedDeptName: formData.department,  // 完整路径: "华为技术/2012实验室/星光工程部"
-      defaultSecretLevels99: true,
-      securityLevel: 99,
+      defaultSecretLevels99: !formData.securityLevel,
+      securityLevel: formData.securityLevel ? Number(formData.securityLevel) : 99,
       promiseLookupVO: {},
       isMinManagerApproval: 0,
       isManagerApproval: 0,

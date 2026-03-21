@@ -31,6 +31,23 @@ export interface WaitingDownloadItem {
   abc: boolean
 }
 
+/** 城市列表单条记录 */
+export interface CityItem {
+  cityId: number
+  cityName: string
+  countryName: string
+  regionId: number
+  isHot: number
+  isCommon: number
+}
+
+/** 城市列表响应 */
+export interface CityListResponse {
+  cityList: CityItem[]
+  commonCity: null
+}
+
+
 /** 真实后端 - 分页信息 */
 export interface RealPageVO {
   totalRows: number
@@ -88,4 +105,55 @@ export const applicationApi = {
       `/workflowService/services/frontendService/frontend/waitingForDownload/page/${pageSize}/${pageNum}`
     )
   },
+    /**
+   * 查询上传城市列表
+   * GET /workflowService/services/frontendService/frontend/city/findUploadCity
+   */
+  findUploadCity(params: {
+    fromRegionTypeId: number
+    toRegionTypeId: number
+    isInternetFtpUpload: number
+    w3Account: string
+  }): Promise<CityListResponse> {
+    return request.rawGet<CityListResponse>(
+      '/workflowService/services/frontendService/frontend/city/findUploadCity',
+      { params },
+    )
+  },
+  /**
+   * 查询下载城市列表（选完上传城市后联动）
+   * GET /workflowService/services/frontendService/frontend/city/findDownloadCity
+   */
+  findDownloadCity(params: {
+    uploadRegionId: number
+    fromRegionTypeId: number
+    toRegionTypeId: number
+    isInternetFtpUpload: number
+    w3Account: string
+  }): Promise<CityListResponse> {
+    return request.rawGet<CityListResponse>(
+      '/workflowService/services/frontendService/frontend/city/findDownloadCity',
+      { params },
+    )
+  },
+
+  /**
+ * 查询文件最高密级列表
+ * POST /workflowService/services/frontendService/frontend/securityLevel/findSecurityLevelList
+ */
+findSecurityLevelList(params: {
+  fromRegionTypeId: number
+    toRegionTypeId: number
+    isUrgent: number
+    isContainSourceCode: number
+    procType: string
+    isContainLargeModel: number
+}): Promise < any[] > {
+  return request.raw<any[]>(
+    '/workflowService/services/frontendService/frontend/securityLevel/findSecurityLevelList',
+    params
+  )
+},
 }
+
+
