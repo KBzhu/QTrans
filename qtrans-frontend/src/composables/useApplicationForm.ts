@@ -50,6 +50,11 @@ export interface ApplicationFormData {
   applyReason: string
   applicantNotifyOptions: NotifyChannel[]
   downloaderNotifyOptions: NotifyChannel[]
+  // 审批人字段
+  directSupervisor?: string   // 直接主管 W3 账号
+  approverLevel2?: string     // 二层审批人 W3 账号
+  approverLevel3?: string     // 三层审批人 W3 账号
+  approverLevel4?: string     // 四层审批人 W3 账号
   // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
 }
 
@@ -133,6 +138,11 @@ function defaultFormData(transferTypeRaw?: string): ApplicationFormData {
     applyReason: '',
     applicantNotifyOptions: ['in_app'],
     downloaderNotifyOptions: ['in_app'],
+    // 审批人字段初始化
+    directSupervisor: '',
+    approverLevel2: '',
+    approverLevel3: '',
+    approverLevel4: '',
   }
 }
 
@@ -144,7 +154,6 @@ function cloneFormData(data: ApplicationFormData): ApplicationFormData {
     downloaderAccounts: [...data.downloaderAccounts],
     ccAccounts: [...data.ccAccounts],
     applicantNotifyOptions: [...data.applicantNotifyOptions],
-
     downloaderNotifyOptions: [...data.downloaderNotifyOptions],
   }
 }

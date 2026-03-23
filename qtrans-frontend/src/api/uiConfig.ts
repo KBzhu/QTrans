@@ -93,4 +93,53 @@ export const uiConfigApi = {
 
   updateTransferTypeStatus: (id: string, status: UITransferTypeConfigItem['status']) =>
     request.put<UITransferTypeConfigItem>(`/ui-config/transfer-types/${id}/status`, { status }),
+
+  // ===== 真实后端接口 - 传输场景配置 =====
+
+  /**
+   * 获取传输场景 TAB 配置
+   * GET /commonService/services/jalor/lookup/itemquery/listbycodes/transmission_scenario/zh_CN
+   */
+  getTransmissionScenario: () =>
+    request.rawGet<Record<string, TransmissionScenarioItem[]>>(
+      '/commonService/services/jalor/lookup/itemquery/listbycodes/transmission_scenario/zh_CN',
+    ),
+
+  /**
+   * 获取传输场景子项（卡片）配置
+   * GET /commonService/services/jalor/lookup/itemquery/listbycodes/transmission_scenario_child_item/zh_CN
+   */
+  getTransmissionScenarioChildItems: () =>
+    request.rawGet<Record<string, TransmissionScenarioChildItem[]>>(
+      '/commonService/services/jalor/lookup/itemquery/listbycodes/transmission_scenario_child_item/zh_CN',
+    ),
+}
+
+/** 传输场景 TAB 项 */
+export interface TransmissionScenarioItem {
+  itemId: number
+  itemCode: string
+  itemName: string
+  itemDesc: string
+  itemIndex: number
+  status: number
+  itemAttr1: string | null
+}
+
+/** 传输场景子项（卡片）的父级信息 */
+export interface TransmissionScenarioParentItem {
+  itemCode: string
+}
+
+/** 传输场景子项（卡片） */
+export interface TransmissionScenarioChildItem {
+  itemId: number
+  itemCode: string
+  itemName: string
+  itemDesc: string
+  itemIndex: number
+  status: number
+  parentItem: TransmissionScenarioParentItem
+  itemAttr1: string | null
+  itemAttr2: string | null
 }

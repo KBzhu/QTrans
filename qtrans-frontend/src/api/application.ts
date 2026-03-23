@@ -154,6 +154,55 @@ findSecurityLevelList(params: {
     params
   )
 },
+
+  /**
+   * 查询审批层级配置
+   * GET /workflowService/services/frontendService/frontend/approvalRoute/page/{pageSize}/{pageNum}
+   */
+  findApprovalRoute(params: {
+    procTypeId: string
+    fromRegionTypeId: number
+    toRegionTypeId: number
+    securityLevelId: string
+    isCustomerData: number
+    isUrgent: number
+    deptId: string
+    isContainLargeModel: number
+  }): Promise<ApprovalRouteResponse> {
+    return request.rawGet<ApprovalRouteResponse>(
+      '/workflowService/services/frontendService/frontend/approvalRoute/page/1000/1',
+      { params },
+    )
+  },
+}
+
+/** 审批层级配置项 */
+export interface ApprovalRouteItem {
+  approvalRouteId: number
+  procTypeId: number
+  fromRegionTypeId: number
+  toRegionTypeId: number
+  securityLevelId: number
+  isUrgent: number
+  isCustomerData: number
+  isContainSourceCode: number
+  isContainLargeModel: number
+  isMinManagerApproval: number
+  isManagerApproval: number
+  isManager2Approval: number
+  isManager3Approval: number
+  isManager4Approval: number
+  isChiefApproval: number
+  isInfoManagerApproval: number
+  isManagerCopyApproval: number
+  isGuarantorApproval: number
+  isCopyInfoManagerApproval: number
+}
+
+/** 审批层级响应 */
+export interface ApprovalRouteResponse {
+  pageVO: RealPageVO
+  result: ApprovalRouteItem[]
 }
 
 

@@ -59,6 +59,29 @@ const isHighToLow = computed(() => {
 const securityLevelOptions = ref<{ label: string; value: string }[]>([])
 const securityLevelLoading = ref(false)
 
+// 审批层级状态
+const approvalRouteLoading = ref(false)
+const approvalRouteConfig = ref<{
+  showDirectSupervisor: boolean
+  showApproverLevel2: boolean
+  showApproverLevel3: boolean
+  showApproverLevel4: boolean
+}>({
+  showDirectSupervisor: false,
+  showApproverLevel2: false,
+  showApproverLevel3: false,
+  showApproverLevel4: false,
+})
+
+// Mock 人员数据（接口未提供时使用）
+const mockApproverOptions = [
+  { label: '张三 / zhangsan / 研发部', value: 'zhangsan' },
+  { label: '李四 / lisi / 测试部', value: 'lisi' },
+  { label: '王五 / wangwu / 产品部', value: 'wangwu' },
+  { label: '赵六 / zhaoliu / 运维部', value: 'zhaoliu' },
+  { label: '陈七 / chenqi / 架构部', value: 'chenqi' },
+]
+
 // 城市列表状态
 const uploadCityOptions = ref<import('@/api/application').CityItem[]>([])
 const downloadCityOptions = ref<import('@/api/application').CityItem[]>([])
@@ -95,6 +118,62 @@ async function fetchSecurityLevelList() {
   }
 }
 
+/**
+ * 查询审批层级配置
+ * 当"文件最高密级"有值后联动查询
+ */
+async function fetchApprovalRoute() {
+  if (!props.formData.securityLevel || !props.formData.departmentId) return
+
+  const from = REGION_TYPE_MAP[props.formData.sourceArea]
+  const to = REGION_TYPE_MAP[props.formData.targetArea]
+  if (from === undefined || to === undefined) return
+
+  approvalRouteLoading.value = true
+  try {
+    const res = await applicationApi.findApprovalRoute({
+      procTypeId: '0',
+      fromRegionTypeId: from,
+      toRegionTypeId: to,
+      securityLevelId: props.formData.securityLevel,
+      isCustomerData: props.formData.containsCustomerData === 'yes' ? 1 : 0,
+      isUrgent: 0,
+      deptId: props.formData.departmentId,
+      isContainLargeModel: 0,
+    })
+
+    const first = res?.result?.[0]
+    if (first) {
+      approvalRouteConfig.value = {
+        showDirectSupervisor: first.isManagerApproval === 1,
+        showApproverLevel2: first.isManager2Approval === 1,
+        showApproverLevel3: first.isManager3Approval === 1,
+        showApproverLevel4: first.isManager4Approval === 1,
+      }
+    }
+    else {
+      // 无数据时重置
+      approvalRouteConfig.value = {
+        showDirectSupervisor: false,
+        showApproverLevel2: false,
+        showApproverLevel3: false,
+        showApproverLevel4: false,
+      }
+    }
+  }
+  catch {
+    approvalRouteConfig.value = {
+      showDirectSupervisor: false,
+      showApproverLevel2: false,
+      showApproverLevel3: false,
+      showApproverLevel4: false,
+    }
+  }
+  finally {
+    approvalRouteLoading.value = false
+  }
+}
+
 async function fetchUploadCities() {
   const from = REGION_TYPE_MAP[props.formData.sourceArea]
   const to = REGION_TYPE_MAP[props.formData.targetArea]
@@ -108,6 +187,20 @@ async function fetchUploadCities() {
       w3Account: authStore.currentUser?.username || '',
     })
     uploadCityOptions.value = res?.cityList || []
+
+    // 自动选中第一个城市并触发联动
+    const first = uploadCityOptions.value[0]
+    if (first) {
+      selectedUploadRegionId.value = first.regionId
+      emit('update:formData', {
+        ...props.formData,
+        sourceCity: [first.countryName, first.cityName],
+        sourceCityId: first.cityId,
+        targetCity: [],
+        targetCityId: 0,
+      })
+      fetchDownloadCities(first.regionId)
+    }
   }
   catch {
     uploadCityOptions.value = []
@@ -131,6 +224,15 @@ async function fetchDownloadCities(uploadRegionId: number) {
       w3Account: authStore.currentUser?.username || '',
     })
     downloadCityOptions.value = res?.cityList || []
+    const first = uploadCityOptions.value[0]
+    if (first) {
+      emit('update:formData', {
+        ...props.formData,
+        targetCity: [first.countryName, first.cityName],
+        targetCityId: first.cityId,
+      })
+    }
+
   }
   catch {
     downloadCityOptions.value = []
@@ -139,10 +241,6 @@ async function fetchDownloadCities(uploadRegionId: number) {
     downloadCityLoading.value = false
   }
 }
-
-onMounted(() => {
-  fetchUploadCities()
-})
 
 watch(
   isHighToLow,
@@ -158,10 +256,40 @@ watch(
   { immediate: true },
 )
 
-// 区域变更时重新拉取城市列表并清空已选
+// 监听文件最高密级变化，触发审批层级查询
 watch(
-  () => [props.formData.sourceArea, props.formData.targetArea],
-  () => {
+  () => props.formData.securityLevel,
+  (val) => {
+    if (val && isHighToLow.value) {
+      fetchApprovalRoute()
+    }
+    else {
+      // 清空审批层级配置
+      approvalRouteConfig.value = {
+        showDirectSupervisor: false,
+        showApproverLevel2: false,
+        showApproverLevel3: false,
+        showApproverLevel4: false,
+      }
+      // 清空审批人字段
+      emit('update:formData', {
+        ...props.formData,
+        directSupervisor: '',
+        approverLevel2: '',
+        approverLevel3: '',
+        approverLevel4: '',
+      })
+    }
+  },
+  { immediate: false },
+)
+
+watch(
+  () => [props.formData.sourceArea, props.formData.targetArea] as const,
+  ([newSource, newTarget], old) => {
+    // 只有 sourceArea 或 targetArea 的值本身变化时才执行
+    if (old && newSource === old[0] && newTarget === old[1]) return
+
     uploadCityOptions.value = []
     downloadCityOptions.value = []
     selectedUploadRegionId.value = 0
@@ -174,7 +302,9 @@ watch(
     })
     fetchUploadCities()
   },
+  { immediate: true },
 )
+
 
 const { getOptionsByType, getItemsByType } = useApplicationConfig()
 
@@ -184,7 +314,6 @@ const areaOptions = [
   { label: '红区', value: 'red' },
   { label: '外网', value: 'external' },
 ]
-
 
 const applicantNotifyOptions = computed(() => getOptionsByType('applicantNotifyOptions'))
 const downloaderNotifyOptions = computed(() => getOptionsByType('downloaderNotifyOptions'))
@@ -242,7 +371,6 @@ function onSourceCityChange(value: { province: string; city: string; cityId: num
   fetchDownloadCities(value.regionId)
 }
 
-
 function onTargetCityChange(value: { province: string, city: string, cityId: number }) {
   emit('update:formData', {
     ...props.formData,
@@ -267,6 +395,26 @@ function onSecurityLevelChange(val: any) {
   formRef.value?.clearValidate?.('securityLevel')
 }
 
+function onDirectSupervisorChange(val: string) {
+  emit('update:formData', { ...props.formData, directSupervisor: val })
+  formRef.value?.clearValidate?.('directSupervisor')
+}
+
+function onApproverLevel2Change(val: string) {
+  emit('update:formData', { ...props.formData, approverLevel2: val })
+  formRef.value?.clearValidate?.('approverLevel2')
+}
+
+function onApproverLevel3Change(val: string) {
+  emit('update:formData', { ...props.formData, approverLevel3: val })
+  formRef.value?.clearValidate?.('approverLevel3')
+}
+
+function onApproverLevel4Change(val: string) {
+  emit('update:formData', { ...props.formData, approverLevel4: val })
+  formRef.value?.clearValidate?.('approverLevel4')
+}
+
 async function onCopyRecentTemplate(text: string) {
   emit('copyTemplate', text)
 }
@@ -285,7 +433,7 @@ defineExpose({
 })
 </script>
 
-<template>
+	<template>
   <div class="step-one-layout">
     <div class="step-one-layout__main">
       <section class="module-card">
@@ -299,54 +447,46 @@ defineExpose({
           </div>
         </div>
       </section>
-
       <section class="module-card module-card--form">
         <header class="module-card__header">
           <span class="module-card__title">申请信息</span>
         </header>
-
         <a-form ref="formRef" :model="formData" :rules="formRules" layout="vertical" class="apply-form">
           <a-form-item field="department" label="部门" required>
             <DepartmentSelector :model-value="formData.department" :default-to-first="true" :disabled="readonly"
-              @change="onDepartmentChange" />
+                                @change="onDepartmentChange" />
           </a-form-item>
-
           <div class="form-grid">
             <a-form-item field="sourceArea" label="上传区域" required>
               <a-select :model-value="formData.sourceArea" :options="areaOptions" :disabled="readonly"
-                @change="onSourceAreaChange" />
+                        @change="onSourceAreaChange" />
             </a-form-item>
-
             <a-form-item field="targetArea" label="下载区域" required>
               <a-select :model-value="formData.targetArea" :options="areaOptions" :disabled="readonly"
-                @change="onTargetAreaChange" />
+                        @change="onTargetAreaChange" />
             </a-form-item>
-
             <a-form-item field="sourceCity" label="数据传出省份/城市" required>
               <CitySelector :model-value="formData.sourceCity" :options="uploadCityOptions" :loading="uploadCityLoading"
-                :disabled="readonly" @change="onSourceCityChange" />
+                            :disabled="readonly" @change="onSourceCityChange" />
             </a-form-item>
 
             <a-form-item field="targetCity" label="数据传至省份/城市" required>
               <CitySelector :model-value="formData.targetCity" :options="downloadCityOptions"
-                :loading="downloadCityLoading" :disabled="readonly || !selectedUploadRegionId"
-                @change="onTargetCityChange" />
+                            :loading="downloadCityLoading" :disabled="readonly || !selectedUploadRegionId"
+                            @change="onTargetCityChange" />
             </a-form-item>
           </div>
-
           <a-form-item field="downloaderAccounts" label="下载人账号" required>
             <a-select :model-value="formData.downloaderAccounts" :options="userOptions" :disabled="readonly" multiple
-              allow-clear allow-search placeholder="请输入下载人账号" @change="onDownloaderAccountsChange" />
+                      allow-clear allow-search placeholder="请输入下载人账号" @change="onDownloaderAccountsChange" />
           </a-form-item>
-
           <a-form-item field="ccAccounts" label="抄送人" required>
             <a-select :model-value="formData.ccAccounts" :options="userOptions" :disabled="readonly" multiple
-              allow-clear allow-search placeholder="请输入抄送人" @change="onCcAccountsChange" />
+                      allow-clear allow-search placeholder="请输入抄送人" @change="onCcAccountsChange" />
           </a-form-item>
-
-          <a-form-item label="包含客户网络数据" required>
+  <a-form-item label="包含客户网络数据" required>
             <a-radio-group :model-value="formData.containsCustomerData" :disabled="readonly"
-              @change="(val: any) => emit('update:formData', { ...formData, containsCustomerData: val })">
+                           @change="(val: any) => emit('update:formData', { ...formData, containsCustomerData: val })">
               <a-radio value="yes">是</a-radio>
               <a-radio value="no">否</a-radio>
             </a-radio-group>
@@ -355,7 +495,7 @@ defineExpose({
           <template v-if="showCustomerDataFields">
             <a-form-item field="srNumber" label="SR单号" required>
               <a-input :model-value="formData.srNumber" :disabled="readonly" placeholder="请输入 SR 单号"
-                @input="(val: string) => emit('update:formData', { ...formData, srNumber: val })" />
+                       @input="(val: string) => emit('update:formData', { ...formData, srNumber: val })" />
             </a-form-item>
 
             <a-form-item field="minDeptSupervisor" label="最小部门主管">
@@ -364,26 +504,53 @@ defineExpose({
           </template>
           <a-form-item v-if="isHighToLow" field="securityLevel" label="文件最高密级" required>
             <a-select :model-value="formData.securityLevel" :options="securityLevelOptions"
-              :loading="securityLevelLoading" :disabled="readonly" placeholder="请选择文件最高密级"
-              @change="onSecurityLevelChange" />
+                      :loading="securityLevelLoading" :disabled="readonly" placeholder="请选择文件最高密级"
+                      @change="onSecurityLevelChange" />
           </a-form-item>
+
+          <!-- 审批人字段（根据审批层级配置动态显示） -->
+          <template v-if="isHighToLow && formData.securityLevel">
+            <a-form-item v-if="approvalRouteConfig.showDirectSupervisor" field="directSupervisor" label="直接主管" required>
+              <a-select :model-value="formData.directSupervisor" :options="mockApproverOptions"
+                        :loading="approvalRouteLoading" :disabled="readonly" allow-clear allow-search
+                        placeholder="请搜索并选择直接主管" @change="onDirectSupervisorChange" />
+            </a-form-item>
+
+            <a-form-item v-if="approvalRouteConfig.showApproverLevel2" field="approverLevel2" label="二层审批人" required>
+              <a-select :model-value="formData.approverLevel2" :options="mockApproverOptions"
+                        :loading="approvalRouteLoading" :disabled="readonly" allow-clear allow-search
+                        placeholder="请选择二层审批人" @change="onApproverLevel2Change" />
+            </a-form-item>
+
+            <a-form-item v-if="approvalRouteConfig.showApproverLevel3" field="approverLevel3" label="三层审批人" required>
+              <a-select :model-value="formData.approverLevel3" :options="mockApproverOptions"
+                        :loading="approvalRouteLoading" :disabled="readonly" allow-clear allow-search
+                        placeholder="请选择三层审批人" @change="onApproverLevel3Change" />
+            </a-form-item>
+
+            <a-form-item v-if="approvalRouteConfig.showApproverLevel4" field="approverLevel4" label="四层审批人" required>
+              <a-select :model-value="formData.approverLevel4" :options="mockApproverOptions"
+                        :loading="approvalRouteLoading" :disabled="readonly" allow-clear allow-search
+                        placeholder="请选择四层审批人" @change="onApproverLevel4Change" />
+            </a-form-item>
+          </template>
 
           <a-form-item field="applyReason" label="申请原因" required>
             <a-textarea :model-value="formData.applyReason" :max-length="1000" :disabled="readonly" show-word-limit
-              placeholder="请填写申请原因"
-              @input="(val: string) => emit('update:formData', { ...formData, applyReason: val })" />
+                        placeholder="请填写申请原因"
+                        @input="(val: string) => emit('update:formData', { ...formData, applyReason: val })" />
           </a-form-item>
 
           <div class="form-grid form-grid--notify">
             <a-form-item label="申请人通知选项" required>
               <a-checkbox-group :model-value="formData.applicantNotifyOptions" :options="applicantNotifyOptions"
-                :disabled="readonly"
-                @change="(val: any) => emit('update:formData', { ...formData, applicantNotifyOptions: val })" />
+                                :disabled="readonly"
+                                @change="(val: any) => emit('update:formData', { ...formData, applicantNotifyOptions: val })" />
             </a-form-item>
             <a-form-item label="下载人通知选项" required>
               <a-checkbox-group :model-value="formData.downloaderNotifyOptions" :options="downloaderNotifyOptions"
-                :disabled="readonly"
-                @change="(val: any) => emit('update:formData', { ...formData, downloaderNotifyOptions: val })" />
+                                :disabled="readonly"
+                                @change="(val: any) => emit('update:formData', { ...formData, downloaderNotifyOptions: val })" />
             </a-form-item>
           </div>
         </a-form>
@@ -397,8 +564,7 @@ defineExpose({
           <li v-for="(item, index) in noticeItems" :key="index">{{ item }}</li>
         </ol>
       </section>
-
-      <section class="side-card side-card--recent">
+     <section class="side-card side-card--recent">
         <header class="side-card__header">最近传输选择</header>
         <ul class="recent-list">
           <li v-for="(item, index) in recentTransferTemplates" :key="item" class="recent-list__item">

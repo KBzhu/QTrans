@@ -99,11 +99,6 @@ function handleTabClick(tabKey: string) {
           </div>
         </div>
         <div class="type-card__title">{{ item.title }}</div>
-        <div class="type-card__level">
-          <span class="level-tag" :class="`level-tag--${item.level}`">
-            {{ item.levelText }}
-          </span>
-        </div>
         <div class="type-card__desc">{{ item.desc }}</div>
       </article>
     </div>
