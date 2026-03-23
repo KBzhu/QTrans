@@ -69,6 +69,11 @@ rawClient.interceptors.request.use((config) => {
   if (token)
     config.headers.token = token
 
+  // 为 /commonService 文根的请求添加 Referer 头（本地调试需要）
+  if (config.url?.includes('/commonService')) {
+    config.headers.Referer = 'http://localhost.huawei.com'
+  }
+
   return config
 })
 

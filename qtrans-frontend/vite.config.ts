@@ -51,6 +51,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/commonService': {
+          target: 'http://localhost.huawei.com:8104',
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            Referer: 'http://localhost.huawei.com',
+          },
+        }
       },
     },
     define: {

@@ -1,3 +1,4 @@
+import { http, passthrough } from 'msw'
 import { applicationHandlers } from './application'
 import { approvalHandlers } from './approval'
 import { authHandlers } from './auth'
@@ -12,9 +13,14 @@ import { regionManageHandlers } from './regionManage'
 import { channelManageHandlers } from './channelManage'
 import { uiConfigHandlers } from './uiConfig'
 
-
+// 真实后端接口透传配置（不被 MSW 拦截）
+const passthroughHandlers = [
+  // commonService 相关接口 - 透传到真实后端
+  http.all('/commonService/*', () => passthrough()),
+]
 
 export const handlers = [
+  ...passthroughHandlers,
   ...authHandlers,
   ...applicationHandlers,
   ...approvalHandlers,
