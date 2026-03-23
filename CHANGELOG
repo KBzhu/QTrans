@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- **StepOneBasicInfo 组件重构**: 按照 Vue 最佳实践和 antfu 规范重构组件，将 581 行大文件拆分为多个模块：
+  - `constants.ts`: 提取常量（`REGION_TYPE_MAP`、`HIGH_TO_LOW_PAIRS`、`AREA_OPTIONS`、`MOCK_APPROVER_OPTIONS`）
+  - `types.ts`: 提取类型定义（`StepOneBasicInfoProps`、`StepOneBasicInfoEmits`、`ApprovalRouteConfig`、`CitySelectionState`）
+  - `useSecurityLevel.ts`: 提取密级选择逻辑（API 调用、高密传低密判断、自动选中）
+  - `useApprovalRoute.ts`: 提取审批层级逻辑（审批路由查询、审批人字段显示控制）
+  - `useCitySelection.ts`: 提取城市选择逻辑（上传/下载城市联动、区域变化响应）
+  - 主组件从 581 行精简至约 320 行，职责更加单一
+- **类型导出**: 导出 `SecurityArea` 类型供 composables 使用
+
 ### Added
 - **Token 定时刷新**: 使用 VueUse `useIntervalFn` 在 auth store 实现全局 token 定时刷新（15分钟间隔），登录成功自动启动、登出自动停止；新增 `isRefreshing`、`isTokenRefreshActive`、`refreshToken()`、`pauseRefresh()`、`resumeRefresh()` 状态与方法。
 - **真实登录接口对接**: 修改 `authApi.login()` 调用真实后端 `/service/v1/userCenter/authentication/login`，参数暂写死；`vite.config.ts` 新增 `/service` 代理到 `http://127.0.0.1:8087`。

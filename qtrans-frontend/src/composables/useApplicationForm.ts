@@ -7,7 +7,7 @@ import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
 
-type SecurityArea = 'green' | 'yellow' | 'red' | 'external'
+export type SecurityArea = 'green' | 'yellow' | 'red' | 'external'
 
 interface UploadingFileState {
   uid: string

@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTransferConfig } from '@/composables/useTransferConfig'
 
 const router = useRouter()
 const { tabs, transferTypes } = useTransferConfig()
 
-const activeTab = ref('green')
+const activeTab = ref('')
+
+// 默认选中第一个 tab
+watch(tabs, (newTabs) => {
+  if (newTabs.length > 0 && !activeTab.value && newTabs[0]) {
+    activeTab.value = newTabs[0].key
+  }
+}, { immediate: true })
 
 /* ===== 按 Tab 过滤卡片 ===== */
 const filteredTypes = computed(() => {
