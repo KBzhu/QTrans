@@ -6,6 +6,11 @@ import { useAuthStore } from '@/stores'
 import { Message } from '@arco-design/web-vue'
 import { computed, ref, watch } from 'vue'
 
+/** 层级标签 */
+const LEVEL_LABELS = ['公司', '一级部门', '二级部门', '三级部门', '四级部门'] as const
+/** 最大层级数 */
+const MAX_LEVEL = 5
+
 interface Props {
   modelValue?: string
   placeholder?: string
@@ -46,6 +51,11 @@ const displayText = computed(() => {
 const levelOptions = ref<DeptItem[][]>([])
 // 每个层级当前选中的 deptCode
 const levelSelected = ref<string[]>([])
+// 每个层级的加载状态
+const levelLoading = ref<boolean[]>([])
+// 每个层级是否已加载过（用于避免重复加载）
+const levelLoaded = ref<boolean[]>([])
+
 // 底部「已选路径」预览
 const pendingPath = computed<DeptItem[]>(() => {
   const result: DeptItem[] = []
@@ -63,6 +73,7 @@ const pendingPath = computed<DeptItem[]>(() => {
 /* ===== 模糊搜索状态 ===== */
 const searchKeyword = ref('')
 const searchLoading = ref(false)
+const searchLoaded = ref(false) // 标记搜索已完成（用于显示"暂无数据"）
 const searchResults = ref<DeptItem[]>([])
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -102,6 +113,9 @@ function buildLevelsFromPath(pathItems: DeptItem[]) {
   const sorted = [...pathItems].sort((a, b) => Number(a.deptLevel) - Number(b.deptLevel))
   levelOptions.value = sorted.map(item => [item])
   levelSelected.value = sorted.map(item => item.deptCode)
+  // 第1层已加载（公司固定），其他层标记为未加载
+  levelLoaded.value = sorted.map((_, idx) => idx === 0)
+  levelLoading.value = sorted.map(() => false)
 }
 
 /* ===== 打开弹窗 ===== */
@@ -117,17 +131,78 @@ function openModal() {
   else {
     levelOptions.value = []
     levelSelected.value = []
+    levelLoading.value = []
+    levelLoaded.value = []
     initFromUserDept()
   }
 }
 
+/* ===== 加载下层部门 ===== */
+async function loadSubDept(levelIndex: number) {
+  // 已是最大层级，不再加载
+  if (levelIndex >= MAX_LEVEL - 1)
+    return
+
+  // 获取当前层选中项的 deptCode
+  const currentDeptCode = levelSelected.value[levelIndex]
+  if (!currentDeptCode)
+    return
+
+  // 已加载过，不重复加载
+  if (levelLoaded.value[levelIndex + 1])
+    return
+
+  try {
+    levelLoading.value[levelIndex + 1] = true
+    const res = await deptApi.getSubDeptByCode(currentDeptCode)
+    if (res.status && res.result.length > 0) {
+      // 设置下一层选项
+      levelOptions.value[levelIndex + 1] = res.result
+      // 标记已加载
+      levelLoaded.value[levelIndex + 1] = true
+    }
+    else {
+      levelOptions.value[levelIndex + 1] = []
+    }
+  }
+  catch {
+    levelOptions.value[levelIndex + 1] = []
+  }
+  finally {
+    levelLoading.value[levelIndex + 1] = false
+  }
+}
+
+/* ===== 下拉框展开时加载选项 ===== */
+async function onDropdownVisibleChange(levelIndex: number, visible: boolean) {
+  if (!visible)
+    return
+
+  // 第1层（index=0）固定为公司，不需要加载
+  if (levelIndex === 0)
+    return
+
+  // 已加载过，不重复加载
+  if (levelLoaded.value[levelIndex])
+    return
+
+  // 加载当前层选项（参数为上一层选中项的 deptCode）
+  await loadSubDept(levelIndex - 1)
+}
+
 /* ===== 层级下拉变化 ===== */
-function onLevelChange(levelIndex: number, deptCode: string) {
+async function onLevelChange(levelIndex: number, deptCode: string) {
   // 选中当前层级
   levelSelected.value = [...levelSelected.value.slice(0, levelIndex), deptCode]
-  // 清空后续层级
+
+  // 清空后续层级的选中值和选项
   levelOptions.value = levelOptions.value.slice(0, levelIndex + 1)
-  // TODO: 当「根据部门Code查询下层部门」接口就绪后，在此处调用接口加载下一层
+  levelSelected.value = levelSelected.value.slice(0, levelIndex + 1)
+  levelLoaded.value = levelLoaded.value.slice(0, levelIndex + 1)
+  levelLoading.value = levelLoading.value.slice(0, levelIndex + 1)
+
+  // 立即加载下一层选项
+  await loadSubDept(levelIndex)
 }
 
 /* ===== 模糊搜索 ===== */
@@ -135,6 +210,7 @@ function onSearchInput(val: string) {
   searchKeyword.value = val
   if (!val.trim()) {
     searchResults.value = []
+    searchLoaded.value = false
     return
   }
   if (searchTimer)
@@ -146,26 +222,37 @@ async function doSearch(keyword: string) {
   try {
     searchLoading.value = true
     const res = await deptApi.suggestDept(keyword)
-    if (res.status)
+    if (res.status) {
       searchResults.value = res.result
-    else
+    }
+    else {
       searchResults.value = []
+    }
+    searchLoaded.value = true
   }
   catch {
     searchResults.value = []
+    searchLoaded.value = true
   }
   finally {
     searchLoading.value = false
   }
 }
 
-/** 点击搜索结果，回填所有层级 */
-function onSelectSearchResult(item: DeptItem) {
+/** 点击搜索结果，回填所有层级并加载下一级 */
+async function onSelectSearchResult(item: DeptItem) {
   const parentDept = item.parentDept ?? []
   buildLevelsFromPath(parentDept)
   // 清空搜索
   searchKeyword.value = ''
   searchResults.value = []
+  searchLoaded.value = false
+
+  // 联动加载下一级（如果当前层级不是最大层级）
+  const lastIndex = parentDept.length - 1
+  if (lastIndex >= 0 && lastIndex < MAX_LEVEL - 1) {
+    await loadSubDept(lastIndex)
+  }
 }
 
 /* ===== 确认选择 ===== */
@@ -237,7 +324,7 @@ watch(
           placeholder="输入部门名称模糊搜索"
           allow-clear
           @input="onSearchInput"
-          @clear="() => { searchKeyword = ''; searchResults = [] }"
+          @clear="() => { searchKeyword = ''; searchResults = []; searchLoaded = false }"
         >
           <template #prefix>
             <icon-search />
@@ -245,10 +332,13 @@ watch(
         </a-input>
 
         <!-- 搜索结果下拉 -->
-        <div v-if="searchResults.length > 0 || searchLoading" class="dept-search__results">
+        <div v-if="searchKeyword.trim() && (searchResults.length > 0 || searchLoading || searchLoaded)" class="dept-search__results">
           <div v-if="searchLoading" class="dept-search__loading">
             <a-spin :size="14" /> 搜索中...
           </div>
+          <a-empty v-else-if="searchResults.length === 0" class="dept-search__empty">
+            暂无数据
+          </a-empty>
           <template v-else>
             <div
               v-for="item in searchResults"
@@ -276,13 +366,16 @@ watch(
           :key="idx"
           class="dept-levels__item"
         >
-          <span class="dept-levels__label">第 {{ idx + 1 }} 级</span>
+          <span class="dept-levels__label">{{ LEVEL_LABELS[idx] }}</span>
           <a-select
             :model-value="levelSelected[idx]"
             :options="options.map(o => ({ label: o.deptName, value: o.deptCode }))"
+            :loading="levelLoading[idx]"
+            :disabled="idx === 0"
             placeholder="请选择"
             class="dept-levels__select"
             @change="(val: string) => onLevelChange(idx, val)"
+            @popup-visible-change="(visible: boolean) => onDropdownVisibleChange(idx, visible)"
           />
         </div>
         <div v-if="levelOptions.length === 0" class="dept-levels__empty">

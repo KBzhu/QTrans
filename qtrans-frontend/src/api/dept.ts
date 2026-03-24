@@ -41,6 +41,13 @@ export interface SearchDeptByAccountResponse {
   message: string | null
 }
 
+/** 根据部门Code查询下层部门响应 */
+export interface GetSubDeptByCodeResponse {
+  status: boolean
+  message: string | null
+  result: DeptItem[]
+}
+
 export const deptApi = {
   /**
    * 根据名称模糊查询部门
@@ -61,6 +68,17 @@ export const deptApi = {
     return request.raw<SearchDeptByAccountResponse>(
       '/user-center/api/v2/iam/user/search-dept-by-account',
       { account, usertype },
+    )
+  },
+
+  /**
+   * 根据部门Code查询下层部门
+   * POST /workflowService/services/frontendService/frontend/getSubDeptByCode
+   */
+  getSubDeptByCode(deptCode: string): Promise<GetSubDeptByCodeResponse> {
+    return request.raw<GetSubDeptByCodeResponse>(
+      '/workflowService/services/frontendService/frontend/getSubDeptByCode',
+      { deptCode },
     )
   },
 }
