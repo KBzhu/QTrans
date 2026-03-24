@@ -7,6 +7,14 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- **DepartmentSelector 重构**: 从 tree-select + Mock 数据重构为弹窗形式，对接真实接口
+  - 新增 `src/api/dept.ts`：定义 `deptApi.suggestDept`（模糊查询）和 `deptApi.searchDeptByAccount`（用户部门路径）
+  - 弹窗内支持模糊搜索（300ms debounce），搜索结果点击后自动回填所有层级下拉
+  - 初始化时自动调用用户部门接口，根据 `parentDept` 构建多级联动下拉
+  - 底部「已选路径」实时预览，确认后回填触发器
+  - `change` 事件新增 `deptCode` 字段（向后兼容）
+  - `LOGIN_USER_TYPE` 常量从 `auth.ts` 导出，保证 usertype 来源唯一
+- **vite.config.ts**: 新增 `/user-center` 代理，target `http://127.0.0.1:8087`
 - **StepOneBasicInfo 组件重构**: 按照 Vue 最佳实践和 antfu 规范重构组件，将 581 行大文件拆分为多个模块：
   - `constants.ts`: 提取常量（`REGION_TYPE_MAP`、`HIGH_TO_LOW_PAIRS`、`AREA_OPTIONS`、`MOCK_APPROVER_OPTIONS`）
   - `types.ts`: 提取类型定义（`StepOneBasicInfoProps`、`StepOneBasicInfoEmits`、`ApprovalRouteConfig`、`CitySelectionState`）

@@ -1,0 +1,132 @@
+// Modal 弹窗样式（非 scoped）
+// 注意：因 a-modal 设置了 render-to-body，弹窗 DOM 会挂载到 body 层，脱离组件的 scoped DOM 树
+// 因此这部分样式必须是非 scoped 的全局样式
+
+.dept-selector-modal {
+  .dept-selector-modal__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  // 搜索区
+  .dept-search {
+    position: relative;
+
+    &__results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: #fff;
+      border: 1px solid var(--color-border-2);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    &__loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      color: var(--color-text-3);
+      font-size: 13px;
+    }
+
+    &__result-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      &:hover {
+        background: var(--color-fill-2);
+      }
+    }
+
+    &__result-icon {
+      margin-top: 2px;
+      color: rgb(var(--primary-6));
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    &__result-name {
+      font-size: 14px;
+      color: var(--color-text-1);
+      font-weight: 500;
+    }
+
+    &__result-path {
+      font-size: 12px;
+      color: var(--color-text-3);
+      margin-top: 2px;
+    }
+  }
+
+  // 层级下拉区
+  .dept-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    &__label {
+      width: 48px;
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--color-text-2);
+    }
+
+    &__select {
+      flex: 1;
+    }
+
+    &__empty {
+      padding: 12px 0;
+      color: var(--color-text-3);
+      font-size: 13px;
+      text-align: center;
+    }
+  }
+
+  .dept-levels-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    color: var(--color-text-3);
+    font-size: 13px;
+  }
+
+  // 已选路径预览
+  .dept-selected-path {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--color-fill-2);
+    border-radius: 6px;
+    font-size: 13px;
+
+    &__label {
+      color: var(--color-text-3);
+      flex-shrink: 0;
+    }
+
+    &__value {
+      color: rgb(var(--primary-6));
+      font-weight: 500;
+    }
+  }
+}

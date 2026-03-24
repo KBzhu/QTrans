@@ -58,7 +58,13 @@ export default defineConfig(({ mode }) => {
           headers: {
             Referer: 'http://localhost.huawei.com',
           },
-        }
+        },
+        // UserCenter 部门/组织接口代理
+        '/user-center': {
+          target: 'http://127.0.0.1:8087',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     define: {

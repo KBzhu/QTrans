@@ -1,6 +1,12 @@
 import type { LoginResponse, User } from '@/types'
 import { request } from '@/utils'
 
+/**
+ * 登录用户类型（usertype）
+ * 与后端 loginType 保持一致，Number 格式供其他接口使用
+ */
+export const LOGIN_USER_TYPE = 2
+
 /** 真实后端登录请求格式 */
 interface RealLoginRequest {
   model: {
