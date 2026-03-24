@@ -265,7 +265,7 @@ function onConfirm() {
   const last = confirmedPath.value[confirmedPath.value.length - 1]!
   emit('update:modelValue', last.deptCode)
   emit('change', {
-    deptId: String(last.deptId),
+    deptId: String(last.deptCode),
     deptName: confirmedPath.value.map(d => d.deptName).join('/'),
     deptCode: last.deptCode,
   })
