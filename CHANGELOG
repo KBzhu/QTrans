@@ -6,6 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- **人员搜索选择器对接真实接口**: 新增 `UserSuggestSelect.vue` 通用组件，对接 `POST /workflowService/services/frontendService/frontend/suggestUser`
+  - 新增 `src/api/auth.ts`：`suggestUser` 接口和 `SuggestUserItem`、`SuggestUserResponse` 类型
+  - 新增 `src/composables/useUserSuggest.ts`：防抖搜索（300ms）、至少3字符触发、数据转换
+  - 新增 `src/components/business/UserSuggestSelect.vue`：支持单选/多选模式
+  - 替换 `StepOneBasicInfo.vue` 中的下载人账号、抄送人、直接主管选择器
+  - 显示格式：`displayNameCn / userAccount / dept`（中文名/账号/部门）
+- **二/三/四层审批人对接真实接口**: 对接 `POST /workflowService/services/frontendService/frontend/approvalInfo/getAllApprovers`
+  - 新增 `src/api/application.ts`：`getAllApprovers` 接口和 `ApproverItem` 类型
+  - 更新 `useApprovalRoute.ts`：并行调用 `findApprovalRoute` 和 `getAllApprovers`
+  - 按 `approverTypeId` 解析审批人到对应层级（0=一层, 1=二层, 2=三层, 3=四层）
+  - 自动选中第一个审批人
+  - 二/三/四层审批人使用普通下拉框，直接主管保持搜索框
+
 ### Changed
 - **DepartmentSelector 重构**: 从 tree-select + Mock 数据重构为弹窗形式，对接真实接口
   - 新增 `src/api/dept.ts`：定义 `deptApi.suggestDept`（模糊查询）和 `deptApi.searchDeptByAccount`（用户部门路径）

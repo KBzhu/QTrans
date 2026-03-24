@@ -174,6 +174,27 @@ findSecurityLevelList(params: {
       { params },
     )
   },
+  /**
+   * 查询当前部门所属所有层级审批人
+   * POST /workflowService/services/frontendService/frontend/approvalInfo/getAllApprovers
+   */
+  getAllApprovers(params: {
+    fromRegionTypeId: number
+    toRegionTypeId: number
+    procTypeId: string
+    securityLevelId: string | number
+    isCustomerData: number
+    dpCode: string
+    isUrgent: number
+    redAreaId: number
+    isContainLargeModel: number
+    applicationId: string
+  }): Promise<ApproverItem[]> {
+    return request.raw<ApproverItem[]>(
+      '/workflowService/services/frontendService/frontend/approvalInfo/getAllApprovers',
+      params,
+    )
+  },
 }
 
 /** 审批层级配置项 */
@@ -204,5 +225,17 @@ export interface ApprovalRouteResponse {
   pageVO: RealPageVO
   result: ApprovalRouteItem[]
 }
+
+/** 审批人信息 */
+export interface ApproverItem {
+  userAccount: string | null
+  userCN: string | null
+  approverTypeId: number // 0=一层, 1=二层, 2=三层, 3=四层
+  itemIsTest: number | null
+  dataType: number
+  isDisplayApprover: number
+  isChangeApprover: string | null
+}
+
 
 

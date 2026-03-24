@@ -2,12 +2,12 @@
 import type { NotifyChannel } from '@/types/application'
 import type { ApplicationFormData, SecurityArea } from '@/composables/useApplicationForm'
 import { computed, ref } from 'vue'
-import { users } from '@/mocks/data/users'
 import { useAuthStore } from '@/stores'
 import { useApplicationConfig } from '@/composables/useApplicationConfig'
 import DepartmentSelector from '@/components/business/DepartmentSelector.vue'
 import CitySelector from '@/components/business/CitySelector.vue'
-import { AREA_OPTIONS, MOCK_APPROVER_OPTIONS } from './constants'
+import UserSuggestSelect from '@/components/business/UserSuggestSelect.vue'
+import { AREA_OPTIONS } from './constants'
 import { useApprovalRoute } from './useApprovalRoute'
 import { useCitySelection } from './useCitySelection'
 import { useSecurityLevel } from './useSecurityLevel'
@@ -54,6 +54,7 @@ const {
 const {
   loading: approvalRouteLoading,
   config: approvalRouteConfig,
+  approverOptions,
 } = useApprovalRoute(
   () => ({
     sourceArea: props.formData.sourceArea,
@@ -81,13 +82,6 @@ const applicantNotifyOptions = computed(() => getOptionsByType('applicantNotifyO
 const downloaderNotifyOptions = computed(() => getOptionsByType('downloaderNotifyOptions'))
 const recentTransferTemplates = computed(() => getItemsByType('recentTransferTemplates'))
 const noticeItems = computed(() => getItemsByType('noticeItems'))
-
-const userOptions = computed(() =>
-  users.map(user => ({
-    label: `${user.username} / ${user.name} / ${user.departmentName}`,
-    value: user.username,
-  })),
-)
 
 const basicInfoRows = computed(() => {
   const user = authStore.currentUser
@@ -120,13 +114,13 @@ function onTargetAreaChange(val: SecurityArea) {
   formRef.value?.clearValidate?.('targetArea')
 }
 
-function onDownloaderAccountsChange(val: string[]) {
-  updateFormData({ downloaderAccounts: val })
+function onDownloaderAccountsChange(val: string | string[] | undefined) {
+  updateFormData({ downloaderAccounts: Array.isArray(val) ? val : val ? [val] : [] })
   formRef.value?.clearValidate?.('downloaderAccounts')
 }
 
-function onCcAccountsChange(val: string[]) {
-  updateFormData({ ccAccounts: val })
+function onCcAccountsChange(val: string | string[] | undefined) {
+  updateFormData({ ccAccounts: Array.isArray(val) ? val : val ? [val] : [] })
   formRef.value?.clearValidate?.('ccAccounts')
 }
 
@@ -143,8 +137,8 @@ function onSecurityLevelChange(val: string) {
   formRef.value?.clearValidate?.('securityLevel')
 }
 
-function onDirectSupervisorChange(val: string) {
-  updateFormData({ directSupervisor: val })
+function onDirectSupervisorChange(val: string | string[] | undefined) {
+  updateFormData({ directSupervisor: typeof val === 'string' ? val : '' })
   formRef.value?.clearValidate?.('directSupervisor')
 }
 
@@ -265,28 +259,22 @@ defineExpose({ validate })
 
           <!-- 下载人账号 -->
           <a-form-item field="downloaderAccounts" label="下载人账号" required>
-            <a-select
+            <UserSuggestSelect
               :model-value="formData.downloaderAccounts"
-              :options="userOptions"
               :disabled="readonly"
               multiple
-              allow-clear
-              allow-search
-              placeholder="请输入下载人账号"
+              placeholder="请输入至少3个字符搜索下载人账号"
               @change="onDownloaderAccountsChange"
             />
           </a-form-item>
 
           <!-- 抄送人 -->
           <a-form-item field="ccAccounts" label="抄送人" required>
-            <a-select
+            <UserSuggestSelect
               :model-value="formData.ccAccounts"
-              :options="userOptions"
               :disabled="readonly"
               multiple
-              allow-clear
-              allow-search
-              placeholder="请输入抄送人"
+              placeholder="请输入至少3个字符搜索抄送人"
               @change="onCcAccountsChange"
             />
           </a-form-item>
@@ -338,14 +326,10 @@ defineExpose({ validate })
               label="直接主管"
               required
             >
-              <a-select
+              <UserSuggestSelect
                 :model-value="formData.directSupervisor"
-                :options="MOCK_APPROVER_OPTIONS"
-                :loading="approvalRouteLoading"
                 :disabled="readonly"
-                allow-clear
-                allow-search
-                placeholder="请搜索并选择直接主管"
+                placeholder="请输入至少3个字符搜索直接主管"
                 @change="onDirectSupervisorChange"
               />
             </a-form-item>
@@ -358,11 +342,9 @@ defineExpose({ validate })
             >
               <a-select
                 :model-value="formData.approverLevel2"
-                :options="MOCK_APPROVER_OPTIONS"
+                :options="approverOptions.level2"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
-                allow-clear
-                allow-search
                 placeholder="请选择二层审批人"
                 @change="onApproverLevel2Change"
               />
@@ -376,11 +358,9 @@ defineExpose({ validate })
             >
               <a-select
                 :model-value="formData.approverLevel3"
-                :options="MOCK_APPROVER_OPTIONS"
+                :options="approverOptions.level3"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
-                allow-clear
-                allow-search
                 placeholder="请选择三层审批人"
                 @change="onApproverLevel3Change"
               />
@@ -394,11 +374,9 @@ defineExpose({ validate })
             >
               <a-select
                 :model-value="formData.approverLevel4"
-                :options="MOCK_APPROVER_OPTIONS"
+                :options="approverOptions.level4"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
-                allow-clear
-                allow-search
                 placeholder="请选择四层审批人"
                 @change="onApproverLevel4Change"
               />

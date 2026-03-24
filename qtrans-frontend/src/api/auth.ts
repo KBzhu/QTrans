@@ -7,6 +7,24 @@ import { request } from '@/utils'
  */
 export const LOGIN_USER_TYPE = 2
 
+/** 人员搜索结果项 */
+export interface SuggestUserItem {
+  userId: number
+  userAccount: string
+  employeeNumber: string
+  displayNameCn: string
+  dept: string
+  userType: string
+  email: string | null
+}
+
+/** 人员搜索响应 */
+export interface SuggestUserResponse {
+  status: boolean
+  message: string | null
+  result: SuggestUserItem[]
+}
+
 /** 真实后端登录请求格式 */
 interface RealLoginRequest {
   model: {
@@ -57,5 +75,16 @@ export const authApi = {
   },
   getProfile(): Promise<User> {
     return request.get<User>('/auth/profile')
+  },
+  /**
+   * 人员模糊查询
+   * POST /workflowService/services/frontendService/frontend/suggestUser
+   */
+  async suggestUser(keyWord: string): Promise<SuggestUserItem[]> {
+    const res = await request.raw<SuggestUserResponse>(
+      '/workflowService/services/frontendService/frontend/suggestUser',
+      { keyWord, userType: LOGIN_USER_TYPE },
+    )
+    return res?.result || []
   },
 }
