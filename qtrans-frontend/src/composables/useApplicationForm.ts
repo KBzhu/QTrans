@@ -204,8 +204,6 @@ export function useApplicationForm(initialTransferType?: string) {
     applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
   }
 
-  let autoSaveTimer: number | null = null
-
   function updateSnapshot() {
     lastSavedSnapshot.value = JSON.stringify(formData.value)
   }
@@ -578,26 +576,6 @@ export function useApplicationForm(initialTransferType?: string) {
     return
   }
 
-  function autoSaveDraft() {
-    if (autoSaveTimer)
-      window.clearInterval(autoSaveTimer)
-
-    autoSaveTimer = window.setInterval(async () => {
-      if (!hasUnsavedChanges.value)
-        return
-
-      await handleSaveDraft({ silent: true })
-    }, 30000)
-  }
-
-  function stopAutoSaveDraft() {
-    if (!autoSaveTimer)
-      return
-
-    window.clearInterval(autoSaveTimer)
-    autoSaveTimer = null
-  }
-
   function cleanupUploadTimers() {
     uploadTimers.forEach(timer => window.clearInterval(timer))
     uploadTimers.clear()
@@ -636,9 +614,7 @@ export function useApplicationForm(initialTransferType?: string) {
   }
 
   watchCustomerDataField()
-  onMounted(() => autoSaveDraft())
   onUnmounted(() => {
-    stopAutoSaveDraft()
     cleanupUploadTimers()
   })
 
@@ -666,7 +642,6 @@ export function useApplicationForm(initialTransferType?: string) {
     handleSaveDraft,
     handleSubmit,
     handleSubmitReal,
-    autoSaveDraft,
     loadDraft,
     watchCustomerDataField,
     addUploadFiles,

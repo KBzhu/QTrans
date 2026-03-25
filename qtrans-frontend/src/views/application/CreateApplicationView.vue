@@ -36,7 +36,6 @@ const {
   handleNext,
   handleNextWithSubmit,
   handlePrev,
-  handleSaveDraft,
   handleSubmitReal,
   loadDraft,
 
@@ -130,20 +129,37 @@ if (draftId)
   loadDraft(draftId)
 
 onBeforeRouteLeave(() => {
-  if (!hasUnsavedChanges.value || currentStep.value >= 2)
+  // 第3步：直接离开
+  if (currentStep.value >= 2)
+    return true
+
+  // 第2步：无论有无变更，都弹窗确认
+  if (currentStep.value === 1) {
+    return new Promise<boolean>((resolve) => {
+      Modal.confirm({
+        title: '确认离开？',
+        content: '离开后需要重新上传文件，您可在「我的申请单」中找到状态为「待上传」的流程单继续操作，确认离开？',
+        okText: '确认离开',
+        cancelText: '取消',
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+        onClose: () => resolve(false),
+      })
+    })
+  }
+
+  // 第1步：无变更直接离开，有变更弹窗确认
+  if (!hasUnsavedChanges.value)
     return true
 
   return new Promise<boolean>((resolve) => {
     Modal.confirm({
       title: '确认离开？',
-      content: '您有未保存的更改，是否保存为草稿？',
-      okText: '保存草稿并离开',
-      cancelText: '直接离开',
-      onOk: async () => {
-        await handleSaveDraft({ silent: true })
-        resolve(true)
-      },
-      onCancel: () => resolve(true),
+      content: '离开后当前填写内容将丢失，下次进入需要重新填写，确认离开？',
+      okText: '确认离开',
+      cancelText: '取消',
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
       onClose: () => resolve(false),
     })
   })
