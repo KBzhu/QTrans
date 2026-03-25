@@ -14,7 +14,6 @@ import { useSecurityLevel } from './useSecurityLevel'
 
 /* ===== Props & Emits ===== */
 interface Props {
-  formData: ApplicationFormData
   formRules: Record<string, any[]>
   transferTypeLabel: string
   showCustomerDataFields: boolean
@@ -24,11 +23,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const formData = defineModel<ApplicationFormData>('formData', { required: true })
 
 const emit = defineEmits<{
-  (e: 'update:formData', value: ApplicationFormData): void
   (e: 'copyTemplate', text: string): void
 }>()
+
 
 /* ===== Stores & Refs ===== */
 const authStore = useAuthStore()
@@ -38,8 +38,31 @@ const formRef = ref<{
 } | null>(null)
 
 /* ===== Composables ===== */
+function isSameFieldValue(currentValue: unknown, nextValue: unknown) {
+  if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
+    return currentValue.length === nextValue.length
+      && currentValue.every((item, index) => item === nextValue[index])
+  }
+
+  return currentValue === nextValue
+}
+
 function updateFormData(updates: Partial<ApplicationFormData>) {
-  emit('update:formData', { ...props.formData, ...updates })
+  const nextUpdates: Partial<ApplicationFormData> = {}
+  let hasChanges = false
+
+  for (const [key, value] of Object.entries(updates) as [keyof ApplicationFormData, ApplicationFormData[keyof ApplicationFormData]][]) {
+    if (isSameFieldValue(formData.value[key], value))
+      continue
+
+    nextUpdates[key] = value as never
+    hasChanges = true
+  }
+
+  if (!hasChanges)
+    return
+
+  formData.value = { ...formData.value, ...nextUpdates }
 }
 
 const {
@@ -47,7 +70,11 @@ const {
   loading: securityLevelLoading,
   isHighToLow,
 } = useSecurityLevel(
-  () => ({ sourceArea: props.formData.sourceArea, targetArea: props.formData.targetArea }),
+  () => ({
+    sourceArea: formData.value.sourceArea,
+    targetArea: formData.value.targetArea,
+    securityLevel: formData.value.securityLevel,
+  }),
   updateFormData,
 )
 
@@ -57,11 +84,15 @@ const {
   approverOptions,
 } = useApprovalRoute(
   () => ({
-    sourceArea: props.formData.sourceArea,
-    targetArea: props.formData.targetArea,
-    securityLevel: props.formData.securityLevel,
-    departmentId: props.formData.departmentId,
-    containsCustomerData: props.formData.containsCustomerData,
+    sourceArea: formData.value.sourceArea,
+    targetArea: formData.value.targetArea,
+    securityLevel: formData.value.securityLevel,
+    departmentId: formData.value.departmentId,
+    containsCustomerData: formData.value.containsCustomerData,
+    directSupervisor: formData.value.directSupervisor,
+    approverLevel2: formData.value.approverLevel2,
+    approverLevel3: formData.value.approverLevel3,
+    approverLevel4: formData.value.approverLevel4,
   }),
   updateFormData,
 )
@@ -71,9 +102,10 @@ const {
   onSourceCityChange,
   onTargetCityChange,
 } = useCitySelection(
-  () => ({ sourceArea: props.formData.sourceArea, targetArea: props.formData.targetArea }),
+  () => ({ sourceArea: formData.value.sourceArea, targetArea: formData.value.targetArea }),
   updateFormData,
 )
+
 
 /* ===== Computed ===== */
 const { getOptionsByType, getItemsByType } = useApplicationConfig()
@@ -96,10 +128,10 @@ const basicInfoRows = computed(() => {
 })
 
 /* ===== Event Handlers ===== */
-function onDepartmentChange(value: { deptId: string, deptName: string }) {
+function onDepartmentChange(value: { deptId: string, deptName: string, deptCode: string }) {
   updateFormData({
     department: value.deptName,
-    departmentId: value.deptId,
+    departmentId: value.deptCode || value.deptId,
   })
   formRef.value?.clearValidate?.('department')
 }
@@ -210,8 +242,8 @@ defineExpose({ validate })
           <!-- 部门 -->
           <a-form-item field="department" label="部门" required>
             <DepartmentSelector
-              :model-value="formData.department"
-              :default-to-first="true"
+              :model-value="formData.departmentId"
+              :display-value="formData.department"
               :disabled="readonly"
               @change="onDepartmentChange"
             />

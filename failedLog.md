@@ -334,6 +334,15 @@
   - 影响范围：本次审批链路修复相关用例全部通过，失败来自历史存量测试
   - 处理：已完成专项回归（`useApplicationList.spec.ts`、`useApprovalList.spec.ts`、`useApprovalDetail.spec.ts` 共 19 用例通过），覆盖率问题待后续单独修复。
 
+- 2026-03-24 Task4 回归验证出现运行时错误：创建页控制台报错 `Maximum recursive updates exceeded in component <CreateApplicationView>`
+  - 错误文件：`src/views/application/components/StepOneBasicInfo.vue`、`useApprovalRoute.ts`、`useSecurityLevel.ts`、`useCitySelection.ts`
+  - 错误信息：`Uncaught (in promise) Maximum recursive updates exceeded in component <CreateApplicationView>`
+  - 原因：`StepOneBasicInfo.vue` 在 `defineModel` 新数据流下每次都整体替换 `formData`；同时 `useApprovalRoute/useSecurityLevel/useCitySelection` 的 watch 使用 getter 返回新数组，导致依赖未变化时也重复触发，其中审批清空逻辑再次写回相同字段，形成递归更新。
+  - 处理：为 `updateFormData` 增加变更比对，未变化时不再回写；将 3 个 composable 的 watch 改为 getter 数组源；为 `clearApprovers()` 增加空值保护，阻断递归链路。
+
+
+
+
 
 
 

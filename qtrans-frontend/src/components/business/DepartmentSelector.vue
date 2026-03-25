@@ -13,12 +13,14 @@ const MAX_LEVEL = 5
 
 interface Props {
   modelValue?: string
+  displayValue?: string
   placeholder?: string
   disabled?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
+  displayValue: '',
   placeholder: '请选择部门',
   disabled: false,
 })
@@ -39,12 +41,21 @@ const modalVisible = ref(false)
 // 每层级选中的 deptItem
 const confirmedPath = ref<DeptItem[]>([])
 
+function formatDisplayText(value: string) {
+  return value
+    .split('/')
+    .filter(Boolean)
+    .join(' / ')
+}
+
 /* ===== 展示文本 ===== */
 const displayText = computed(() => {
   if (confirmedPath.value.length > 0)
     return confirmedPath.value.map(d => d.deptName).join(' / ')
   return ''
 })
+const externalDisplayText = ref('')
+const currentDisplayText = computed(() => displayText.value || formatDisplayText(externalDisplayText.value))
 
 /* ===== 弹窗内部临时状态 ===== */
 // 每个层级的下拉选项列表（index=0 为第一级, 以此类推）
@@ -263,10 +274,12 @@ function onConfirm() {
   }
   confirmedPath.value = [...pendingPath.value]
   const last = confirmedPath.value[confirmedPath.value.length - 1]!
+  const deptName = confirmedPath.value.map(d => d.deptName).join('/')
+  externalDisplayText.value = deptName
   emit('update:modelValue', last.deptCode)
   emit('change', {
     deptId: String(last.deptCode),
-    deptName: confirmedPath.value.map(d => d.deptName).join('/'),
+    deptName,
     deptCode: last.deptCode,
   })
   modalVisible.value = false
@@ -280,15 +293,24 @@ function onCancel() {
 /* ===== 清空 ===== */
 function onClear() {
   confirmedPath.value = []
+  externalDisplayText.value = ''
   emit('update:modelValue', '')
   emit('change', { deptId: '', deptName: '', deptCode: '' })
 }
 
 /* ===== 外部 modelValue 变化时同步显示（初始化回显场景） ===== */
 watch(
-  () => props.modelValue,
-  (val) => {
-    if (!val)
+  () => [props.modelValue, props.displayValue] as const,
+  ([modelValue, displayValue]) => {
+    externalDisplayText.value = displayValue || ''
+
+    const currentConfirmedCode = confirmedPath.value[confirmedPath.value.length - 1]?.deptCode || ''
+    if (!modelValue) {
+      confirmedPath.value = []
+      return
+    }
+
+    if (currentConfirmedCode && currentConfirmedCode !== modelValue)
       confirmedPath.value = []
   },
   { immediate: true },
@@ -298,9 +320,9 @@ watch(
 <template>
   <div class="dept-selector-root">
     <div class="dept-selector-trigger" :class="{ 'is-disabled': disabled }" @click="openModal">
-      <span v-if="displayText" class="dept-selector-trigger__text">{{ displayText }}</span>
+      <span v-if="currentDisplayText" class="dept-selector-trigger__text">{{ currentDisplayText }}</span>
       <span v-else class="dept-selector-trigger__placeholder">{{ placeholder }}</span>
-      <span v-if="displayText && !disabled" class="dept-selector-trigger__clear" @click.stop="onClear">
+      <span v-if="currentDisplayText && !disabled" class="dept-selector-trigger__clear" @click.stop="onClear">
         <icon-close />
       </span>
       <icon-right v-else class="dept-selector-trigger__arrow" />

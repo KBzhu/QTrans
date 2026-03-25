@@ -111,12 +111,11 @@ export function useCitySelection(
 
   // 监听区域变化
   watch(
-    () => [getFormData().sourceArea, getFormData().targetArea] as const,
-    ([newSource, newTarget], old) => {
-      // 只有值本身变化时才执行
-      if (old && newSource === old[0] && newTarget === old[1])
-        return
-
+    [
+      () => getFormData().sourceArea,
+      () => getFormData().targetArea,
+    ],
+    () => {
       state.value.uploadCityOptions = []
       state.value.downloadCityOptions = []
       state.value.selectedUploadRegionId = 0

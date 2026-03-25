@@ -36,8 +36,10 @@ const {
   handleNext,
   handleNextWithSubmit,
   handlePrev,
+  handleSaveDraft,
   handleSubmitReal,
   loadDraft,
+
   addUploadFiles,
   removeUploadingFile,
   removeUploadFile,
@@ -172,16 +174,16 @@ onBeforeRouteLeave(() => {
       <template v-if="currentStep === 0">
         <StepOneBasicInfo
           ref="stepOneRef"
-          :form-data="formData"
+          v-model:form-data="formData"
           :form-rules="formRules"
           :transfer-type-label="transferTypeLabel"
           :show-customer-data-fields="showCustomerDataFields"
           :draft-application-no="draftApplicationNo"
           :submitted-application="submittedApplication"
           :readonly="isApplicationCreated"
-          @update:form-data="(val) => formData = val"
           @copy-template="onCopyRecentTemplate"
         />
+
       </template>
 
       <template v-else-if="currentStep === 1">

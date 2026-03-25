@@ -1,4 +1,4 @@
-import type { SecurityArea } from '@/composables/useApplicationForm'
+import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import type { ApprovalRouteConfig } from './types'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
@@ -19,6 +19,19 @@ export interface ApproverOptions {
   level4: ApproverOption[] // 四层审批人
 }
 
+type ApprovalRouteFormState = Pick<
+  ApplicationFormData,
+  | 'sourceArea'
+  | 'targetArea'
+  | 'securityLevel'
+  | 'departmentId'
+  | 'containsCustomerData'
+  | 'directSupervisor'
+  | 'approverLevel2'
+  | 'approverLevel3'
+  | 'approverLevel4'
+>
+
 /**
  * 解析 userAccount 格式 "chenzhuo 00363421" -> { displayName, account }
  */
@@ -33,16 +46,29 @@ function parseUserAccount(userAccount: string): { displayName: string, account: 
   return { displayName: userAccount, account: userAccount }
 }
 
-/**
- * 转换审批人数据为选项格式
- */
-function transformToOptions(approvers: Array<{ userAccount: string | null, userCN: string | null, approverTypeId: number }>): ApproverOptions {
-  const options: ApproverOptions = {
+function createEmptyConfig(): ApprovalRouteConfig {
+  return {
+    showDirectSupervisor: false,
+    showApproverLevel2: false,
+    showApproverLevel3: false,
+    showApproverLevel4: false,
+  }
+}
+
+function createEmptyApproverOptions(): ApproverOptions {
+  return {
     level1: [],
     level2: [],
     level3: [],
     level4: [],
   }
+}
+
+/**
+ * 转换审批人数据为选项格式
+ */
+function transformToOptions(approvers: Array<{ userAccount: string | null, userCN: string | null, approverTypeId: number }>): ApproverOptions {
+  const options = createEmptyApproverOptions()
 
   approvers.forEach((item) => {
     if (!item.userAccount) return
@@ -76,36 +102,51 @@ function transformToOptions(approvers: Array<{ userAccount: string | null, userC
 }
 
 export function useApprovalRoute(
-  getFormData: () => {
-    sourceArea: SecurityArea
-    targetArea: SecurityArea
-    securityLevel: string | undefined
-    departmentId: string | undefined
-    containsCustomerData: 'yes' | 'no'
-  },
-  onUpdateFormData: (updates: Partial<any>) => void,
+  getFormData: () => ApprovalRouteFormState,
+  onUpdateFormData: (updates: Partial<ApplicationFormData>) => void,
 ) {
   const loading = ref(false)
-  const config = ref<ApprovalRouteConfig>({
-    showDirectSupervisor: false,
-    showApproverLevel2: false,
-    showApproverLevel3: false,
-    showApproverLevel4: false,
-  })
+  const config = ref<ApprovalRouteConfig>(createEmptyConfig())
 
   /** 审批人选项（二/三/四层） */
-  const approverOptions = ref<ApproverOptions>({
-    level1: [],
-    level2: [],
-    level3: [],
-    level4: [],
-  })
+  const approverOptions = ref<ApproverOptions>(createEmptyApproverOptions())
+  let fetchVersion = 0
 
   const isHighToLow = computed(() => {
     const { sourceArea, targetArea } = getFormData()
     const key = `${sourceArea}->${targetArea}`
     return HIGH_TO_LOW_PAIRS.has(key)
   })
+
+  function syncApproverSelections(nextConfig: ApprovalRouteConfig, nextOptions: ApproverOptions) {
+    const formData = getFormData()
+    const updates: Partial<ApplicationFormData> = {}
+
+    if (!nextConfig.showDirectSupervisor && formData.directSupervisor) {
+      updates.directSupervisor = ''
+    }
+
+    const levelMappings = [
+      { field: 'approverLevel2', visible: nextConfig.showApproverLevel2, options: nextOptions.level2 },
+      { field: 'approverLevel3', visible: nextConfig.showApproverLevel3, options: nextOptions.level3 },
+      { field: 'approverLevel4', visible: nextConfig.showApproverLevel4, options: nextOptions.level4 },
+    ] as const
+
+    levelMappings.forEach(({ field, visible, options }) => {
+      const currentValue = formData[field] || ''
+      const nextValue = visible
+        ? (options.some(option => option.value === currentValue) ? currentValue : (options[0]?.value || ''))
+        : ''
+
+      if (currentValue !== nextValue) {
+        updates[field] = nextValue
+      }
+    })
+
+    if (Object.keys(updates).length > 0) {
+      onUpdateFormData(updates)
+    }
+  }
 
   async function fetch() {
     const { sourceArea, targetArea, securityLevel, departmentId, containsCustomerData } = getFormData()
@@ -117,9 +158,9 @@ export function useApprovalRoute(
     if (from === undefined || to === undefined)
       return
 
+    const currentFetchVersion = ++fetchVersion
     loading.value = true
     try {
-      // 并行调用两个接口
       const [routeRes, approversRes] = await Promise.all([
         applicationApi.findApprovalRoute({
           procTypeId: '0',
@@ -144,75 +185,53 @@ export function useApprovalRoute(
           applicationId: '',
         }),
       ])
+      if (currentFetchVersion !== fetchVersion)
+        return
 
-      // 处理审批层级配置
       const first = routeRes?.result?.[0]
-      if (first) {
-        config.value = {
-          showDirectSupervisor: first.isManagerApproval === 1,
-          showApproverLevel2: first.isManager2Approval === 1,
-          showApproverLevel3: first.isManager3Approval === 1,
-          showApproverLevel4: first.isManager4Approval === 1,
-        }
-      }
-      else {
-        resetConfig()
-      }
+      const nextConfig = first
+        ? {
+            showDirectSupervisor: first.isManagerApproval === 1,
+            showApproverLevel2: first.isManager2Approval === 1,
+            showApproverLevel3: first.isManager3Approval === 1,
+            showApproverLevel4: first.isManager4Approval === 1,
+          }
+        : createEmptyConfig()
+      const nextApproverOptions = Array.isArray(approversRes)
+        ? transformToOptions(approversRes)
+        : createEmptyApproverOptions()
 
-      // 处理审批人选项
-      if (approversRes && Array.isArray(approversRes)) {
-        approverOptions.value = transformToOptions(approversRes)
-
-        // 自动选中第一个审批人（二/三/四层）
-        const autoSelect: Record<string, string> = {}
-        const level2First = approverOptions.value.level2[0]
-        if (level2First) {
-          autoSelect.approverLevel2 = level2First.value
-        }
-        const level3First = approverOptions.value.level3[0]
-        if (level3First) {
-          autoSelect.approverLevel3 = level3First.value
-        }
-        const level4First = approverOptions.value.level4[0]
-        if (level4First) {
-          autoSelect.approverLevel4 = level4First.value
-        }
-        if (Object.keys(autoSelect).length > 0) {
-          onUpdateFormData(autoSelect)
-        }
-      }
-      else {
-        resetApproverOptions()
-      }
+      config.value = nextConfig
+      approverOptions.value = nextApproverOptions
+      syncApproverSelections(nextConfig, nextApproverOptions)
     }
     catch {
+      if (currentFetchVersion !== fetchVersion)
+        return
+
       resetConfig()
       resetApproverOptions()
+      clearApprovers()
     }
     finally {
-      loading.value = false
+      if (currentFetchVersion === fetchVersion)
+        loading.value = false
     }
   }
 
   function resetConfig() {
-    config.value = {
-      showDirectSupervisor: false,
-      showApproverLevel2: false,
-      showApproverLevel3: false,
-      showApproverLevel4: false,
-    }
+    config.value = createEmptyConfig()
   }
 
   function resetApproverOptions() {
-    approverOptions.value = {
-      level1: [],
-      level2: [],
-      level3: [],
-      level4: [],
-    }
+    approverOptions.value = createEmptyApproverOptions()
   }
 
   function clearApprovers() {
+    const { directSupervisor, approverLevel2, approverLevel3, approverLevel4 } = getFormData()
+    if (!directSupervisor && !approverLevel2 && !approverLevel3 && !approverLevel4)
+      return
+
     onUpdateFormData({
       directSupervisor: '',
       approverLevel2: '',
@@ -221,20 +240,27 @@ export function useApprovalRoute(
     })
   }
 
-  // 监听密级变化
   watch(
-    () => getFormData().securityLevel,
-    (val) => {
-      if (val && isHighToLow.value) {
-        fetch()
-      }
-      else {
+    [
+      () => getFormData().sourceArea,
+      () => getFormData().targetArea,
+      () => getFormData().securityLevel || '',
+      () => getFormData().departmentId || '',
+      () => getFormData().containsCustomerData,
+    ],
+    ([sourceArea, targetArea, securityLevel, departmentId]) => {
+      if (!HIGH_TO_LOW_PAIRS.has(`${sourceArea}->${targetArea}`) || !securityLevel || !departmentId) {
+        fetchVersion += 1
+        loading.value = false
         resetConfig()
         resetApproverOptions()
         clearApprovers()
+        return
       }
+
+      void fetch()
     },
-    { immediate: false },
+    { immediate: true },
   )
 
   return {
@@ -247,3 +273,4 @@ export function useApprovalRoute(
     resetApproverOptions,
   }
 }
+

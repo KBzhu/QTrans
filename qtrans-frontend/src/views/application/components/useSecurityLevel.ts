@@ -1,22 +1,37 @@
-import type { SecurityArea } from '@/composables/useApplicationForm'
+import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
 import { HIGH_TO_LOW_PAIRS, REGION_TYPE_MAP } from './constants'
 
+type SecurityLevelFormState = Pick<ApplicationFormData, 'sourceArea' | 'targetArea' | 'securityLevel'>
+
 export function useSecurityLevel(
-  getFormData: () => { sourceArea: SecurityArea, targetArea: SecurityArea },
-  onUpdateFormData: (updates: Partial<any>) => void,
+  getFormData: () => SecurityLevelFormState,
+  onUpdateFormData: (updates: Partial<ApplicationFormData>) => void,
 ) {
   const options = ref<{ label: string, value: string }[]>([])
   const loading = ref(false)
+  let fetchVersion = 0
+
+  function resetOptions() {
+    options.value = []
+  }
+
+  function updateSecurityLevel(nextSecurityLevel: string | undefined) {
+    if (getFormData().securityLevel === nextSecurityLevel)
+      return
+
+    onUpdateFormData({ securityLevel: nextSecurityLevel })
+  }
 
   async function fetch() {
-    const { sourceArea, targetArea } = getFormData()
+    const { sourceArea, targetArea, securityLevel } = getFormData()
     const from = REGION_TYPE_MAP[sourceArea]
     const to = REGION_TYPE_MAP[targetArea]
     if (from === undefined || to === undefined)
       return
 
+    const currentFetchVersion = ++fetchVersion
     loading.value = true
     try {
       const list = await applicationApi.findSecurityLevelList({
@@ -27,21 +42,31 @@ export function useSecurityLevel(
         procType: '0',
         isContainLargeModel: 0,
       })
-      options.value = (list || []).map((item: any) => ({
+      if (currentFetchVersion !== fetchVersion)
+        return
+
+      const nextOptions = (list || []).map((item: any) => ({
         value: item.securityLookupVO?.itemCode ?? '',
         label: item.securityLookupVO?.itemName ?? '',
       }))
+      options.value = nextOptions
 
-      // 自动选中第一个
-      if (options.value[0]) {
-        onUpdateFormData({ securityLevel: options.value[0].value })
-      }
+      const hasCurrentValue = Boolean(
+        securityLevel
+        && nextOptions.some(item => item.value === securityLevel),
+      )
+      updateSecurityLevel(hasCurrentValue ? securityLevel : nextOptions[0]?.value)
     }
     catch {
-      options.value = []
+      if (currentFetchVersion !== fetchVersion)
+        return
+
+      resetOptions()
+      updateSecurityLevel(undefined)
     }
     finally {
-      loading.value = false
+      if (currentFetchVersion === fetchVersion)
+        loading.value = false
     }
   }
 
@@ -51,17 +76,21 @@ export function useSecurityLevel(
     return HIGH_TO_LOW_PAIRS.has(key)
   })
 
-  // 监听高密传低密状态
   watch(
-    isHighToLow,
-    (val) => {
-      if (val) {
-        fetch()
+    [
+      () => getFormData().sourceArea,
+      () => getFormData().targetArea,
+    ],
+    ([sourceArea, targetArea]) => {
+      if (!HIGH_TO_LOW_PAIRS.has(`${sourceArea}->${targetArea}`)) {
+        fetchVersion += 1
+        loading.value = false
+        resetOptions()
+        updateSecurityLevel(undefined)
+        return
       }
-      else {
-        options.value = []
-        onUpdateFormData({ securityLevel: undefined })
-      }
+
+      void fetch()
     },
     { immediate: true },
   )
@@ -73,3 +102,4 @@ export function useSecurityLevel(
     fetch,
   }
 }
+

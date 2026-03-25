@@ -1,7 +1,6 @@
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 
 export interface StepOneBasicInfoProps {
-  formData: ApplicationFormData
   formRules: Record<string, any[]>
   transferTypeLabel: string
   showCustomerDataFields: boolean
@@ -11,9 +10,9 @@ export interface StepOneBasicInfoProps {
 }
 
 export interface StepOneBasicInfoEmits {
-  (e: 'update:formData', value: ApplicationFormData): void
   (e: 'copyTemplate', text: string): void
 }
+
 
 export interface ApprovalRouteConfig {
   showDirectSupervisor: boolean

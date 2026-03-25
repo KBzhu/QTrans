@@ -38,6 +38,11 @@ The format is based on Keep a Changelog.
   - 主组件从 581 行精简至约 320 行，职责更加单一
 - **类型导出**: 导出 `SecurityArea` 类型供 composables 使用
 
+### Fixed
+- **StepOne 部门选择绑定契约修复**: `StepOneBasicInfo.vue` 改为向 `DepartmentSelector` 传递 `departmentId` 作为 `modelValue`、`department` 作为展示值，消除 `deptCode` 与完整路径混绑问题。
+- **DepartmentSelector 回显修复**: 新增 `displayValue` 受控回显支持，外部已有部门路径时可稳定显示触发器文本，并在清空/外部值切换时同步更新展示。
+- **创建页递归更新修复**: 为 `StepOneBasicInfo.vue` 的 `updateFormData` 增加差异比对，避免在 `defineModel` 数据流下重复写回相同表单值；同时将 `useSecurityLevel.ts`、`useApprovalRoute.ts`、`useCitySelection.ts` 的监听改为稳定 getter 数组源，并为审批清空逻辑增加空值保护，修复 `<CreateApplicationView>` 的 `Maximum recursive updates exceeded`。
+
 ### Added
 - **Token 定时刷新**: 使用 VueUse `useIntervalFn` 在 auth store 实现全局 token 定时刷新（15分钟间隔），登录成功自动启动、登出自动停止；新增 `isRefreshing`、`isTokenRefreshActive`、`refreshToken()`、`pauseRefresh()`、`resumeRefresh()` 状态与方法。
 - **真实登录接口对接**: 修改 `authApi.login()` 调用真实后端 `/service/v1/userCenter/authentication/login`，参数暂写死；`vite.config.ts` 新增 `/service` 代理到 `http://127.0.0.1:8087`。
