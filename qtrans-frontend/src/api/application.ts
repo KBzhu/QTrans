@@ -195,6 +195,20 @@ findSecurityLevelList(params: {
       params,
     )
   },
+  /**
+   * 我的申请单列表 - 真实后端接口
+   * POST /workflowService/services/frontendService/frontend/myApplication/page/{pageSize}/{pageNum}
+   */
+  getMyApplicationList(
+    pageSize: number,
+    pageNum: number,
+    query?: MyApplicationQuery,
+  ): Promise<MyApplicationResponse> {
+    return request.raw<MyApplicationResponse>(
+      `/workflowService/services/frontendService/frontend/myApplication/page/${pageSize}/${pageNum}`,
+      query || {},
+    )
+  },
 }
 
 /** 审批层级配置项 */
@@ -235,6 +249,54 @@ export interface ApproverItem {
   dataType: number
   isDisplayApprover: number
   isChangeApprover: string | null
+}
+
+/** 真实后端 - 我的申请单单条记录 */
+export interface MyApplicationItem {
+  applicationId: number
+  procType: string
+  transWay: string // 如 "外网,绿区"
+  currentHandler: string
+  currentStatus: string // 如 "通知下载"
+  applicationStatus: number
+  toAreaId: number | null
+  formAreaId: number | null
+  applicantW3Account: string
+  taskStatus: string // 如 "正常"
+  downloadW3Account: string | null
+  createdBy: string | null
+  creationDate: string
+  lastUpdateDate: string
+  reason: string
+  keyword: string | null
+  targetName: string // 对方名称
+  downloadStatus: number
+  applicationStartTime: string | null
+  applicationEndTime: string | null
+  abc: boolean
+  externalCode: string | null
+  publishServiceWhitelist: string | null
+  toAreaIdList: string[] | null
+  formAreaIdList: string[] | null
+  toRedAreaId: number | null
+  formRedAreaId: number | null
+  isCrossTransfer: number
+  dirManagerConfirm: string | null
+  managerW3Account: string | null
+}
+
+/** 真实后端 - 我的申请单列表响应 */
+export interface MyApplicationResponse {
+  pageVO: RealPageVO
+  result: MyApplicationItem[]
+}
+
+/** 真实后端 - 我的申请单查询参数 */
+export interface MyApplicationQuery {
+  keyword?: string
+  formAreaId?: number
+  toAreaId?: number
+  reason?: string
 }
 
 

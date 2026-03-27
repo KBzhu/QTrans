@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import type { Application, ApplicationStatus } from '@/types'
+import type { MyApplicationItem } from '@/api/application'
 import { Message, Modal } from '@arco-design/web-vue'
-import { IconDelete, IconEdit, IconEye, IconUndo } from '@arco-design/web-vue/es/icon'
+import { IconCopy, IconEye, IconFile, IconStop } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted, ref } from 'vue'
-
 import { useRouter } from 'vue-router'
 import { formatDateTime } from '@/utils'
 import { useApplicationList } from '@/composables/useApplicationList'
-import { useFileStore } from '@/stores'
 import './application-list.scss'
 
 const router = useRouter()
-const fileStore = useFileStore()
 const selectedRowKeys = ref<string[]>([])
 
 const {
@@ -20,46 +17,13 @@ const {
   filters,
   pagination,
   listData,
-  filteredList,
   fetchList,
   handleSearch,
   handleReset,
   handlePageChange,
   handlePageSizeChange,
-  handleDelete,
-  handleWithdraw,
+  getTransferTypeLabel,
 } = useApplicationList()
-
-const statusOptions = [
-  { label: '全部状态', value: 'all' },
-  { label: '草稿', value: 'draft' },
-  { label: '待上传', value: 'pending_upload' },
-  { label: '待审批', value: 'pending_approval' },
-  { label: '已通过', value: 'approved' },
-  { label: '已驳回', value: 'rejected' },
-  { label: '传输中', value: 'transferring' },
-  { label: '已完成', value: 'completed' },
-]
-
-const statusLabelMap: Record<ApplicationStatus, string> = {
-  draft: '草稿',
-  pending_upload: '待上传',
-  pending_approval: '待审批',
-  approved: '已通过',
-  rejected: '已驳回',
-  transferring: '传输中',
-  completed: '已完成',
-}
-
-const transferTypeLabelMap: Record<Application['transferType'], string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
-}
 
 const tableRowSelection = computed(() => ({
   type: 'checkbox' as const,
@@ -67,52 +31,7 @@ const tableRowSelection = computed(() => ({
   showCheckedAll: true,
 }))
 
-function getFileCount(record: Application): number {
-  if (record.status === 'draft')
-    return 0
-
-  const realCount = fileStore.getFilesByApplicationId(record.id).length
-  return realCount
-}
-
-function getStatusClass(status: ApplicationStatus) {
-  return `application-status-tag--${status}`
-}
-
-function getStatusLabel(status: ApplicationStatus) {
-  return statusLabelMap[status]
-}
-
-function toTextArray(value: unknown): string[] {
-  if (Array.isArray(value))
-    return value.map(item => String(item).trim()).filter(Boolean)
-
-  if (typeof value === 'string') {
-    return value
-      .split(/[,，、/\s]+/g)
-      .map(item => item.trim())
-      .filter(Boolean)
-  }
-
-  if (typeof value === 'number')
-    return [String(value)]
-
-  return []
-}
-
-function formatArrayField(value: unknown, separator = ' / ') {
-  const list = toTextArray(value)
-  return list.length > 0 ? list.join(separator) : '-'
-}
-
-function formatApplyReason(value: unknown) {
-  const text = String(value || '').trim()
-  return text || '-'
-}
-
-
 function onToggleAdvanced() {
-
   advancedVisible.value = !advancedVisible.value
 }
 
@@ -120,69 +39,62 @@ function onCreateApplication() {
   router.push('/application/select-type')
 }
 
-function onViewDetail(record: Application) {
-  router.push(`/application/${record.id}`)
+function onViewDetail(record: MyApplicationItem) {
+  router.push(`/application/${record.applicationId}`)
 }
 
-
-function onContinueEdit(record: Application) {
-  router.push({
-    path: '/application/create',
-    query: {
-      draftId: record.id,
-      type: record.transferType,
-    },
-  })
+function onFileList(record: MyApplicationItem) {
+  // TODO: 跳转到文件列表页
+  router.push(`/application/${record.applicationId}/files`)
 }
 
-function onDeleteDraft(record: Application) {
-  Modal.warning({
-    title: '确认删除草稿？',
-    content: `删除后无法恢复（${record.applicationNo}）`,
-    okText: '确认删除',
-    cancelText: '取消',
-    onOk: async () => {
-      await handleDelete(record.id)
-      Message.success('草稿已删除')
-    },
-  })
-}
-
-function onWithdraw(record: Application) {
+function onCopyApplication(record: MyApplicationItem) {
+  // TODO: 对接复制申请接口
   Modal.confirm({
-    title: '确认撤回申请？',
-    content: `撤回后将转为草稿（${record.applicationNo}）`,
-    okText: '确认撤回',
+    title: '确认复制申请？',
+    content: `将复制申请单 ${record.applicationId} 的信息`,
+    okText: '确认复制',
     cancelText: '取消',
     onOk: async () => {
-      await handleWithdraw(record.id)
-      Message.success('申请已撤回')
+      Message.success('复制成功')
+    },
+  })
+}
+
+function onCloseApplication(record: MyApplicationItem) {
+  Modal.confirm({
+    title: '确认关闭申请单？',
+    content: `关闭后申请单 ${record.applicationId} 将无法继续操作`,
+    okText: '确认关闭',
+    cancelText: '取消',
+    onOk: async () => {
+      // TODO: 对接关闭申请单接口
+      Message.success('申请单已关闭')
+      await fetchList()
     },
   })
 }
 
 function onExport() {
   const rows = selectedRowKeys.value.length > 0
-    ? filteredList.value.filter(item => selectedRowKeys.value.includes(item.id))
-    : filteredList.value
+    ? listData.value.filter(item => selectedRowKeys.value.includes(String(item.applicationId)))
+    : listData.value
 
   if (rows.length === 0) {
     Message.warning('暂无可导出的数据')
     return
   }
 
-  const headers = ['申请单号', '申请类型', '状态', '申请原因', '下载人', '源城市', '目标城市', '创建时间']
+  const headers = ['申请单号', '传输路由', '当前流程', '申请单状态', '申请原因', '对方名称', '创建时间']
   const body = rows.map((item) => {
     return [
-      item.applicationNo,
-      transferTypeLabelMap[item.transferType],
-      statusLabelMap[item.status],
-      formatApplyReason(item.applyReason),
-      formatArrayField(item.downloaderAccounts, '、'),
-      formatArrayField(item.sourceCity),
-      formatArrayField(item.targetCity),
-
-      formatDateTime(item.createdAt),
+      item.applicationId,
+      getTransferTypeLabel(item.transWay),
+      item.currentStatus || '-',
+      item.taskStatus || '-',
+      item.reason || '-',
+      item.targetName || '-',
+      formatDateTime(item.creationDate),
     ].join(',')
   })
 
@@ -209,7 +121,7 @@ onMounted(async () => {
         <a-input
           v-model="filters.keyword"
           class="filter-keyword"
-          placeholder="搜索申请单号或申请类型..."
+          placeholder="搜索申请单号..."
           allow-clear
           @press-enter="handleSearch"
         >
@@ -217,8 +129,6 @@ onMounted(async () => {
             <img src="/figma/3961_3234/1.svg" alt="搜索" class="filter-icon" />
           </template>
         </a-input>
-
-        <a-select v-model="filters.status" class="filter-status" :options="statusOptions" />
 
         <a-button class="filter-advanced-btn" @click="onToggleAdvanced">
           <template #icon>
@@ -230,12 +140,6 @@ onMounted(async () => {
       </div>
 
       <div v-if="advancedVisible" class="application-filter-card__advanced">
-        <a-range-picker
-          v-model="filters.dateRange"
-          value-format="YYYY-MM-DD"
-          class="filter-date-range"
-          allow-clear
-        />
         <a-button type="primary" @click="handleSearch">查询</a-button>
         <a-button @click="handleReset">重置</a-button>
       </div>
@@ -256,10 +160,10 @@ onMounted(async () => {
           :data="listData"
           :loading="loading"
           :pagination="false"
-          row-key="id"
+          row-key="applicationId"
           :row-selection="tableRowSelection"
           @select="(keys: string[]) => selectedRowKeys = keys"
-          @select-all="(checked: boolean) => selectedRowKeys = checked ? listData.map(item => item.id) : []"
+          @select-all="(checked: boolean) => selectedRowKeys = checked ? listData.map(item => String(item.applicationId)) : []"
         >
           <template #columns>
             <a-table-column title="序号" :width="72">
@@ -268,100 +172,83 @@ onMounted(async () => {
               </template>
             </a-table-column>
 
-            <a-table-column title="申请单号" data-index="applicationNo" :width="220">
+            <a-table-column title="申请单号" data-index="applicationId" :width="180">
               <template #cell="{ record }">
                 <button type="button" class="application-no-link" @click="onViewDetail(record)">
-                  {{ record.applicationNo }}
+                  {{ record.applicationId }}
                 </button>
               </template>
             </a-table-column>
 
-            <a-table-column title="文件数" :width="100" align="center">
-              <template #cell="{ record }">{{ getFileCount(record) }}</template>
+            <a-table-column title="传输路由" :width="180" ellipsis tooltip>
+              <template #cell="{ record }">{{ getTransferTypeLabel(record.transWay) }}</template>
             </a-table-column>
 
-            <a-table-column title="状态" :width="130">
-              <template #cell="{ record }">
-                <a-tag class="application-status-tag" :class="getStatusClass(record.status)">
-                  {{ getStatusLabel(record.status) }}
-                </a-tag>
+            <a-table-column title="当前流程" :width="120" ellipsis tooltip>
+              <template #cell="{ record }">{{ record.currentStatus || '-' }}</template>
+            </a-table-column>
 
-              </template>
+            <a-table-column title="申请单状态" :width="120" ellipsis tooltip>
+              <template #cell="{ record }">{{ record.taskStatus || '-' }}</template>
             </a-table-column>
 
             <a-table-column title="申请原因" :width="180" ellipsis tooltip>
-              <template #cell="{ record }">{{ formatApplyReason(record.applyReason) }}</template>
+              <template #cell="{ record }">{{ record.reason || '-' }}</template>
             </a-table-column>
 
-            <a-table-column title="下载人名称" :width="170" ellipsis tooltip>
-              <template #cell="{ record }">{{ formatArrayField(record.downloaderAccounts, '、') }}</template>
+            <a-table-column title="对方名称" :width="120" ellipsis tooltip>
+              <template #cell="{ record }">{{ record.targetName || '-' }}</template>
             </a-table-column>
-
-            <a-table-column title="源城市" :width="120" ellipsis>
-              <template #cell="{ record }">{{ formatArrayField(record.sourceCity) }}</template>
-            </a-table-column>
-
-            <a-table-column title="目标城市" :width="120" ellipsis>
-              <template #cell="{ record }">{{ formatArrayField(record.targetCity) }}</template>
-            </a-table-column>
-
 
             <a-table-column title="创建时间" :width="170">
-              <template #cell="{ record }">{{ formatDateTime(record.createdAt).replace(/-/g, '/') }}</template>
+              <template #cell="{ record }">{{ formatDateTime(record.creationDate).replace(/-/g, '/') }}</template>
             </a-table-column>
 
-            <a-table-column title="操作" :width="180" align="center" fixed="right">
+            <a-table-column title="操作" :width="200" align="center" fixed="right">
               <template #cell="{ record }">
                 <div class="table-actions">
                   <a-button
                     type="text"
                     size="small"
                     class="table-action-btn"
-                    title="查看"
+                    title="文件列表"
+                    @click="onFileList(record)"
+                  >
+                    <IconFile />
+                  </a-button>
+
+                  <a-button
+                    type="text"
+                    size="small"
+                    class="table-action-btn"
+                    title="复制申请"
+                    @click="onCopyApplication(record)"
+                  >
+                    <IconCopy />
+                  </a-button>
+
+                  <a-button
+                    type="text"
+                    size="small"
+                    class="table-action-btn"
+                    title="关闭申请单"
+                    @click="onCloseApplication(record)"
+                  >
+                    <IconStop />
+                  </a-button>
+
+                  <a-button
+                    type="text"
+                    size="small"
+                    class="table-action-btn"
+                    title="查看详情"
                     @click="onViewDetail(record)"
                   >
                     <IconEye />
                   </a-button>
-
-                  <a-button
-                    v-if="record.status === 'draft'"
-                    type="text"
-                    size="small"
-                    class="table-action-btn"
-                    title="编辑"
-                    @click="onContinueEdit(record)"
-                  >
-                    <IconEdit />
-                  </a-button>
-
-                  <a-button
-                    v-if="record.status === 'draft'"
-                    type="text"
-                    status="danger"
-                    size="small"
-                    class="table-action-btn"
-                    title="删除"
-                    @click="onDeleteDraft(record)"
-                  >
-                    <IconDelete />
-                  </a-button>
-
-                  <a-button
-                    v-if="record.status === 'pending_approval'"
-                    type="text"
-                    status="warning"
-                    size="small"
-                    class="table-action-btn"
-                    title="撤回"
-                    @click="onWithdraw(record)"
-                  >
-                    <IconUndo />
-                  </a-button>
                 </div>
               </template>
             </a-table-column>
-
-
           </template>
 
           <template #empty>

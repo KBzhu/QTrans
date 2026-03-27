@@ -6,6 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- **我的申请单列表对接真实接口**:
+  - 新增 `MyApplicationItem`、`MyApplicationResponse`、`MyApplicationQuery` 类型
+  - 新增 `applicationApi.getMyApplicationList` 方法，对接 `POST /workflowService/services/frontendService/frontend/myApplication/page/{pageSize}/{pageNum}`
+  - 重构 `useApplicationList.ts`，改为调用真实接口
+  - 更新表格列：申请单号、传输路由、当前流程、申请单状态、申请原因、对方名称、创建时间、操作
+  - 更新操作列：文件列表、复制申请、关闭申请单、查看详情
+  - 移除原有的状态筛选、下载人、源城市、目标城市列
+- **创建页离开确认交互重构**: 移除草稿保存能力，改为按步骤差异化提示
+  - 第1步：无变更直接离开，有变更弹窗提示"离开后当前填写内容将丢失"
+  - 第2步：无论有无变更都弹窗提示"离开后需要重新上传文件，可在我的申请单继续操作"
+  - 第3步：直接离开无拦截
+- **移除自动保存草稿**: 因真实后端无草稿能力，移除 `useApplicationForm.ts` 中每 30 秒自动保存草稿的逻辑
+
 ### Added
 - **人员搜索选择器对接真实接口**: 新增 `UserSuggestSelect.vue` 通用组件，对接 `POST /workflowService/services/frontendService/frontend/suggestUser`
   - 新增 `src/api/auth.ts`：`suggestUser` 接口和 `SuggestUserItem`、`SuggestUserResponse` 类型
