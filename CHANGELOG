@@ -7,6 +7,14 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- **创建页"继续上传文件"功能**:
+  - 新增 `loadApplicationById` 方法，从后端详情接口加载已存在的申请单数据
+  - 新增 `transWayToTransferType` 函数，从 transWay 字符串推断 transferType
+  - 新增 `extractParamsFromUrl` 函数，从 uploadUrl 提取 params 参数
+  - 新增 `REGION_ID_TO_AREA` 反向映射
+  - `CreateApplicationView.vue` 支持 `applicationId` 参数，自动加载数据并进入第二步
+  - 第一步表单数据回填并置灰（readonly）
+- **详情页默认TAB调整**: 默认展示"申请单信息"而非"文件列表"
 - **关闭申请单功能重构**:
   - 修复 `closeApplication` API 为 GET 请求，响应类型为 `boolean`
   - 新增 `CloseApplicationModal` 组件，支持手动输入申请单号二次确认

@@ -174,4 +174,63 @@ closeApplication(applicationId: number | string): Promise<boolean>
 | `CHANGELOG` | 修改 | 记录变更 |
 
 ### 校验结果
-- 所有修改文件 IDE 诊断 0 错误
+- 所有修改文件 IDE 诊断 0 错误（存量类型错误不影响功能）
+
+---
+
+## 补充：创建页"继续上传文件"功能
+
+### 变更内容
+
+#### 1. 详情页默认TAB调整
+- `useApplicationDetail.ts` 中 `activeTab` 默认值从 `'files'` 改为 `'info'`
+
+#### 2. 新增类型转换工具函数
+- `REGION_ID_TO_AREA`: 区域类型ID到前端区域名称的反向映射
+- `transWayToTransferType`: 从 transWay 字符串（如"绿区,绿区"）推断 transferType
+- `extractParamsFromUrl`: 从 uploadUrl 提取 params 参数
+
+#### 3. 新增 loadApplicationById 方法
+- 调用 `applicationApi.getApplicationDetail` 获取详情数据
+- 映射字段到 `formData`
+- 设置 `isApplicationCreated = true`
+- 设置 `currentStep = 1`（直接进入第二步）
+- 提取 `uploadParams` 用于上传
+
+#### 4. CreateApplicationView 处理 applicationId 参数
+- `onMounted` 中检查 `route.query.applicationId`
+- 调用 `loadApplicationById` 加载数据
+- 添加 `pageLoading` 状态显示加载中
+
+### 数据映射
+
+| 后端字段 | 前端字段 |
+|---------|---------|
+| `appBaseInfo.transWay` | `transferType`（通过 transWayToTransferType 转换） |
+| `appBaseApprovalRoute.selectedDeptName` | `department` |
+| `appBaseApprovalRoute.deptId` | `departmentId` |
+| `appBaseCountryCityRegionRelation.fromRegionTypeId` | `sourceArea` |
+| `appBaseCountryCityRegionRelation.toRegionTypeId` | `targetArea` |
+| `appBaseCountryCityRegionRelation.fromCityName` | `sourceCity` |
+| `appBaseCountryCityRegionRelation.toCityName` | `targetCity` |
+| `appBaseUploadDownloadInfo.downloadUser` | `downloaderAccounts` |
+| `appBaseApprovalRoute.managerCopyW3Account` | `ccAccounts` |
+| `appBaseApprovalRoute.isCustomerData` | `containsCustomerData` |
+| `appBaseApprovalRoute.securityLevel` | `securityLevel` |
+| `appBaseInfo.reason` | `applyReason` |
+| `appBaseInfo.uploadNotification` | `applicantNotifyOptions` |
+| `appBaseInfo.downloadNotification` | `downloaderNotifyOptions` |
+| `appBaseUploadDownloadInfo.uploadUrl` | `uploadParams`（提取） |
+
+### 产出文件清单
+| 文件路径 | 操作类型 | 说明 |
+|---------|---------|------|
+| `qtrans-frontend/src/composables/useApplicationDetail.ts` | 修改 | 默认TAB改为info |
+| `qtrans-frontend/src/composables/useApplicationForm.ts` | 修改 | 新增转换函数和loadApplicationById |
+| `qtrans-frontend/src/views/application/CreateApplicationView.vue` | 修改 | 处理applicationId参数 |
+| `CHANGELOG` | 修改 | 记录变更 |
+
+### 验收结果
+- [ ] 详情页默认展示"申请单信息"TAB
+- [ ] 点击"继续上传文件"后跳转到创建页第二步
+- [ ] 第一步表单数据正确回填并置灰

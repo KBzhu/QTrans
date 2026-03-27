@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Message, Modal } from '@arco-design/web-vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useApplicationForm } from '@/composables/useApplicationForm'
 import { useAuthStore } from '@/stores'
@@ -38,7 +38,7 @@ const {
   handlePrev,
   handleSubmitReal,
   loadDraft,
-
+  loadApplicationById,
   addUploadFiles,
   removeUploadingFile,
   removeUploadFile,
@@ -52,6 +52,7 @@ const {
 } = useApplicationForm(String(route.query.type || 'green-to-green'))
 
 const draftApplicationNo = ref(`MWEHR${Math.floor(10000 + Math.random() * 90000)}`)
+const pageLoading = ref(false)
 
 const fileCount = computed(() => uploadedFiles.value.length + uploadingFiles.value.length)
 
@@ -124,9 +125,26 @@ function goMyApplications() {
   router.push('/applications')
 }
 
-const draftId = String(route.query.draftId || '')
-if (draftId)
-  loadDraft(draftId)
+// 处理页面初始化参数
+onMounted(async () => {
+  const draftId = String(route.query.draftId || '')
+  const applicationId = String(route.query.applicationId || '')
+
+  if (applicationId) {
+    // 从已有申请单继续上传
+    pageLoading.value = true
+    try {
+      await loadApplicationById(applicationId)
+    }
+    finally {
+      pageLoading.value = false
+    }
+  }
+  else if (draftId) {
+    // 从草稿加载
+    loadDraft(draftId)
+  }
+})
 
 onBeforeRouteLeave(() => {
   // 第3步：直接离开
@@ -187,7 +205,8 @@ onBeforeRouteLeave(() => {
     </div>
 
     <div class="create-application-page__content-card">
-      <template v-if="currentStep === 0">
+      <a-spin :loading="pageLoading" style="width: 100%">
+        <template v-if="currentStep === 0">
         <StepOneBasicInfo
           ref="stepOneRef"
           v-model:form-data="formData"
@@ -238,6 +257,7 @@ onBeforeRouteLeave(() => {
           @go-my-applications="goMyApplications"
         />
       </template>
+      </a-spin>
     </div>
 
     <div v-if="currentStep < 2" class="create-application-page__actions">

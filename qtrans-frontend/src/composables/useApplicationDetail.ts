@@ -52,7 +52,7 @@ export function useApplicationDetail() {
 
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)
-  const activeTab = ref<'info' | 'files'>('files')
+  const activeTab = ref<'info' | 'files'>('info')
 
   // 基本信息
   const basicInfoRows = computed<DetailFieldItem[]>(() => {

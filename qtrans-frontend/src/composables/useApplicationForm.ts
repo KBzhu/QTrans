@@ -75,6 +75,67 @@ const transferTypeLabelMap: Record<TransferType, string> = {
   'cross-country': '跨国传输',
 }
 
+/** 区域类型ID到前端区域名称的反向映射 */
+const REGION_ID_TO_AREA: Record<number, SecurityArea> = {
+  1: 'green',
+  0: 'yellow',
+  4: 'red',
+  2: 'external',
+}
+
+/** 从 transWay 字符串推断 transferType */
+function transWayToTransferType(transWay: string): TransferType {
+  // transWay 格式如: "绿区,绿区" 或 "外网,绿区"
+  const parts = transWay.split(',').map(s => s.trim())
+  if (parts.length !== 2)
+    return 'green-to-green'
+
+  // 将中文区域名映射到英文
+  const areaMap: Record<string, SecurityArea> = {
+    '绿区': 'green',
+    '黄区': 'yellow',
+    '红区': 'red',
+    '外网': 'external',
+  }
+
+  const sourceArea = areaMap[parts[0] || ''] || 'green'
+  const targetArea = areaMap[parts[1] || ''] || 'green'
+
+  // external 映射为 red
+  const normalizedSource = sourceArea === 'external' ? 'red' : sourceArea
+  const normalizedTarget = targetArea === 'external' ? 'red' : targetArea
+
+  // 组合为 transferType
+  const typeStr = `${normalizedSource}-to-${normalizedTarget}`
+
+  // 验证是否为有效类型
+  const validTypes: TransferType[] = [
+    'green-to-green',
+    'green-to-yellow',
+    'green-to-red',
+    'yellow-to-yellow',
+    'yellow-to-red',
+    'red-to-red',
+    'cross-country',
+  ]
+
+  return validTypes.includes(typeStr as TransferType) ? typeStr as TransferType : 'green-to-green'
+}
+
+/** 从 uploadUrl 中提取 params 参数 */
+function extractParamsFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    const params = urlObj.searchParams.get('params')
+    return params || ''
+  }
+  catch {
+    // URL 解析失败时尝试从字符串中提取
+    const match = url.match(/params=([^&]+)/)
+    return match ? match[1] : ''
+  }
+}
+
 function normalizeTransferType(input?: string): TransferType {
   if (!input)
     return 'green-to-green'
@@ -613,6 +674,96 @@ export function useApplicationForm(initialTransferType?: string) {
     return true
   }
 
+  /**
+   * 从后端加载已存在的申请单数据（用于"继续上传文件"场景）
+   */
+  async function loadApplicationById(applicationId: number | string) {
+    try {
+      const detail = await applicationApi.getApplicationDetail(applicationId)
+      if (!detail)
+        return false
+
+      const {
+        appBaseInfo,
+        appBaseApprovalRoute,
+        appBaseCountryCityRegionRelation,
+        appBaseUploadDownloadInfo,
+      } = detail
+
+      // 推断 transferType
+      const transferType = transWayToTransferType(appBaseInfo.transWay)
+
+      // 映射区域
+      const sourceArea = REGION_ID_TO_AREA[appBaseCountryCityRegionRelation.fromRegionTypeId] || 'green'
+      const targetArea = REGION_ID_TO_AREA[appBaseCountryCityRegionRelation.toRegionTypeId] || 'green'
+
+      // 解析通知配置
+      function parseNotification(notification: string): NotifyChannel[] {
+        if (!notification)
+          return []
+        try {
+          const arr = JSON.parse(notification)
+          return Array.isArray(arr) ? arr.map((id: number) => String(id) as NotifyChannel) : []
+        }
+        catch {
+          return []
+        }
+      }
+
+      // 映射表单数据
+      formData.value = cloneFormData({
+        transferType,
+        department: appBaseApprovalRoute.selectedDeptName || '',
+        departmentId: appBaseApprovalRoute.deptId,
+        sourceArea,
+        targetArea,
+        sourceCity: [appBaseCountryCityRegionRelation.fromCityName || ''],
+        sourceCityId: appBaseCountryCityRegionRelation.fromCityId,
+        targetCity: [appBaseCountryCityRegionRelation.toCityName || ''],
+        targetCityId: appBaseCountryCityRegionRelation.toCityId,
+        downloaderAccounts: appBaseUploadDownloadInfo.downloadUser?.map(u => u.w3Account) || [],
+        ccAccounts: appBaseApprovalRoute.managerCopyW3Account ? [appBaseApprovalRoute.managerCopyW3Account] : [],
+        containsCustomerData: appBaseApprovalRoute.isCustomerData ? 'yes' : 'no',
+        srNumber: '',
+        minDeptSupervisor: '',
+        securityLevel: String(appBaseApprovalRoute.securityLevel || ''),
+        applyReason: appBaseInfo.reason || '',
+        applicantNotifyOptions: parseNotification(appBaseInfo.uploadNotification),
+        downloaderNotifyOptions: parseNotification(appBaseInfo.downloadNotification),
+      })
+
+      // 设置已提交的申请单信息
+      submittedApplication.value = {
+        id: String(appBaseInfo.applicationId),
+        applicationNo: String(appBaseInfo.applicationId),
+        ...formData.value,
+        containsCustomerData: formData.value.containsCustomerData === 'yes',
+        status: 'pending_upload',
+        applicantId: appBaseInfo.applicantW3Account,
+        applicantName: appBaseInfo.applicantW3Account,
+        createdAt: appBaseInfo.creationDate,
+      } as Application
+
+      // 提取上传参数
+      if (appBaseUploadDownloadInfo.uploadUrl) {
+        uploadUrl.value = appBaseUploadDownloadInfo.uploadUrl
+        uploadParams.value = extractParamsFromUrl(appBaseUploadDownloadInfo.uploadUrl)
+      }
+
+      // 标记申请单已创建，进入第二步
+      isApplicationCreated.value = true
+      currentStep.value = 1
+
+      updateSnapshot()
+      return true
+    }
+    catch (error) {
+      Message.error('加载申请单数据失败')
+      console.error('loadApplicationById error:', error)
+      return false
+    }
+  }
+
   watchCustomerDataField()
   onUnmounted(() => {
     cleanupUploadTimers()
@@ -643,6 +794,7 @@ export function useApplicationForm(initialTransferType?: string) {
     handleSubmit,
     handleSubmitReal,
     loadDraft,
+    loadApplicationById,
     watchCustomerDataField,
     addUploadFiles,
     removeUploadingFile,
