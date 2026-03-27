@@ -4,12 +4,17 @@ import { Message, Modal } from '@arco-design/web-vue'
 import { IconCopy, IconEye, IconFile, IconStop } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
 import { formatDateTime } from '@/utils'
 import { useApplicationList } from '@/composables/useApplicationList'
 import './application-list.scss'
 
 const router = useRouter()
 const selectedRowKeys = ref<string[]>([])
+
+// 关闭申请单弹窗状态
+const closeModalVisible = ref(false)
+const closeApplicationId = ref<number | string>('')
 
 const {
   loading,
@@ -62,17 +67,12 @@ function onCopyApplication(record: MyApplicationItem) {
 }
 
 function onCloseApplication(record: MyApplicationItem) {
-  Modal.confirm({
-    title: '确认关闭申请单？',
-    content: `关闭后申请单 ${record.applicationId} 将无法继续操作`,
-    okText: '确认关闭',
-    cancelText: '取消',
-    onOk: async () => {
-      // TODO: 对接关闭申请单接口
-      Message.success('申请单已关闭')
-      await fetchList()
-    },
-  })
+  closeApplicationId.value = record.applicationId
+  closeModalVisible.value = true
+}
+
+function onCloseSuccess() {
+  fetchList()
 }
 
 function onExport() {
@@ -277,5 +277,12 @@ onMounted(async () => {
         />
       </footer>
     </section>
+
+    <!-- 关闭申请单确认弹窗 -->
+    <CloseApplicationModal
+      v-model:visible="closeModalVisible"
+      :application-id="closeApplicationId"
+      @success="onCloseSuccess"
+    />
   </section>
 </template>

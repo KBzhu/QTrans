@@ -1,228 +1,172 @@
-import type { Application, ApplicationStatus, DetailFieldItem, DetailFileItem, FileInfo, TransferType } from '@/types'
+import type { ApplicationDetailResponse } from '@/api/application'
+import type { DetailFieldItem } from '@/types/detail'
+
+/** 详情文件项 */
+export interface DetailFileItem {
+  id: string
+  fileName: string
+  fileSize: number
+  uploadedAt: string
+  sha256: string
+}
+import { applicationApi } from '@/api/application'
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useApplicationStore, useFileStore } from '@/stores'
 
-const transferTypeLabelMap: Record<TransferType, string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
+/** 区域类型ID到名称的反向映射 */
+const REGION_ID_TO_NAME: Record<number, string> = {
+  1: '绿区',
+  0: '黄区',
+  4: '红区',
+  2: '外网',
 }
 
-const statusLabelMap: Record<ApplicationStatus, string> = {
-  draft: '草稿',
-  pending_upload: '待上传',
-  pending_approval: '待审批',
-  approved: '已批准',
-  rejected: '已驳回',
-  transferring: '传输中',
-  completed: '已完成',
+function formatTransWay(transWay: string): string {
+  // "外网,绿区" -> "外网 → 绿区"
+  return transWay.split(',').map(s => s.trim()).join(' → ')
 }
 
-function toArrayText(value: unknown, separator = ' / ') {
-  if (Array.isArray(value))
-    return value.map(item => String(item)).filter(Boolean).join(separator)
-
-  return String(value || '')
-}
-
-function fileInfoToDetailFileItem(fileInfo: FileInfo): DetailFileItem {
-  return {
-    id: fileInfo.id,
-    fileName: fileInfo.fileName,
-    fileSize: fileInfo.fileSize,
-    uploadedAt: fileInfo.uploadedAt || new Date().toISOString(),
-    sha256: `sha256_${fileInfo.id.slice(-16)}`, // 实际项目中应从后端获取真实 sha256
+function parseNotification(notification: string): string {
+  // "[1,2]" -> "邮件通知, 短信通知" (简化展示)
+  if (!notification)
+    return '-'
+  try {
+    const arr = JSON.parse(notification)
+    if (!Array.isArray(arr) || arr.length === 0)
+      return '-'
+    const map: Record<number, string> = {
+      1: '邮件',
+      2: '短信',
+    }
+    return arr.map((id: number) => map[id] || id).join('、')
+  }
+  catch {
+    return notification
   }
 }
 
-
-
 export function useApplicationDetail() {
   const router = useRouter()
-  const applicationStore = useApplicationStore()
-  const fileStore = useFileStore()
 
   const loading = ref(false)
-  const detailData = ref<Application | null>(null)
+  const detailData = ref<ApplicationDetailResponse | null>(null)
   const activeTab = ref<'info' | 'files'>('files')
 
-  const statusLabel = computed(() => {
-    if (!detailData.value)
-      return '-'
-    return statusLabelMap[detailData.value.status]
-  })
-
-  const transferTypeLabel = computed(() => {
-    if (!detailData.value)
-      return '-'
-    return transferTypeLabelMap[detailData.value.transferType]
-  })
-
+  // 基本信息
   const basicInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
       return []
 
-    const item = detailData.value
+    const { appBaseInfo, appBaseUploadDownloadInfo, appBpmWorkFlow } = detailData.value
+    const creationDate = dayjs(appBaseInfo.creationDate)
+    const uploadEndDate = dayjs(appBaseUploadDownloadInfo.uploadEndDate)
+    const downloadEndDate = dayjs(appBaseUploadDownloadInfo.downloadEndDate)
+
     return [
-      { label: '申请人', value: `${item.applicantId} ${item.applicantName}`.trim() },
-      { label: '申请单号', value: item.applicationNo },
-      { label: '当前处理人', value: item.applicantName || '-' },
-      { label: '存储空间大小', value: `${item.storageSize || 0} MB` },
-      { label: '上传有效期间', value: `${dayjs(item.uploadExpireTime).diff(dayjs(item.createdAt), 'day')}天` },
-      { label: '下载有效期间', value: `${dayjs(item.downloadExpireTime).diff(dayjs(item.createdAt), 'day')}天` },
+      { label: '申请人', value: appBaseInfo.applicantW3Account },
+      { label: '申请单号', value: String(appBaseInfo.applicationId) },
+      { label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' },
+      { label: '上传有效期间', value: `${uploadEndDate.diff(creationDate, 'day')}天` },
+      { label: '下载有效期间', value: `${downloadEndDate.diff(creationDate, 'day')}天` },
     ]
   })
 
+  // 申请信息
   const applicationInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
       return []
 
-    const item = detailData.value
+    const { appBaseInfo, appBaseApprovalRoute, appBaseCountryCityRegionRelation, appBaseUploadDownloadInfo } = detailData.value
+
+    const sourceAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.fromRegionTypeId] || '-'
+    const targetAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.toRegionTypeId] || '-'
+
     return [
-      { label: '部门', value: item.department || '-' },
-      { label: '申请类型', value: transferTypeLabel.value },
-      { label: '上传区域', value: item.sourceArea },
-      { label: '下载区域', value: item.targetArea },
-      { label: '数据传出国家/城市', value: `${item.sourceCountry} / ${toArrayText(item.sourceCity, '、')}` },
-      { label: '数据传至国家/城市', value: `${item.targetCountry} / ${toArrayText(item.targetCity, '、')}` },
-      { label: '下载人账号', value: toArrayText(item.downloaderAccounts, '、') || '-' },
-      { label: '抄送人', value: toArrayText(item.ccAccounts, '、') || '-' },
-      { label: '包含客户网络数据', value: item.containsCustomerData ? '是' : '否' },
-      { label: '创建时间', value: dayjs(item.createdAt).format('YYYY/MM/DD HH:mm:ss') },
-      { label: '申请原因', value: item.applyReason || '-', fullRow: true },
-      { label: '申请人通知范围', value: toArrayText(item.applicantNotifyOptions, '、') || '-' },
-      { label: '下载人通知范围', value: toArrayText(item.downloaderNotifyOptions, '、') || '-' },
+      { label: '部门', value: appBaseApprovalRoute.selectedDeptName || '-' },
+      { label: '传输路由', value: formatTransWay(appBaseInfo.transWay) },
+      { label: '上传区域', value: sourceAreaName },
+      { label: '下载区域', value: targetAreaName },
+      { label: '源城市', value: appBaseCountryCityRegionRelation.fromCityName || '-' },
+      { label: '目标城市', value: appBaseCountryCityRegionRelation.toCityName || '-' },
+      { label: '下载人账号', value: appBaseUploadDownloadInfo.downloadUser?.map(u => `${u.fullName}(${u.w3Account})`).join('、') || '-' },
+      { label: '抄送人', value: appBaseApprovalRoute.managerCopyW3Account || '-' },
+      { label: '包含客户网络数据', value: appBaseApprovalRoute.isCustomerData ? '是' : '否' },
+      { label: '创建时间', value: dayjs(appBaseInfo.creationDate).format('YYYY/MM/DD HH:mm:ss') },
+      { label: '申请原因', value: appBaseInfo.reason || '-', fullRow: true },
+      { label: '申请人通知范围', value: parseNotification(appBaseInfo.uploadNotification) },
+      { label: '下载人通知范围', value: parseNotification(appBaseInfo.downloadNotification) },
     ]
   })
 
+  // 文件列表 - 暂时返回空数组，后续对接文件列表接口
   const files = computed<DetailFileItem[]>(() => {
-    if (!detailData.value)
-      return []
-
-    const realFiles = fileStore.getFilesByApplicationId(detailData.value.id)
-    return realFiles.map(fileInfoToDetailFileItem)
+    return []
   })
 
-  async function fetchDetail(id: string) {
+  // 是否未上传
+  const isNotUploaded = computed(() => {
+    return detailData.value?.appBaseUploadDownloadInfo.isUploaded === 0
+  })
+
+  async function fetchDetail(id: string | number) {
     loading.value = true
     try {
-      if (applicationStore.applications.length === 0)
-        await applicationStore.fetchApplications({ pageNum: 1, pageSize: 200 })
-
-      const local = [...applicationStore.applications, ...applicationStore.drafts].find(item => item.id === id)
-      if (local) {
-        detailData.value = local
-        return local
-      }
-
-      const remote = await applicationStore.fetchApplicationDetail(id)
-      detailData.value = remote
-      return remote
+      const res = await applicationApi.getApplicationDetail(id)
+      detailData.value = res
+      return res
+    }
+    catch (error) {
+      Message.error('获取申请单详情失败')
+      throw error
     }
     finally {
       loading.value = false
     }
   }
 
-  function handleEdit() {
+  function handleContinueUpload() {
     if (!detailData.value)
       return
 
+    // 跳转到上传页面，带上申请单ID
     router.push({
       path: '/application/create',
       query: {
-        draftId: detailData.value.id,
-        type: detailData.value.transferType,
+        applicationId: detailData.value.appBaseInfo.applicationId,
+        step: '2',
       },
     })
   }
 
-  async function handleDelete() {
+  function handleViewFiles() {
     if (!detailData.value)
       return
 
-    await applicationStore.deleteApplication(detailData.value.id)
-    Message.success('申请单已删除')
-    router.push('/applications')
+    // 跳转到文件列表页
+    router.push(`/application/${detailData.value.appBaseInfo.applicationId}/files`)
   }
 
-  async function handleWithdraw() {
-    if (!detailData.value)
-      return
-
-    const updated = await applicationStore.updateApplication(detailData.value.id, { status: 'draft' })
-    detailData.value = updated
-    Message.success('申请已撤回并转为草稿')
+  function handleDownloadFile(_file: DetailFileItem) {
+    Message.info('文件下载功能待对接')
   }
 
-  function handleUploadFile() {
-    if (!detailData.value)
-      return
-
-    router.push({
-      path: '/application/create',
-      query: {
-        draftId: detailData.value.id,
-        type: detailData.value.transferType,
-      },
-    })
-  }
-
-  function triggerBrowserDownload(blob: Blob, fileName: string) {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    // 延迟释放，避免浏览器尚未完成写盘就撤销 URL 导致 .crdownload 残留
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-  }
-
-  function handleDownloadFile(file: DetailFileItem) {
-    const realFile = fileStore.files.get(file.id)
-
-    if (realFile?.fileBlob) {
-      triggerBrowserDownload(realFile.fileBlob, realFile.fileName)
-      Message.success(`开始下载：${realFile.fileName}`)
-      return
-    }
-
-    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
-    triggerBrowserDownload(blob, file.fileName)
-    Message.warning('当前文件缺少二进制内容，已回退为模拟下载')
-  }
-
-  function handleBatchDownload(fileIds: string[]) {
-    const selected = files.value.filter(file => fileIds.includes(file.id))
-    selected.forEach(file => handleDownloadFile(file))
-    Message.success(`已开始下载 ${selected.length} 个文件`)
+  function handleBatchDownload(_fileIds: string[]) {
+    Message.info('批量下载功能待对接')
   }
 
   return {
     loading,
     detailData,
     activeTab,
-    statusLabel,
-    transferTypeLabel,
     basicInfoRows,
     applicationInfoRows,
     files,
+    isNotUploaded,
     fetchDetail,
-    handleEdit,
-    handleDelete,
-    handleWithdraw,
-    handleUploadFile,
+    handleContinueUpload,
+    handleViewFiles,
     handleDownloadFile,
     handleBatchDownload,
   }

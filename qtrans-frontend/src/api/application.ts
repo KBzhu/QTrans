@@ -209,6 +209,27 @@ findSecurityLevelList(params: {
       query || {},
     )
   },
+  /**
+   * 申请单详情 - 真实后端接口
+   * GET /workflowService/services/frontendService/frontend/application/approvalDetails?applicationId={id}
+   */
+  getApplicationDetail(applicationId: number | string): Promise<ApplicationDetailResponse> {
+    return request.rawGet<ApplicationDetailResponse>(
+      '/workflowService/services/frontendService/frontend/application/approvalDetails',
+      { params: { applicationId } },
+    )
+  },
+  /**
+   * 关闭申请单 - 真实后端接口
+   * GET /workflowService/services/frontendService/frontend/application/close?applicationId={id}
+   * 响应: true/false
+   */
+  closeApplication(applicationId: number | string): Promise<boolean> {
+    return request.rawGet<boolean>(
+      '/workflowService/services/frontendService/frontend/application/close',
+      { params: { applicationId } },
+    )
+  },
 }
 
 /** 审批层级配置项 */
@@ -297,6 +318,241 @@ export interface MyApplicationQuery {
   formAreaId?: number
   toAreaId?: number
   reason?: string
+}
+
+/** 真实后端 - 下载用户 */
+export interface DownloadUser {
+  w3Account: string
+  fullName: string
+}
+
+/** 真实后端 - 申请单详情 - 基本信息 */
+export interface AppBaseInfo {
+  status: number
+  createdBy: string
+  creationDate: string
+  lastUpdatedBy: string
+  lastUpdateDate: string
+  applicationId: number
+  applicantW3Account: string
+  applicationStatus: number
+  departmentCodePath: string | null
+  departmentName: string | null
+  departmentPath: string | null
+  externalCode: string
+  memo: string | null
+  transWay: string
+  isDeptChannel: number | null
+  procType: number
+  parentId: number | null
+  routineChannelDate: string | null
+  reason: string
+  securityLevel: number | null
+  isApplicantPromiseNoVersionFile: number | null
+  isManagerPromiseNoVersionFile: number | null
+  isThirdPartyIntegration: number | null
+  transmissionStatus: string | null
+  transmissionStatus2: string | null
+  transmissionOpinions: string | null
+  projectGroupId: number | null
+  projectGroup: string | null
+  projectTeamId: number | null
+  projectTeam: string | null
+  sendNotification: string | null
+  emailNotification: number
+  authorizedExternalCode: string | null
+  uploadNotification: string // 如 "[1,2]"
+  downloadNotification: string
+  dirManagerConfirm: number
+  managerW3Account: string
+  kiaConfirms: number
+}
+
+/** 真实后端 - 申请单详情 - 审批路由 */
+export interface AppBaseApprovalRoute {
+  status: number
+  createdBy: string
+  creationDate: string
+  lastUpdatedBy: string
+  lastUpdateDate: string | null
+  applicationId: number
+  approvalRouteId: number
+  deptId: string
+  departmentCodePath: string
+  departmentName: string
+  departmentPath: string
+  userDeptId: string
+  userDeptCodePath: string
+  selectedDeptName: string
+  userDepartmentName: string | null
+  isCustomerData: number
+  isContainSourceCode: number | null
+  isMinManagerApproval: number
+  isManagerMinChange: number
+  isManagerApproval: number
+  isDirectManagerMustHwEmployees: number
+  isManager4Approval: number
+  isManager3Approval: number
+  isManager2Approval: number
+  isChiefApproval: number
+  isInfoManagerApproval: number
+  isManagerCopyApproval: number | null
+  isGuarantorApproval: number
+  isCopyInfoManagerApproval: number | null
+  sourceType: string | null
+  managerMinW3Account: string
+  managerMinUser: any | null
+  managerW3Account: string
+  managerUser: any | null
+  managerCopyW3Account: string
+  managerCopyUser: any | null
+  manager4W3Account: string
+  manager4User: any | null
+  manager3W3Account: string
+  manager3User: any | null
+  manager2W3Account: string
+  manager2User: any | null
+  managerInfoCopyW3Account: string
+  managerInfoCopyUser: any | null
+  guarantorW3Account: string
+  guarantorUser: any | null
+  managerInfoW3Account: string
+  managerInfoUser: any | null
+  managerChiefW3Account: string
+  managerChiefUser: any | null
+  adminUpdateApprover: string
+  adminUpdateUser: any | null
+  isNeedApproval: number
+  isApproved: number
+  projectGroupId: number | null
+  projectTeamId: number | null
+  securityLevel: number
+  isContainLargeModel: number
+  isAbcManagerApproval: number
+  abcManagerW3Account: string
+  abcManagerUser: any | null
+}
+
+/** 真实后端 - 申请单详情 - 城市区域关系 */
+export interface AppBaseCountryCityRegionRelation {
+  status: number
+  createdBy: string
+  creationDate: string
+  lastUpdatedBy: string
+  lastUpdateDate: string
+  applicationId: number
+  fromCityId: number
+  fromCityName: string
+  fromCountryId: number | null
+  fromCountryName: string | null
+  fromRedAreaId: number | null
+  fromRegionId: number
+  fromRegionTypeId: number
+  fromRegionMod: number
+  toCityId: number
+  toCityName: string
+  toCountryId: number | null
+  toCountryName: string | null
+  toRedAreaId: number | null
+  toRegionId: number
+  toRegionTypeId: number
+  toRegionMod: number
+  isSensitiveCountryFileTransfer: number | null
+  transitRegionId: number | null
+  fromRegionSubTypeId: number | null
+  toRegionSubTypeId: number | null
+}
+
+/** 真实后端 - 申请单详情 - 外部信息 */
+export interface AppBaseExternalInfo {
+  applicationId: number
+  applicationType: number
+  vendorName: string | null
+  vendorFtpAddress: string | null
+  vendorFtpVirtualPath: string | null
+  vendorFtpFiles: string | null
+  vendorFtpUserName: string | null
+  sourceCodeApplicationId: number | null
+  sourceCodeOptions: number | null
+  sourceCodeArchiveAddress: string | null
+  channelNo: string | null
+  vendorId: number | null
+  vendorFtpId: number | null
+  vendorFtpAccountId: number | null
+  vendorObsId: number | null
+  vendorObsAccountId: number | null
+  vendorObsAddress: string | null
+  vendorObsBucket: string | null
+  vendorObsFiles: string | null
+  vendorObsVirtualPath: string | null
+  personnelId: number | null
+  codeName: string | null
+  abc: boolean
+  keywordDetection: boolean
+}
+
+/** 真实后端 - 申请单详情 - 上传下载信息 */
+export interface AppBaseUploadDownloadInfo {
+  status: number
+  createdBy: string | null
+  creationDate: string
+  lastUpdatedBy: string | null
+  lastUpdateDate: string
+  applicationId: number
+  applicationSize: number
+  usePasscode: number
+  uploaderEmail: string
+  uploaderW3Account: string
+  uploadEndDate: string
+  uploadMailTemplateId: number
+  uploadMode: number
+  uploadPasscode: string
+  uploadPasscodeDate: string
+  uploadUrl: string
+  isUploaded: number // 0=未上传, 1=已上传
+  isExternalAutoDownload: number
+  downloadEmail: string | null
+  downloadW3Account: string
+  downloadUser: DownloadUser[]
+  downloadEndDate: string
+  downloadMailTemplateId: number
+  downloadUrl: string
+  downloadMode: number
+  downloadPasscode: string
+  downloadPasscodeDate: string
+  downloadNotificationStatus: number
+  downloadNotificationDate: string | null
+  transferMode: number | null
+  auditUrl: string
+  isCrossTransfer: number
+}
+
+/** 真实后端 - 申请单详情 - 工作流 */
+export interface AppBpmWorkFlow {
+  applicationId: number
+  currentHandler: string
+}
+
+/** 真实后端 - 申请单详情 - 传输信息 */
+export interface AppTransInfo {
+  transferMode: number
+}
+
+/** 真实后端 - 申请单详情响应 */
+export interface ApplicationDetailResponse {
+  appBaseApprovalRoute: AppBaseApprovalRoute
+  appBaseCountryCityRegionRelation: AppBaseCountryCityRegionRelation
+  appBaseExternalInfo: AppBaseExternalInfo
+  appBaseInfo: AppBaseInfo
+  appBaseUploadDownloadInfo: AppBaseUploadDownloadInfo
+  appBpmWorkFlow: AppBpmWorkFlow
+  appCustomerNetworkFiles: any | null
+  appSourceCodeFiles: any | null
+  appTransInfo: AppTransInfo
+  attachment: any | null
+  overallShowDownloadUrl: boolean
+  isCrossApproval: any | null
+  edsInfo: any | null
 }
 
 

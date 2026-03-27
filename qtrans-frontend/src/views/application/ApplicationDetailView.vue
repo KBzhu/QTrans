@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import type { TransferState } from '@/types'
-import { Modal } from '@arco-design/web-vue'
-import { IconCheckCircleFill } from '@arco-design/web-vue/es/icon'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import type { DetailFileItem } from '@/composables/useApplicationDetail'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import TransferProgress from '@/components/business/TransferProgress.vue'
+import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
 import './application-detail.scss'
-
 
 const route = useRoute()
 const router = useRouter()
@@ -18,77 +15,38 @@ const {
   loading,
   detailData,
   activeTab,
-  statusLabel,
   basicInfoRows,
   applicationInfoRows,
   files,
+  isNotUploaded,
   fetchDetail,
-  handleEdit,
-  handleDelete,
-  handleWithdraw,
-  handleUploadFile,
+  handleContinueUpload,
   handleDownloadFile,
   handleBatchDownload,
 } = useApplicationDetail()
 
 const id = String(route.params.id || '')
-const transferSectionRef = ref<HTMLElement | null>(null)
+const closeModalVisible = ref(false)
 
-const showTransferProgress = computed(() => {
-  const status = detailData.value?.status
-  return status === 'approved' || status === 'transferring' || status === 'completed'
+// 当前流程
+const currentStatus = computed(() => detailData.value?.appBaseInfo?.applicationStatus ? '进行中' : '-')
+
+// 申请单状态
+const taskStatus = computed(() => {
+  // 从列表页传入的数据中获取，详情页暂不展示
+  return '-'
 })
-
-const transferFileSize = computed(() => {
-  const total = files.value.reduce((sum, item) => sum + Math.max(item.fileSize, 0), 0)
-  if (total > 0)
-    return total
-
-  return Math.max(1024 * 1024, Math.round((detailData.value?.storageSize || 0) * 1024 * 1024))
-})
-
-const transferStatusHint = computed<TransferState['status']>(() => {
-  if (detailData.value?.status === 'completed')
-    return 'completed'
-
-  if (detailData.value?.status === 'transferring')
-    return 'transferring'
-
-  return 'pending'
-})
-
-async function handleViewTransferProgress() {
-  await nextTick()
-  transferSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-function handleDownloadAll() {
-  handleBatchDownload(files.value.map(item => item.id))
-}
 
 function goBack() {
   router.push('/applications')
 }
 
-
-function onDelete() {
-  Modal.warning({
-    title: '确认删除申请单？',
-    content: `删除后不可恢复（${detailData.value?.applicationNo || ''}）`,
-    okText: '确认删除',
-    cancelText: '取消',
-    onOk: handleDelete,
-  })
+function onCloseApplication() {
+  closeModalVisible.value = true
 }
 
-function onWithdraw() {
-  Modal.confirm({
-    title: '确认关闭申请？',
-    content: `关闭后将转为草稿（${detailData.value?.applicationNo || ''}）`,
-    okText: '确认关闭',
-    cancelText: '取消',
-    onOk: handleWithdraw,
-  })
+function onCloseSuccess() {
+  router.push('/applications')
 }
 
 onMounted(async () => {
@@ -108,12 +66,10 @@ onMounted(async () => {
 
     <header class="application-detail-page__header">
       <div>
-        <p class="application-detail-page__no">申请单号：{{ detailData?.applicationNo || '-' }}</p>
+        <p class="application-detail-page__no">申请单号：{{ detailData?.appBaseInfo?.applicationId || '-' }}</p>
       </div>
-
-      <div class="status-pill" :class="`status-pill--${detailData?.status || 'draft'}`">
-        <IconCheckCircleFill />
-        <span>{{ statusLabel }}</span>
+      <div class="status-info">
+        <span class="status-tag">当前流程：{{ detailData?.appBpmWorkFlow?.currentHandler || '-' }}</span>
       </div>
     </header>
 
@@ -143,30 +99,25 @@ onMounted(async () => {
 
         <DetailFileTable
           v-else
-          :files="files"
+          :files="files as DetailFileItem[]"
           :loading="loading"
-           :status="detailData?.status || ''"
+          :status="detailData?.appBaseInfo?.applicationStatus?.toString() || ''"
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
         />
       </a-spin>
     </div>
 
-    <section v-if="showTransferProgress" ref="transferSectionRef" class="application-detail-page__transfer">
-      <TransferProgress
-        :application-id="detailData?.id || id"
-        :file-size="transferFileSize"
-        :status-hint="transferStatusHint"
-      />
-    </section>
-
     <footer class="application-detail-page__actions">
-      <a-button v-if="detailData?.status === 'draft'" type="outline" @click="handleEdit">继续编辑</a-button>
-      <a-button v-if="detailData?.status === 'draft'" status="danger" @click="onDelete">删除</a-button>
-      <a-button v-if="detailData?.status === 'pending_upload'" type="primary" @click="handleUploadFile">上传文件</a-button>
-      <a-button v-if="detailData?.status === 'pending_approval'" status="danger" @click="onWithdraw">关闭申请</a-button>
-      <a-button v-if="detailData && ['approved', 'transferring'].includes(detailData.status)" type="primary" @click="handleViewTransferProgress">查看传输进度</a-button>
+      <a-button v-if="isNotUploaded" type="primary" @click="handleContinueUpload">继续上传文件</a-button>
+      <a-button type="outline" status="danger" @click="onCloseApplication">关闭申请单</a-button>
     </footer>
 
+    <!-- 关闭申请单确认弹窗 -->
+    <CloseApplicationModal
+      v-model:visible="closeModalVisible"
+      :application-id="detailData?.appBaseInfo?.applicationId || id"
+      @success="onCloseSuccess"
+    />
   </section>
 </template>

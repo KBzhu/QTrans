@@ -7,6 +7,21 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
+- **关闭申请单功能重构**:
+  - 修复 `closeApplication` API 为 GET 请求，响应类型为 `boolean`
+  - 新增 `CloseApplicationModal` 组件，支持手动输入申请单号二次确认
+  - 详情页和列表页统一使用 `CloseApplicationModal` 组件
+  - 从 `useApplicationDetail.ts` 移除 `handleCloseApplication` 方法
+- **申请单详情对接真实接口**:
+- **申请单详情对接真实接口**:
+  - 新增 `ApplicationDetailResponse` 及相关类型定义（`AppBaseInfo`、`AppBaseApprovalRoute`、`AppBaseCountryCityRegionRelation`、`AppBaseUploadDownloadInfo` 等）
+  - 新增 `applicationApi.getApplicationDetail` 方法，对接 `GET /workflowService/services/frontendService/frontend/application/approvalDetails`
+  - 新增 `applicationApi.closeApplication` 方法，对接关闭申请单接口
+  - 重构 `useApplicationDetail.ts`，改为调用真实接口
+  - 更新详情页展示字段：申请人、申请单号、当前处理人、存储空间大小、上传/下载有效期间、部门、传输路由、上传/下载区域、源/目标城市、下载人账号、抄送人、客户网络数据、创建时间、申请原因、通知范围
+  - 更新操作按钮：继续上传文件（isUploaded=0 时出现）、关闭申请单
+  - 移除删除申请单、继续编辑按钮
+- **我的申请单列表对接真实接口**:
 - **我的申请单列表对接真实接口**:
   - 新增 `MyApplicationItem`、`MyApplicationResponse`、`MyApplicationQuery` 类型
   - 新增 `applicationApi.getMyApplicationList` 方法，对接 `POST /workflowService/services/frontendService/frontend/myApplication/page/{pageSize}/{pageNum}`
