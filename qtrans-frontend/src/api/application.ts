@@ -230,6 +230,16 @@ findSecurityLevelList(params: {
       { params: { applicationId } },
     )
   },
+  /**
+   * 获取申请单流程进展 - 真实后端接口
+   * GET /workflowService/services/frontendService/frontend/application/getProcessDetails?applicationId={id}
+   */
+  getProcessDetails(applicationId: number | string): Promise<ProcessDetailsResponse> {
+    return request.rawGet<ProcessDetailsResponse>(
+      '/workflowService/services/frontendService/frontend/application/getProcessDetails',
+      { params: { applicationId } },
+    )
+  },
 }
 
 /** 审批层级配置项 */
@@ -553,6 +563,32 @@ export interface ApplicationDetailResponse {
   overallShowDownloadUrl: boolean
   isCrossApproval: any | null
   edsInfo: any | null
+}
+
+/** 真实后端 - 流程进展步骤 */
+export interface ProcessStepItem {
+  status: string | null
+  createdBy: string | null
+  creationDate: string
+  lastUpdatedBy: string | null
+  lastUpdateDate: string | null
+  applicationId: number
+  isCross: string | null
+  applicationStatus: number
+  statusName: string
+  usedTime: number // 秒
+  totalTime: string // 如 "16:58:08"
+}
+
+/** 真实后端 - 流程进展响应 */
+export interface ProcessDetailsResponse {
+  applicationId: number
+  taskStatus: string // 如 "用户关闭"
+  applicationStatus: string // 如 "流程结束"
+  applicationStatusId: number
+  viewData: any | null
+  nodeInfos: any | null
+  listSteps: ProcessStepItem[]
 }
 
 

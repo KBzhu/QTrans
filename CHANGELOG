@@ -6,7 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- **申请单流程进展组件**: 新增 `ProcessTimeline.vue` 组件，展示申请单的流程进度
+  - 新增 `getProcessDetails` API 接口和 `ProcessDetailsResponse`/`ProcessStepItem` 类型
+  - 组件支持自动获取流程数据，按时间排序展示步骤列表
+  - 步骤状态判断：已完成（绿色）、进行中（蓝色）、待处理（灰色）
+  - 用时格式化：秒 -> "X分X秒" 或 "X小时X分"
+  - 样式参考 `ApprovalTimeline` 组件
+
 ### Changed
+- **申请单详情状态展示优化**:
+  - status-tag 改用 `processDetailData.applicationStatus` 展示（如"流程结束"）
+  - 移除原有的 `currentHandler` 展示
+  - `useApplicationDetail.ts` 新增 `processDetailData` 和 `fetchProcessDetail` 方法
+  - 详情页在信息卡片下方新增"流程进展"区块
 - **创建页"继续上传文件"功能**:
   - 新增 `loadApplicationById` 方法，从后端详情接口加载已存在的申请单数据
   - 新增 `transWayToTransferType` 函数，从 transWay 字符串推断 transferType

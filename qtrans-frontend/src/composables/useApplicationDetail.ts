@@ -1,4 +1,4 @@
-import type { ApplicationDetailResponse } from '@/api/application'
+import type { ApplicationDetailResponse, ProcessDetailsResponse } from '@/api/application'
 import type { DetailFieldItem } from '@/types/detail'
 
 /** 详情文件项 */
@@ -52,6 +52,7 @@ export function useApplicationDetail() {
 
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)
+  const processDetailData = ref<ProcessDetailsResponse | null>(null)
   const activeTab = ref<'info' | 'files'>('info')
 
   // 基本信息
@@ -115,6 +116,8 @@ export function useApplicationDetail() {
     try {
       const res = await applicationApi.getApplicationDetail(id)
       detailData.value = res
+      // 同时获取流程进展
+      fetchProcessDetail(id)
       return res
     }
     catch (error) {
@@ -123,6 +126,18 @@ export function useApplicationDetail() {
     }
     finally {
       loading.value = false
+    }
+  }
+
+  // 获取流程进展
+  async function fetchProcessDetail(id: string | number) {
+    try {
+      const res = await applicationApi.getProcessDetails(id)
+      processDetailData.value = res
+      return res
+    }
+    catch (error) {
+      console.error('获取流程进展失败:', error)
     }
   }
 
@@ -159,12 +174,14 @@ export function useApplicationDetail() {
   return {
     loading,
     detailData,
+    processDetailData,
     activeTab,
     basicInfoRows,
     applicationInfoRows,
     files,
     isNotUploaded,
     fetchDetail,
+    fetchProcessDetail,
     handleContinueUpload,
     handleViewFiles,
     handleDownloadFile,

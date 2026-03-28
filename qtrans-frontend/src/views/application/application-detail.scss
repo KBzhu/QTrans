@@ -141,6 +141,18 @@
   }
 }
 
+.process-card {
+  min-height: auto;
+  margin-top: 20px;
+
+  &__title {
+    margin: 0 0 16px;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
 @media (max-width: 1200px) {
   .application-detail-page {
     &__title {

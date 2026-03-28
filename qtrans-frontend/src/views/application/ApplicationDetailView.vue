@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
+import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
 import './application-detail.scss'
 
@@ -14,6 +15,7 @@ const router = useRouter()
 const {
   loading,
   detailData,
+  processDetailData,
   activeTab,
   basicInfoRows,
   applicationInfoRows,
@@ -28,14 +30,8 @@ const {
 const id = String(route.params.id || '')
 const closeModalVisible = ref(false)
 
-// 当前流程
-const currentStatus = computed(() => detailData.value?.appBaseInfo?.applicationStatus ? '进行中' : '-')
-
-// 申请单状态
-const taskStatus = computed(() => {
-  // 从列表页传入的数据中获取，详情页暂不展示
-  return '-'
-})
+// 当前流程状态 - 使用 processDetailData.applicationStatus
+const currentStatus = computed(() => processDetailData.value?.applicationStatus || '-')
 
 function goBack() {
   router.push('/applications')
@@ -69,7 +65,7 @@ onMounted(async () => {
         <p class="application-detail-page__no">申请单号：{{ detailData?.appBaseInfo?.applicationId || '-' }}</p>
       </div>
       <div class="status-info">
-        <span class="status-tag">当前流程：{{ detailData?.appBpmWorkFlow?.currentHandler || '-' }}</span>
+        <span class="status-tag">当前流程：{{ currentStatus }}</span>
       </div>
     </header>
 
@@ -106,6 +102,12 @@ onMounted(async () => {
           @batch-download="handleBatchDownload"
         />
       </a-spin>
+    </div>
+
+    <!-- 流程进展 -->
+    <div class="detail-card process-card">
+      <h3 class="process-card__title">流程进展</h3>
+      <ProcessTimeline :application-id="detailData?.appBaseInfo?.applicationId || id" />
     </div>
 
     <footer class="application-detail-page__actions">
