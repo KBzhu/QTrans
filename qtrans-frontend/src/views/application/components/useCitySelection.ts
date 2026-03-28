@@ -3,7 +3,7 @@ import type { CitySelectionState } from './types'
 import { ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
 import { useAuthStore } from '@/stores'
-import { REGION_TYPE_MAP } from './constants'
+import { AREA_ID_MAP } from './constants'
 
 export function useCitySelection(
   getFormData: () => { sourceArea: SecurityArea, targetArea: SecurityArea },
@@ -21,8 +21,8 @@ export function useCitySelection(
 
   async function fetchUploadCities() {
     const { sourceArea, targetArea } = getFormData()
-    const from = REGION_TYPE_MAP[sourceArea]
-    const to = REGION_TYPE_MAP[targetArea]
+    const from = AREA_ID_MAP[sourceArea]
+    const to = AREA_ID_MAP[targetArea]
     if (from === undefined || to === undefined)
       return
 
@@ -59,8 +59,8 @@ export function useCitySelection(
 
   async function fetchDownloadCities(uploadRegionId: number) {
     const { sourceArea, targetArea } = getFormData()
-    const from = REGION_TYPE_MAP[sourceArea]
-    const to = REGION_TYPE_MAP[targetArea]
+    const from = AREA_ID_MAP[sourceArea]
+    const to = AREA_ID_MAP[targetArea]
     if (from === undefined || to === undefined)
       return
 

@@ -1,7 +1,7 @@
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
-import { HIGH_TO_LOW_PAIRS, REGION_TYPE_MAP } from './constants'
+import { HIGH_TO_LOW_PAIRS, AREA_ID_MAP } from './constants'
 
 type SecurityLevelFormState = Pick<ApplicationFormData, 'sourceArea' | 'targetArea' | 'securityLevel'>
 
@@ -26,8 +26,8 @@ export function useSecurityLevel(
 
   async function fetch() {
     const { sourceArea, targetArea, securityLevel } = getFormData()
-    const from = REGION_TYPE_MAP[sourceArea]
-    const to = REGION_TYPE_MAP[targetArea]
+    const from = AREA_ID_MAP[sourceArea]
+    const to = AREA_ID_MAP[targetArea]
     if (from === undefined || to === undefined)
       return
 

@@ -2,7 +2,7 @@ import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import type { ApprovalRouteConfig } from './types'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
-import { HIGH_TO_LOW_PAIRS, REGION_TYPE_MAP } from './constants'
+import { HIGH_TO_LOW_PAIRS, AREA_ID_MAP } from './constants'
 
 export interface ApproverOption {
   label: string
@@ -153,8 +153,8 @@ export function useApprovalRoute(
     if (!securityLevel || !departmentId)
       return
 
-    const from = REGION_TYPE_MAP[sourceArea]
-    const to = REGION_TYPE_MAP[targetArea]
+    const from = AREA_ID_MAP[sourceArea]
+    const to = AREA_ID_MAP[targetArea]
     if (from === undefined || to === undefined)
       return
 
