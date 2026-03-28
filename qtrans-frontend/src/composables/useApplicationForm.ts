@@ -1,13 +1,16 @@
 import type { Application, NotifyChannel, TransferType } from '@/types'
+import type { SecurityArea } from '@/constants'
 import { Message } from '@arco-design/web-vue'
 
 import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
+import { ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
 
-export type SecurityArea = 'green' | 'yellow' | 'red' | 'external'
+// 重新导出 SecurityArea 供其他模块使用
+export type { SecurityArea }
 
 interface UploadingFileState {
   uid: string
@@ -65,49 +68,12 @@ const transferTypeAlias: Record<string, TransferType> = {
   'routine-channel': 'yellow-to-red',
 }
 
-const transferTypeLabelMap: Record<TransferType, string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
-}
+// 使用统一常量
+const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
-/** 区域类型ID到前端区域名称的反向映射 */
-const REGION_ID_TO_AREA: Record<number, SecurityArea> = {
-  1: 'green',
-  0: 'yellow',
-  4: 'red',
-  2: 'external',
-}
-
-/** 从 transWay 字符串推断 transferType */
+/** 从 transWay 字符串推断 transferType（使用统一常量）*/
 function transWayToTransferType(transWay: string): TransferType {
-  // transWay 格式如: "绿区,绿区" 或 "外网,绿区"
-  const parts = transWay.split(',').map(s => s.trim())
-  if (parts.length !== 2)
-    return 'green-to-green'
-
-  // 将中文区域名映射到英文
-  const areaMap: Record<string, SecurityArea> = {
-    '绿区': 'green',
-    '黄区': 'yellow',
-    '红区': 'red',
-    '外网': 'external',
-  }
-
-  const sourceArea = areaMap[parts[0] || ''] || 'green'
-  const targetArea = areaMap[parts[1] || ''] || 'green'
-
-  // external 映射为 red
-  const normalizedSource = sourceArea === 'external' ? 'red' : sourceArea
-  const normalizedTarget = targetArea === 'external' ? 'red' : targetArea
-
-  // 组合为 transferType
-  const typeStr = `${normalizedSource}-to-${normalizedTarget}`
-
+  const typeStr = transWayToTransferTypeUtil(transWay)
   // 验证是否为有效类型
   const validTypes: TransferType[] = [
     'green-to-green',
@@ -118,7 +84,6 @@ function transWayToTransferType(transWay: string): TransferType {
     'red-to-red',
     'cross-country',
   ]
-
   return validTypes.includes(typeStr as TransferType) ? typeStr as TransferType : 'green-to-green'
 }
 
@@ -132,7 +97,7 @@ function extractParamsFromUrl(url: string): string {
   catch {
     // URL 解析失败时尝试从字符串中提取
     const match = url.match(/params=([^&]+)/)
-    return match ? match[1] : ''
+    return match?.[1] ?? ''
   }
 }
 
@@ -176,16 +141,32 @@ function inferAreas(transferType: TransferType): { sourceArea: SecurityArea, tar
   return { sourceArea: 'green', targetArea: 'green' }
 }
 
-function defaultFormData(transferTypeRaw?: string): ApplicationFormData {
+function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: string): ApplicationFormData {
   const transferType = normalizeTransferType(transferTypeRaw)
-  const areas = inferAreas(transferType)
+
+  // 优先使用传入的区域参数（从 URL query 传递），否则才调用 inferAreas 推断
+  let sourceArea: SecurityArea
+  let targetArea: SecurityArea
+
+  if (fromZone && toZone) {
+    // 验证传入的区域是否有效
+    const validAreas: SecurityArea[] = ['green', 'yellow', 'red', 'external']
+    sourceArea = validAreas.includes(fromZone as SecurityArea) ? (fromZone as SecurityArea) : 'green'
+    targetArea = validAreas.includes(toZone as SecurityArea) ? (toZone as SecurityArea) : 'green'
+  }
+  else {
+    // 回退到推断逻辑
+    const areas = inferAreas(transferType)
+    sourceArea = areas.sourceArea
+    targetArea = areas.targetArea
+  }
 
   return {
     transferType,
     department: '',
     departmentId: '',
-    sourceArea: areas.sourceArea,
-    targetArea: areas.targetArea,
+    sourceArea,
+    targetArea,
     sourceCity: [...DEFAULT_CITY],
     sourceCityId: 0,
     targetCity: [...DEFAULT_CITY],
@@ -219,12 +200,12 @@ function cloneFormData(data: ApplicationFormData): ApplicationFormData {
   }
 }
 
-export function useApplicationForm(initialTransferType?: string) {
+export function useApplicationForm(initialTransferType?: string, fromZone?: string, toZone?: string) {
   const applicationStore = useApplicationStore()
   const authStore = useAuthStore()
   const fileStore = useFileStore()
 
-  const formData = ref<ApplicationFormData>(defaultFormData(initialTransferType))
+  const formData = ref<ApplicationFormData>(defaultFormData(initialTransferType, fromZone, toZone))
   const currentStep = ref(0)
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
@@ -693,9 +674,9 @@ export function useApplicationForm(initialTransferType?: string) {
       // 推断 transferType
       const transferType = transWayToTransferType(appBaseInfo.transWay)
 
-      // 映射区域
-      const sourceArea = REGION_ID_TO_AREA[appBaseCountryCityRegionRelation.fromRegionTypeId] || 'green'
-      const targetArea = REGION_ID_TO_AREA[appBaseCountryCityRegionRelation.toRegionTypeId] || 'green'
+      // 映射区域（使用统一常量）
+      const sourceArea = ID_TO_AREA[appBaseCountryCityRegionRelation.fromRegionTypeId] || 'green'
+      const targetArea = ID_TO_AREA[appBaseCountryCityRegionRelation.toRegionTypeId] || 'green'
 
       // 解析通知配置
       function parseNotification(notification: string): NotifyChannel[] {

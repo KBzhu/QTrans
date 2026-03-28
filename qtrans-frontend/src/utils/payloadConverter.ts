@@ -5,14 +5,7 @@
 
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { useAuthStore } from '@/stores'
-
-// 区域类型映射: green/yellow/red → "1"/"2"/"3"
-const REGION_TYPE_MAP: Record<string, number> = {
-  green: 1,
-  yellow: 0,
-  red: 4,
-  external: 2
-}
+import { areaToId } from '@/constants'
 
 // 通知渠道映射: 应用号/W3代办/邮件 → 1/2/3
 const NOTIFY_CHANNEL_MAP: Record<string, number> = {
@@ -44,9 +37,9 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
   // 获取当前用户W3账号
   const currentW3Account = user?.username || ''
 
-  // 区域类型转换
-  const fromRegionTypeId = REGION_TYPE_MAP[formData.sourceArea] || '1'
-  const toRegionTypeId = REGION_TYPE_MAP[formData.targetArea] || '1'
+  // 区域类型转换（使用统一常量）
+  const fromRegionTypeId = areaToId(formData.sourceArea)
+  const toRegionTypeId = areaToId(formData.targetArea)
 
   // 城市名称（中文）
   const fromCityName = formData.sourceCity[1] || formData.sourceCity[0] || ''

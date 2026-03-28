@@ -17,6 +17,11 @@ const authStore = useAuthStore()
 const stepOneRef = ref<InstanceType<typeof StepOneBasicInfo> | null>(null)
 const uploadInputRef = ref<HTMLInputElement | null>(null)
 
+// 从 URL 获取参数
+const typeFromQuery = String(route.query.type || 'green-to-green')
+const fromZone = route.query.from as string | undefined
+const toZone = route.query.to as string | undefined
+
 const {
   formData,
   currentStep,
@@ -49,7 +54,7 @@ const {
   batchRemoveUploading,
   batchRemoveUploaded,
   refreshUploadedList,
-} = useApplicationForm(String(route.query.type || 'green-to-green'))
+} = useApplicationForm(typeFromQuery, fromZone, toZone)
 
 const draftApplicationNo = ref(`MWEHR${Math.floor(10000 + Math.random() * 90000)}`)
 const pageLoading = ref(false)

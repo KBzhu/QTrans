@@ -2,10 +2,10 @@ import type { UITransferTabConfigItem, UITransferTypeConfigItem } from '@/types'
 import type { TransmissionScenarioChildItem, TransmissionScenarioItem } from '@/api/uiConfig'
 import { ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
+import { parseAreaFromAttr } from '@/constants'
 import { uiConfigApi } from '@/api/uiConfig'
 
 // 图标映射：根据 fromZone + toZone 组合确定图标
-// TODO: 待确认 fromAreaID 与区域的具体映射关系后完善
 const ICON_MAP: Record<string, { fromIcon: string, toIcon: string, arrowIcon: string }> = {
   'green-green': {
     fromIcon: '/figma/3971_812/7.svg',
@@ -72,32 +72,6 @@ const DEFAULT_ICONS = {
 }
 
 /**
- * 解析 itemAttr1 中的区域参数
- * 格式: Create.aspx?action=create&hm=2&wfid=43&transType=0&fromAreaID=1&ToAreaID=1
- */
-function parseAreaParams(itemAttr1: string | null): { fromZone: string, toZone: string } {
-  if (!itemAttr1) {
-    return { fromZone: 'green', toZone: 'green' }
-  }
-
-  const fromMatch = itemAttr1.match(/fromAreaID=(\d+)/i)
-  const toMatch = itemAttr1.match(/ToAreaID=(\d+)/i)
-
-  // 区域 ID 映射（待确认）
-  const areaIdMap: Record<string, string> = {
-    '0': 'yellow', // 待确认
-    '1': 'green', // 待确认
-    '2': 'external', // 待确认
-    '4': 'red', // 待确认
-  }
-
-  const fromZone = fromMatch ? (areaIdMap[fromMatch[1]] || 'green') : 'green'
-  const toZone = toMatch ? (areaIdMap[toMatch[1]] || 'green') : 'green'
-
-  return { fromZone, toZone }
-}
-
-/**
  * 获取图标配置
  */
 function getIcons(fromZone: string, toZone: string) {
@@ -128,7 +102,9 @@ function transformTypes(data: TransmissionScenarioChildItem[]): UITransferTypeCo
   return data
     .filter(item => item.status === 1)
     .map((item) => {
-      const { fromZone, toZone } = parseAreaParams(item.itemAttr1)
+      // 使用统一常量解析区域
+      const fromZone = parseAreaFromAttr(item.itemAttr1, 'from')
+      const toZone = parseAreaFromAttr(item.itemAttr1, 'to')
       const icons = getIcons(fromZone, toZone)
 
       return {

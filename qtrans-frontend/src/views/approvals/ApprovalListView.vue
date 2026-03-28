@@ -3,6 +3,7 @@ import type { Application } from '@/types'
 import { IconEye, IconRight } from '@arco-design/web-vue/es/icon'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { TRANSFER_TYPE_LABEL_MAP, TRANSFER_TYPE_OPTIONS_WITH_ALL } from '@/constants'
 import { formatDateTime } from '@/utils'
 import type { ApprovalTabType } from '@/composables/useApprovalList'
 import { useApprovalList } from '@/composables/useApprovalList'
@@ -24,26 +25,9 @@ const {
   handlePageSizeChange,
 } = useApprovalList()
 
-const transferTypeOptions = [
-  { label: '全部类型', value: 'all' },
-  { label: '绿区传到绿区', value: 'green-to-green' },
-  { label: '绿区传到黄区', value: 'green-to-yellow' },
-  { label: '绿区传到红区', value: 'green-to-red' },
-  { label: '黄区传到黄区', value: 'yellow-to-yellow' },
-  { label: '黄区传到红区', value: 'yellow-to-red' },
-  { label: '红区传到红区', value: 'red-to-red' },
-  { label: '跨国传输', value: 'cross-country' },
-]
-
-const transferTypeLabelMap: Record<Application['transferType'], string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
-}
+// 使用统一常量
+const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
+const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
 const approvalLevelLabelMap: Record<1 | 2 | 3, string> = {
   1: '一级审批',

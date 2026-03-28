@@ -7,6 +7,10 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- **统一常量文件**: 新增 `src/constants/` 目录，统一维护区域和传输类型相关常量
+  - `region.ts`: 区域 ID 映射、标签映射、下拉选项、工具函数
+  - `transferType.ts`: 传输类型标签映射、下拉选项、工具函数
+  - `index.ts`: 统一导出入口
 - **申请单流程进展组件**: 新增 `ProcessTimeline.vue` 组件，展示申请单的流程进度
   - 新增 `getProcessDetails` API 接口和 `ProcessDetailsResponse`/`ProcessStepItem` 类型
   - 组件支持自动获取流程数据，按时间排序展示步骤列表
@@ -15,6 +19,15 @@ The format is based on Keep a Changelog.
   - 样式参考 `ApprovalTimeline` 组件
 
 ### Changed
+- **区域常量统一重构**: 解决霰弹式修改问题
+  - 消除 3+ 处重复的 `REGION_TYPE_MAP` 定义
+  - 消除 3+ 处重复的传输类型标签映射
+  - `useApplicationForm.ts`、`useTransferConfig.ts`、`payloadConverter.ts` 等文件改用统一常量
+  - 旧导入路径保持向后兼容（`@/views/application/components/constants` 重导出）
+  - `SecurityArea` 和 `TransferType` 类型定义移至 `constants/` 目录，`types/application.ts` 改为重新导出，保持单一来源
+- **SelectType 跳转参数优化**: 
+  - 跳转时携带 `from` 和 `to` 参数，避免创建页重新推断区域
+  - `useApplicationForm` 新增 `fromZone`、`toZone` 参数，优先使用传入值
 - **申请单详情状态展示优化**:
   - status-tag 改用 `processDetailData.applicationStatus` 展示（如"流程结束"）
   - 移除原有的 `currentHandler` 展示

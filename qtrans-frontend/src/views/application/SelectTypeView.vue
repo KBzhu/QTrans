@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { UITransferTypeConfigItem } from '@/types'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTransferConfig } from '@/composables/useTransferConfig'
@@ -58,10 +59,14 @@ const routineCards: RoutineCard[] = [
 ]
 
 /* ===== 点击卡片 ===== */
-function handleCardClick(typeKey: string) {
+function handleCardClick(item: UITransferTypeConfigItem | RoutineCard) {
   router.push({
     path: '/application/create',
-    query: { type: typeKey },
+    query: {
+      type: item.key,
+      from: item.fromZone,
+      to: item.toZone,
+    },
   })
 }
 
@@ -92,7 +97,7 @@ function handleTabClick(tabKey: string) {
         v-for="item in filteredTypes"
         :key="item.key"
         class="type-card"
-        @click="handleCardClick(item.key)"
+        @click="handleCardClick(item)"
       >
         <div class="type-card__icons">
           <div class="type-card__icon-box" :class="`zone-${item.fromZone}`">
@@ -116,7 +121,7 @@ function handleTabClick(tabKey: string) {
         v-for="item in routineCards"
         :key="item.key"
         class="type-card type-card--routine"
-        @click="handleCardClick(item.key)"
+        @click="handleCardClick(item)"
       >
         <div class="type-card__icons">
           <div class="type-card__icon-box" :class="`zone-${item.fromZone}`">

@@ -1,11 +1,6 @@
-export type TransferType =
-  | 'green-to-green'
-  | 'green-to-yellow'
-  | 'green-to-red'
-  | 'yellow-to-yellow'
-  | 'yellow-to-red'
-  | 'red-to-red'
-  | 'cross-country'
+/** 传输类型 - 从 constants 导入以保持单一来源 */
+import type { TransferType } from '@/constants'
+export type { TransferType }
 
 export type ApplicationStatus =
   | 'draft'
@@ -20,6 +15,9 @@ export type UrgencyLevel = 'low' | 'normal' | 'high' | 'urgent'
 
 export type NotifyChannel = 'email' | 'sms' | 'in_app' | 'w3_todo' | 'download_email'
 
+/** 安全区域类型 - 从 constants 导入以保持单一来源 */
+import type { SecurityArea } from '@/constants'
+export type { SecurityArea }
 
 export interface Application {
   id: string
@@ -27,8 +25,8 @@ export interface Application {
   transferType: TransferType
   department: string
   departmentId?: string  // 新增：部门ID
-  sourceArea: 'green' | 'yellow' | 'red'
-  targetArea: 'green' | 'yellow' | 'red'
+  sourceArea: SecurityArea
+  targetArea: SecurityArea
   sourceCountry: string
   sourceCity: string[]
   sourceCityId?: number  // 新增：源城市ID

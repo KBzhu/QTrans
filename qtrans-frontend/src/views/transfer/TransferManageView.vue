@@ -5,6 +5,7 @@ import { Message } from '@arco-design/web-vue'
 import { IconEye, IconPause, IconPlayArrow, IconRefresh, IconSearch } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { TRANSFER_TYPE_OPTIONS_WITH_ALL } from '@/constants'
 import { useTransferManage } from '@/composables/useTransferManage'
 import { formatDateTime, formatFileSize, formatTransferSpeed } from '@/utils/format'
 import './transfer-manage.scss'
@@ -36,16 +37,8 @@ const {
   getStatusLabel,
 } = useTransferManage()
 
-const transferTypeOptions: { label: string, value: 'all' | TransferType }[] = [
-  { label: '全部传输类型', value: 'all' },
-  { label: '绿区传到绿区', value: 'green-to-green' },
-  { label: '绿区传到黄区', value: 'green-to-yellow' },
-  { label: '绿区传到红区', value: 'green-to-red' },
-  { label: '黄区传到黄区', value: 'yellow-to-yellow' },
-  { label: '黄区传到红区', value: 'yellow-to-red' },
-  { label: '红区传到红区', value: 'red-to-red' },
-  { label: '跨国传输', value: 'cross-country' },
-]
+// 使用统一常量
+const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
 
 const rowSelection = computed(() => ({
   type: 'checkbox',
