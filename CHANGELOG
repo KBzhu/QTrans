@@ -7,7 +7,13 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
-- **统一常量文件**: 新增 `src/constants/` 目录，统一维护区域和传输类型相关常量
+- **详情页文件列表真实接口对接**: 申请详情和审批详情页文件列表对接真实后端接口
+  - 新增 `useFileList` 共享 composable，封装文件列表获取、分页、重置逻辑
+  - 新增 `getMyFileInfoList` API 接口（`GET /myFileInfo/page/{pageSize}/{pageNum}?applicationId={id}`）
+  - 新增 `MyFileInfoItem`/`MyFileInfoResponse` 类型定义
+  - `DetailFileTable.vue` 新增分页支持，移除"上传时间"列（后端暂未提供该字段）
+  - `ApplicationDetailView.vue` 和 `ApprovalDetailView.vue` 文件列表 tab 显示总数、支持分页切换
+  - 复用 `RealPageVO` 类型作为分页数据结构
   - `region.ts`: 区域 ID 映射、标签映射、下拉选项、工具函数
   - `transferType.ts`: 传输类型标签映射、下拉选项、工具函数
   - `index.ts`: 统一导出入口

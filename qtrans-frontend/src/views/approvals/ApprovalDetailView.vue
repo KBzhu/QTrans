@@ -24,17 +24,23 @@ const {
   basicInfoRows,
   applicationInfoRows,
   files,
+  fileLoading,
+  totalFiles,
+  pagination,
   currentApprovalLevel,
   totalApprovalLevels,
   currentApprovalLabel,
   canOperate,
   canExempt,
+  downloading,
+  downloadingFile,
   fetchDetail,
   handleApprove,
   handleReject,
   handleExempt,
   handleDownloadFile,
   handleBatchDownload,
+  onFilePageChange,
   goBack,
 } = useApprovalDetail()
 
@@ -140,7 +146,7 @@ onMounted(async () => {
         申请单信息
       </button>
       <button class="detail-tabs__btn" :class="{ 'is-active': activeTab === 'files' }" @click="activeTab = 'files'">
-        文件列表（{{ files.length }}）
+        文件列表（{{ totalFiles }}）
       </button>
     </div>
 
@@ -167,10 +173,12 @@ onMounted(async () => {
         <DetailFileTable
           v-else
           :files="files"
-          :loading="loading"
-          :status="detailData?.status || ''"
+          :loading="fileLoading"
+          :show-download="true"
+          :pagination="pagination"
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
+          @page-change="onFilePageChange"
         />
       </a-spin>
     </div>

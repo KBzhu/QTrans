@@ -1,10 +1,14 @@
-import type { Application, ApplicationStatus, ApprovalRecord, DetailFieldItem, DetailFileItem, FileInfo, UserRole, TransferType } from '@/types'
+import type { Application, ApplicationStatus, ApprovalRecord, DetailFieldItem, DetailFileItem, UserRole, TransferType } from '@/types'
+import type { ApplicationDetailResponse } from '@/api/application'
 
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApplicationStore, useApprovalStore, useAuthStore, useFileStore } from '@/stores'
+import { applicationApi } from '@/api/application'
+import { useFileList } from '@/composables/useFileList'
+import { useFileDownload } from '@/composables/useFileDownload'
 
 
 const transferTypeLabelMap: Record<TransferType, string> = {
@@ -44,16 +48,6 @@ function toArrayText(value: unknown, separator = ' / ') {
   return String(value || '')
 }
 
-function fileInfoToDetailFileItem(fileInfo: FileInfo): DetailFileItem {
-  return {
-    id: fileInfo.id,
-    fileName: fileInfo.fileName,
-    fileSize: fileInfo.fileSize,
-    uploadedAt: fileInfo.uploadedAt || new Date().toISOString(),
-    sha256: `sha256_${fileInfo.id.slice(-16)}`,
-  }
-}
-
 function getApprovalLevelByRole(roles: UserRole[]): number {
   if (roles.includes('admin'))
     return 99
@@ -74,12 +68,31 @@ export function useApprovalDetail() {
   const authStore = useAuthStore()
   const fileStore = useFileStore()
 
-
   const loading = ref(false)
   const detailData = ref<Application | null>(null)
+  const realDetailData = ref<ApplicationDetailResponse | null>(null) // 真实接口数据
   const activeTab = ref<'info' | 'files'>('info')
   const approvalOpinion = ref('')
   const approvalRecords = ref<ApprovalRecord[]>([])
+
+  // 文件列表 - 使用真实接口
+  const {
+    files,
+    fileLoading,
+    totalFiles,
+    pagination,
+    fetchFiles: fetchFileList,
+    onPageChange: onFilePageChange,
+    resetFiles,
+  } = useFileList()
+
+  // 文件下载
+  const {
+    downloading,
+    downloadingFile,
+    downloadFile: downloadSingleFile,
+    batchDownload: downloadBatchFiles,
+  } = useFileDownload()
 
   const statusLabel = computed(() => {
     if (!detailData.value)
@@ -170,15 +183,6 @@ export function useApprovalDetail() {
     ]
   })
 
-  const files = computed<DetailFileItem[]>(() => {
-    if (!detailData.value)
-      return []
-
-    const realFiles = fileStore.getFilesByApplicationId(detailData.value.id)
-    return realFiles.map(fileInfoToDetailFileItem)
-  })
-
-
   async function fetchApprovalHistory(id: string) {
     const records = await approvalStore.fetchApprovalHistory(id)
     approvalRecords.value = records
@@ -187,7 +191,16 @@ export function useApprovalDetail() {
 
   async function fetchDetail(id: string) {
     loading.value = true
+    resetFiles()
     try {
+      // 使用真实接口获取详情
+      const res = await applicationApi.getApplicationDetail(id)
+      realDetailData.value = res
+
+      // 同时获取文件列表
+      fetchFileList(id)
+
+      // 兼容旧数据结构（审批相关逻辑依赖 detailData）
       if (applicationStore.applications.length === 0)
         await applicationStore.fetchApplications({ pageNum: 1, pageSize: 200 })
 
@@ -269,37 +282,23 @@ export function useApprovalDetail() {
     }, 1500)
   }
 
-  function triggerBrowserDownload(blob: Blob, fileName: string) {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-  }
-
   function handleDownloadFile(file: DetailFileItem) {
-    const realFile = fileStore.files.get(file.id)
-
-    if (realFile?.fileBlob) {
-      triggerBrowserDownload(realFile.fileBlob, realFile.fileName)
-      Message.success(`开始下载：${realFile.fileName}`)
+    const downloadUrl = realDetailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    if (!downloadUrl) {
+      Message.error('当前申请单暂无下载链接')
       return
     }
-
-    const blob = new Blob([`mock file content: ${file.fileName}`], { type: 'text/plain;charset=utf-8' })
-    triggerBrowserDownload(blob, file.fileName)
-    Message.warning('当前文件缺少二进制内容，已回退为模拟下载')
+    downloadSingleFile(file, downloadUrl)
   }
 
-
   function handleBatchDownload(fileIds: string[]) {
-    const selected = files.value.filter(file => fileIds.includes(file.id))
-    selected.forEach(file => handleDownloadFile(file))
-    Message.success(`已开始下载 ${selected.length} 个文件`)
+    const downloadUrl = realDetailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    if (!downloadUrl) {
+      Message.error('当前申请单暂无下载链接')
+      return
+    }
+    const selectedFiles = files.value.filter((f: DetailFileItem) => fileIds.includes(f.id))
+    downloadBatchFiles(selectedFiles, downloadUrl)
   }
 
   function goBack() {
@@ -309,6 +308,7 @@ export function useApprovalDetail() {
   return {
     loading,
     detailData,
+    realDetailData,
     activeTab,
     approvalOpinion,
     approvalRecords,
@@ -316,18 +316,24 @@ export function useApprovalDetail() {
     transferTypeLabel,
     basicInfoRows,
     applicationInfoRows,
-    files,
+    files: computed(() => files.value),
+    fileLoading,
+    totalFiles,
+    pagination,
     currentApprovalLevel,
     totalApprovalLevels,
     currentApprovalLabel,
     canOperate,
     canExempt,
+    downloading,
+    downloadingFile,
     fetchDetail,
     handleApprove,
     handleReject,
     handleExempt,
     handleDownloadFile,
     handleBatchDownload,
+    onFilePageChange,
     goBack,
   }
 }

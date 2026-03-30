@@ -5,9 +5,12 @@ export interface DetailFieldItem {
 }
 
 export interface DetailFileItem {
+  /** 文件唯一标识（使用 fileHashCode） */
   id: string
   fileName: string
   fileSize: number
-  uploadedAt: string
   sha256: string
+  relativeDir: string | null
+  /** 后端格式化的文件大小，如 "44.52(KB)" */
+  fileSizeUnit: string
 }

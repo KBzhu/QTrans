@@ -220,6 +220,16 @@ findSecurityLevelList(params: {
     )
   },
   /**
+   * 获取文件信息列表 - 真实后端接口
+   * GET /workflowService/services/frontendService/frontend/myFileInfo/page/{pageSize}/{pageNum}?applicationId={id}
+   */
+  getMyFileInfoList(applicationId: number | string, pageSize: number, pageNum: number): Promise<MyFileInfoResponse> {
+    return request.rawGet<MyFileInfoResponse>(
+      `/workflowService/services/frontendService/frontend/myFileInfo/page/${pageSize}/${pageNum}`,
+      { params: { applicationId } },
+    )
+  },
+  /**
    * 获取申请单流程进展 - 真实后端接口
    * GET /workflowService/services/frontendService/frontend/application/getProcessDetails?applicationId={id}
    */
@@ -229,6 +239,26 @@ findSecurityLevelList(params: {
       { params: { applicationId } },
     )
   },
+}
+
+/** 真实后端 - 文件信息列表项 */
+export interface MyFileInfoItem {
+  transferId: string | null
+  fileInfoId: string | null
+  fileName: string
+  relativeDir: string | null
+  fileSize: number
+  folderName: string
+  fileHashCode: string
+  clientFileHashCode: string
+  fileDownloadUrl: string | null
+  fileSizeUnit: string
+}
+
+/** 真实后端 - 文件信息列表响应 */
+export interface MyFileInfoResponse {
+  pageVO: RealPageVO
+  result: MyFileInfoItem[]
 }
 
 /** 审批层级配置项 */

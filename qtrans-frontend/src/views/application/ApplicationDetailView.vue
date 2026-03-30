@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DetailFileItem } from '@/composables/useApplicationDetail'
+import type { DetailFileItem } from '@/types/detail'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
@@ -12,6 +12,9 @@ import './application-detail.scss'
 const route = useRoute()
 const router = useRouter()
 
+// 从 query 参数判断是否显示下载功能（"待我下载"跳入时带 showDownload=true）
+const showDownload = computed(() => route.query.showDownload === 'true')
+
 const {
   loading,
   detailData,
@@ -20,11 +23,17 @@ const {
   basicInfoRows,
   applicationInfoRows,
   files,
+  fileLoading,
+  totalFiles,
+  pagination,
   isNotUploaded,
+  downloading,
+  downloadingFile,
   fetchDetail,
   handleContinueUpload,
   handleDownloadFile,
   handleBatchDownload,
+  onFilePageChange,
 } = useApplicationDetail()
 
 const id = String(route.params.id || '')
@@ -82,7 +91,7 @@ onMounted(async () => {
         :class="{ 'is-active': activeTab === 'files' }"
         @click="activeTab = 'files'"
       >
-        文件列表（{{ files.length }}）
+        文件列表（{{ totalFiles }}）
       </button>
     </div>
 
@@ -96,10 +105,12 @@ onMounted(async () => {
         <DetailFileTable
           v-else
           :files="files as DetailFileItem[]"
-          :loading="loading"
-          :status="detailData?.appBaseInfo?.applicationStatus?.toString() || ''"
+          :loading="fileLoading"
+          :show-download="showDownload"
+          :pagination="pagination"
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
+          @page-change="onFilePageChange"
         />
       </a-spin>
     </div>

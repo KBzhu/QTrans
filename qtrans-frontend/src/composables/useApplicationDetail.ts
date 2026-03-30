@@ -1,19 +1,12 @@
 import type { ApplicationDetailResponse, ProcessDetailsResponse } from '@/api/application'
-import type { DetailFieldItem } from '@/types/detail'
-
-/** 详情文件项 */
-export interface DetailFileItem {
-  id: string
-  fileName: string
-  fileSize: number
-  uploadedAt: string
-  sha256: string
-}
+import type { DetailFieldItem, DetailFileItem } from '@/types/detail'
 import { applicationApi } from '@/api/application'
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useFileList } from '@/composables/useFileList'
+import { useFileDownload } from '@/composables/useFileDownload'
 
 /** 区域类型ID到名称的反向映射 */
 const REGION_ID_TO_NAME: Record<number, string> = {
@@ -55,6 +48,25 @@ export function useApplicationDetail() {
   const processDetailData = ref<ProcessDetailsResponse | null>(null)
   const activeTab = ref<'info' | 'files'>('info')
 
+  // 文件列表
+  const {
+    files,
+    fileLoading,
+    totalFiles,
+    pagination,
+    fetchFiles: fetchFileList,
+    onPageChange: onFilePageChange,
+    resetFiles,
+  } = useFileList()
+
+  // 文件下载
+  const {
+    downloading,
+    downloadingFile,
+    downloadFile: downloadSingleFile,
+    batchDownload: downloadBatchFiles,
+  } = useFileDownload()
+
   // 基本信息
   const basicInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
@@ -91,7 +103,7 @@ export function useApplicationDetail() {
       { label: '下载区域', value: targetAreaName },
       { label: '源城市', value: appBaseCountryCityRegionRelation.fromCityName || '-' },
       { label: '目标城市', value: appBaseCountryCityRegionRelation.toCityName || '-' },
-      { label: '下载人账号', value: appBaseUploadDownloadInfo.downloadUser?.map(u => `${u.fullName}(${u.w3Account})`).join('、') || '-' },
+      { label: '下载人账号', value: appBaseUploadDownloadInfo.downloadUser?.map((u: { fullName: string, w3Account: string }) => `${u.fullName}(${u.w3Account})`).join('、') || '-' },
       { label: '抄送人', value: appBaseApprovalRoute.managerCopyW3Account || '-' },
       { label: '包含客户网络数据', value: appBaseApprovalRoute.isCustomerData ? '是' : '否' },
       { label: '创建时间', value: dayjs(appBaseInfo.creationDate).format('YYYY/MM/DD HH:mm:ss') },
@@ -101,11 +113,6 @@ export function useApplicationDetail() {
     ]
   })
 
-  // 文件列表 - 暂时返回空数组，后续对接文件列表接口
-  const files = computed<DetailFileItem[]>(() => {
-    return []
-  })
-
   // 是否未上传
   const isNotUploaded = computed(() => {
     return detailData.value?.appBaseUploadDownloadInfo.isUploaded === 0
@@ -113,11 +120,13 @@ export function useApplicationDetail() {
 
   async function fetchDetail(id: string | number) {
     loading.value = true
+    resetFiles()
     try {
       const res = await applicationApi.getApplicationDetail(id)
       detailData.value = res
-      // 同时获取流程进展
+      // 同时获取流程进展和文件列表
       fetchProcessDetail(id)
+      fetchFileList(id)
       return res
     }
     catch (error) {
@@ -163,12 +172,23 @@ export function useApplicationDetail() {
     router.push(`/application/${detailData.value.appBaseInfo.applicationId}/files`)
   }
 
-  function handleDownloadFile(_file: DetailFileItem) {
-    Message.info('文件下载功能待对接')
+  function handleDownloadFile(file: DetailFileItem) {
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    if (!downloadUrl) {
+      Message.error('当前申请单暂无下载链接')
+      return
+    }
+    downloadSingleFile(file, downloadUrl)
   }
 
-  function handleBatchDownload(_fileIds: string[]) {
-    Message.info('批量下载功能待对接')
+  function handleBatchDownload(fileIds: string[]) {
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    if (!downloadUrl) {
+      Message.error('当前申请单暂无下载链接')
+      return
+    }
+    const selectedFiles = files.value.filter((f: DetailFileItem) => fileIds.includes(f.id))
+    downloadBatchFiles(selectedFiles, downloadUrl)
   }
 
   return {
@@ -178,13 +198,19 @@ export function useApplicationDetail() {
     activeTab,
     basicInfoRows,
     applicationInfoRows,
-    files,
+    files: computed(() => files.value),
+    fileLoading,
+    totalFiles,
+    pagination,
     isNotUploaded,
+    downloading,
+    downloadingFile,
     fetchDetail,
     fetchProcessDetail,
     handleContinueUpload,
     handleViewFiles,
     handleDownloadFile,
     handleBatchDownload,
+    onFilePageChange,
   }
 }

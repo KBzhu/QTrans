@@ -1,30 +1,38 @@
 <script setup lang="ts">
 import type { DetailFileItem } from '@/types'
+import type { PaginationProps } from '@arco-design/web-vue'
 import { IconDownload, IconFile } from '@arco-design/web-vue/es/icon'
-import { computed, ref } from 'vue'
-import { formatFileSize, formatDateTime } from '@/utils'
+import { ref, watch } from 'vue'
+import { formatFileSize } from '@/utils'
 
 interface Props {
   files: DetailFileItem[]
   loading?: boolean
-  /** 申请单状态，仅 completed 时显示操作列 */
-  status?: string
+  /** 是否显示下载按钮和批量下载区域 */
+  showDownload?: boolean
+  /** 分页配置，传入 false 则不显示分页 */
+  pagination?: PaginationProps | false
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  status: '',
+  showDownload: false,
+  pagination: false,
 })
-
-const isCompleted = computed(() => props.status === 'completed' || props.status === '已完成')
 
 interface Emits {
   (e: 'download', file: DetailFileItem): void
   (e: 'batchDownload', fileIds: string[]): void
+  (e: 'pageChange', page: number, pageSize?: number): void
 }
 
 const emit = defineEmits<Emits>()
 const selectedRowKeys = ref<string[]>([])
+
+// 数据或分页变更时清空选中
+watch([() => props.files, () => props.pagination], () => {
+  selectedRowKeys.value = []
+})
 
 const rowSelection = computed(() => ({
   type: 'checkbox' as const,
@@ -32,11 +40,19 @@ const rowSelection = computed(() => ({
   showCheckedAll: true,
 }))
 
+function onSelectChange(keys: (string | number)[]) {
+  selectedRowKeys.value = keys.map(String)
+}
+
 function onBatchDownload() {
   if (selectedRowKeys.value.length === 0)
     return
 
   emit('batchDownload', selectedRowKeys.value)
+}
+
+function handlePageChange(page: number, pageSize?: number) {
+  emit('pageChange', page, pageSize)
 }
 </script>
 
@@ -46,10 +62,12 @@ function onBatchDownload() {
       :data="props.files"
       :loading="props.loading"
       row-key="id"
-      :pagination="false"
+      :pagination="props.pagination"
       :row-selection="rowSelection"
-      @select="(keys: string[]) => selectedRowKeys = keys"
+      @select="onSelectChange"
       @select-all="(checked: boolean) => selectedRowKeys = checked ? files.map(item => item.id) : []"
+      @page-change="handlePageChange"
+      @page-size-change="(pageSize: number) => handlePageChange(1, pageSize)"
     >
       <template #columns>
         <a-table-column title="文件名称" data-index="fileName" :width="360">
@@ -65,20 +83,15 @@ function onBatchDownload() {
           <template #cell="{ record }">{{ formatFileSize(record.fileSize) }}</template>
         </a-table-column>
 
-        <a-table-column title="上传时间" :width="200">
-          <template #cell="{ record }">{{ formatDateTime(record.uploadedAt).replace(/-/g, '/') }}</template>
-        </a-table-column>
-
         <a-table-column title="SHA256" :width="520" ellipsis tooltip>
           <template #cell="{ record }">
             <span class="detail-file-table__sha">{{ record.sha256 }}</span>
           </template>
         </a-table-column>
 
-        <a-table-column title="操作" v-if="isCompleted" :width="100" align="center">
+        <a-table-column title="操作" v-if="props.showDownload" :width="100" align="center">
           <template #cell="{ record }">
             <a-button
-              v-show="isCompleted"
               type="text"
               class="detail-file-table__action"
               @click="emit('download', record)"
@@ -90,7 +103,7 @@ function onBatchDownload() {
       </template>
     </a-table>
 
-    <div  v-if="isCompleted" class="detail-file-table__footer">
+    <div v-if="props.showDownload" class="detail-file-table__footer">
       <a-button type="primary" :disabled="selectedRowKeys.length === 0" @click="onBatchDownload">
         <template #icon>
           <IconDownload />

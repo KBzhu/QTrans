@@ -60,7 +60,7 @@ function getStatusClass(currentStatus: string) {
 }
 
 function onViewDetail(record: WaitingDownloadItem) {
-  router.push(`/application/${record.applicationId}`)
+  router.push({ path: `/application/${record.applicationId}`, query: { showDownload: 'true' } })
 }
 
 function onDownload(record: WaitingDownloadItem) {
