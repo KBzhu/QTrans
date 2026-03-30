@@ -82,10 +82,10 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
       toRegionTypeId,
       fromRegionTypeId,
       fromCityId: formData.sourceCityId || 0,
-      fromRegionId: 6,  // 固定值：城市-安全域通道ID
+      fromRegionId: formData.sourceRegionId || 0,  // 从城市选择接口获取
       fromCityName,     // 中文城市名: "深圳"
       toCityId: formData.targetCityId || 0,
-      toRegionId: 6,    // 固定值
+      toRegionId: formData.targetRegionId || 0,    // 从城市选择接口获取
       toCityName,       // 中文城市名: "西安"
     },
     appBaseInfo: {

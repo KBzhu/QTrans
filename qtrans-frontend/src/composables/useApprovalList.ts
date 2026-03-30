@@ -1,16 +1,14 @@
-import type { Application } from '@/types'
-import { computed, reactive, ref } from 'vue'
-import dayjs from 'dayjs'
+import type { WaitingApprovalItem } from '@/api/approval'
+import type { TransferType } from '@/constants'
+import { reactive, ref, watch } from 'vue'
 import { approvalApi } from '@/api/approval'
-import { useAuthStore } from '@/stores'
+import { AREA_ID_MAP, transWayToTransferType } from '@/constants'
 
 export type ApprovalTabType = 'pending' | 'approved' | 'all'
 
 export interface ApprovalListFilters {
   keyword: string
-  transferType: string
-  applicant: string
-  dateRange: string[]
+  transferType: TransferType | 'all'
 }
 
 export interface ApprovalListPagination {
@@ -19,34 +17,45 @@ export interface ApprovalListPagination {
   total: number
 }
 
-const transferTypeLabelMap: Record<Application['transferType'], string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
+/** 列表项 - 映射后的前端数据结构 */
+export interface ApprovalListItem {
+  id: string
+  applicationId: number
+  applicationNo: string
+  transferType: TransferType
+  applicantName: string
+  applicantDepartmentName: string
+  createdAt: string
+  updatedAt: string
+  currentApprovalStatus: string
+  reason: string
 }
 
-function dedupeById(list: Application[]) {
-  const map = new Map<string, Application>()
-  list.forEach((item) => {
-    map.set(item.id, item)
-  })
-  return [...map.values()].sort((a, b) => dayjs(b.updatedAt || b.createdAt).valueOf() - dayjs(a.updatedAt || a.createdAt).valueOf())
+/**
+ * 将后端数据映射为前端列表项
+ */
+function mapToListItem(item: WaitingApprovalItem): ApprovalListItem {
+  return {
+    id: String(item.applicationId),
+    applicationId: item.applicationId,
+    applicationNo: String(item.applicationId),
+    transferType: transWayToTransferType(item.transWay) as TransferType,
+    applicantName: item.createdBy,
+    applicantDepartmentName: '',
+    createdAt: item.creationDate,
+    updatedAt: item.lastUpdateDate,
+    currentApprovalStatus: item.currentStatus,
+    reason: item.reason,
+  }
 }
 
 export function useApprovalList() {
-  const authStore = useAuthStore()
   const loading = ref(false)
   const activeTab = ref<ApprovalTabType>('pending')
 
   const filters = reactive<ApprovalListFilters>({
     keyword: '',
     transferType: 'all',
-    applicant: '',
-    dateRange: [],
   })
 
   const pagination = reactive<ApprovalListPagination>({
@@ -55,70 +64,54 @@ export function useApprovalList() {
     total: 0,
   })
 
-  const pendingApprovals = ref<Application[]>([])
-  const processedApprovals = ref<Application[]>([])
-  const allApprovals = ref<Application[]>([])
+  const listData = ref<ApprovalListItem[]>([])
 
-  const filteredList = computed(() => {
-    let result: Application[] = []
+  /**
+   * 将传输类型转换为区域 ID 参数
+   */
+  function getAreaIdsFromTransferType(transferType: TransferType | 'all'): { formAreaId?: number, toAreaId?: number } {
+    if (transferType === 'all')
+      return {}
 
-    if (activeTab.value === 'pending')
-      result = pendingApprovals.value
-    else if (activeTab.value === 'approved')
-      result = processedApprovals.value
-    else
-      result = allApprovals.value
+    const [sourceArea, targetArea] = transferType.split('-to-') as [string, string]
+    const formAreaId = AREA_ID_MAP[sourceArea as keyof typeof AREA_ID_MAP]
+    const toAreaId = AREA_ID_MAP[targetArea as keyof typeof AREA_ID_MAP]
 
-    if (!authStore.isAdmin) {
-      const currentUserId = authStore.currentUser?.id
-      if (!currentUserId)
-        result = []
-    }
-
-    if (filters.keyword) {
-      const kw = filters.keyword.toLowerCase()
-      result = result.filter(item =>
-        item.applicationNo.toLowerCase().includes(kw)
-        || transferTypeLabelMap[item.transferType]?.toLowerCase().includes(kw),
-      )
-    }
-
-    if (filters.transferType && filters.transferType !== 'all')
-      result = result.filter(item => item.transferType === filters.transferType)
-
-    if (filters.applicant) {
-      const applicant = filters.applicant.toLowerCase()
-      result = result.filter(item => item.applicantName.toLowerCase().includes(applicant))
-    }
-
-    if (filters.dateRange?.length === 2) {
-      const [start, end] = filters.dateRange
-      if (start && end) {
-        result = result.filter((item) => {
-          const createdAt = dayjs(item.createdAt).format('YYYY-MM-DD')
-          return createdAt >= start && createdAt <= end
-        })
-      }
-    }
-
-    pagination.total = result.length
-    const startIdx = (pagination.current - 1) * pagination.pageSize
-    return result.slice(startIdx, startIdx + pagination.pageSize)
-  })
-
-  const listData = computed(() => filteredList.value)
+    return { formAreaId, toAreaId }
+  }
 
   async function fetchList() {
     loading.value = true
     try {
-      const [pending, processed, all] = await Promise.all([
-        approvalApi.getPending(),
-        approvalApi.getProcessed(),
-        approvalApi.getAll(),
-      ])
-      pendingApprovals.value = dedupeById(pending)
-      processedApprovals.value = dedupeById(processed)
-      allApprovals.value = dedupeById(all)
+      const { formAreaId, toAreaId } = getAreaIdsFromTransferType(filters.transferType)
+      const query = {
+        keyword: filters.keyword || undefined,
+        formAreaId,
+        toAreaId,
+        procType: '0', // 正常传输
+      }
+
+      let response
+      if (activeTab.value === 'pending') {
+        response = await approvalApi.getWaitingForApproval(pagination.pageSize, pagination.current, query)
+      }
+      else if (activeTab.value === 'approved') {
+        response = await approvalApi.getMyApproved(pagination.pageSize, pagination.current, query)
+      }
+      else {
+        // 全部审批：暂时返回空，后续如果有对应接口再补充
+        listData.value = []
+        pagination.total = 0
+        return
+      }
+
+      listData.value = (response?.result || []).map(mapToListItem)
+      pagination.total = response?.pageVO?.totalRows || 0
+    }
+    catch (error) {
+      console.error('fetchList error:', error)
+      listData.value = []
+      pagination.total = 0
     }
     finally {
       loading.value = false
@@ -128,28 +121,40 @@ export function useApprovalList() {
   function handleTabChange(tab: ApprovalTabType) {
     activeTab.value = tab
     pagination.current = 1
+    fetchList()
   }
 
   function handleSearch() {
     pagination.current = 1
+    fetchList()
   }
 
   function handleReset() {
     filters.keyword = ''
     filters.transferType = 'all'
-    filters.applicant = ''
-    filters.dateRange = []
     pagination.current = 1
+    fetchList()
   }
 
   function handlePageChange(page: number) {
     pagination.current = page
+    fetchList()
   }
 
   function handlePageSizeChange(pageSize: number) {
     pagination.pageSize = pageSize
     pagination.current = 1
+    fetchList()
   }
+
+  // 监听筛选条件变化，重新获取数据
+  watch(
+    () => filters.transferType,
+    () => {
+      pagination.current = 1
+      fetchList()
+    },
+  )
 
   return {
     loading,
@@ -157,7 +162,6 @@ export function useApprovalList() {
     filters,
     pagination,
     listData,
-    filteredList,
     fetchList,
     handleTabChange,
     handleSearch,

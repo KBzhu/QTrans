@@ -1,4 +1,4 @@
-import type { Application, ApplicationStatus, PageRequest, PageResponse, TransferType } from '@/types'
+import type { Application, ApplicationStatus, PageRequest, PageResponse, RealPageVO, TransferType } from '@/types'
 import { request } from '@/utils'
 
 export interface ApplicationQuery extends Partial<PageRequest> {
@@ -45,17 +45,6 @@ export interface CityItem {
 export interface CityListResponse {
   cityList: CityItem[]
   commonCity: null
-}
-
-
-/** 真实后端 - 分页信息 */
-export interface RealPageVO {
-  totalRows: number
-  curPage: number
-  pageSize: number
-  totalPages: number
-  startIndex: number
-  endIndex: number
 }
 
 /** 真实后端 - 待我下载列表响应 */

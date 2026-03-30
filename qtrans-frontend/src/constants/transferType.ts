@@ -64,3 +64,21 @@ export function getTransferTypeLabel(type: TransferType | undefined | null): str
 export function isValidTransferType(type: string): type is TransferType {
   return type in TRANSFER_TYPE_LABEL_MAP
 }
+
+// ===== 审批层级映射 =====
+/**
+ * 传输类型 → 审批层级
+ * - 0: 无需审批
+ * - 1: 一级审批
+ * - 2: 二级审批
+ * - 3: 三级审批（跨国传输）
+ */
+export const APPROVAL_LEVEL_MAP: Record<TransferType, number> = {
+  'green-to-green': 0,
+  'green-to-yellow': 1,
+  'green-to-red': 2,
+  'yellow-to-yellow': 1,
+  'yellow-to-red': 2,
+  'red-to-red': 2,
+  'cross-country': 3,
+}

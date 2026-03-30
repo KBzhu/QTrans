@@ -18,6 +18,16 @@ export interface PageResponse<T> {
   totalPages: number
 }
 
+/** 真实后端 - 分页信息 */
+export interface RealPageVO {
+  totalRows: number
+  curPage: number
+  pageSize: number
+  totalPages: number
+  startIndex: number
+  endIndex: number
+}
+
 export type Nullable<T> = T | null
 
 export type ValueOf<T> = T[keyof T]

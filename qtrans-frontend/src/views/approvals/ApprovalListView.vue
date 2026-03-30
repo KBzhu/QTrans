@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Application } from '@/types'
+import type { ApprovalListItem } from '@/composables/useApprovalList'
+import type { TransferType } from '@/constants'
 import { IconEye, IconRight } from '@arco-design/web-vue/es/icon'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -29,35 +30,11 @@ const {
 const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
 const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
-const approvalLevelLabelMap: Record<1 | 2 | 3, string> = {
-  1: '一级审批',
-  2: '二级审批',
-  3: '三级审批',
-}
-
-const approvalLevelColorMap: Record<1 | 2 | 3, string> = {
-  1: 'orangered',
-  2: 'red',
-  3: 'purple',
-}
-
-function getApprovalLevelLabel(level: 1 | 2 | 3 | undefined) {
-  if (!level)
-    return '-'
-  return approvalLevelLabelMap[level] || '-'
-}
-
-function getApprovalLevelColor(level: 1 | 2 | 3 | undefined) {
-  if (!level)
-    return 'gray'
-  return approvalLevelColorMap[level] || 'gray'
-}
-
-function onViewDetail(record: Application) {
+function onViewDetail(record: ApprovalListItem) {
   router.push(`/approvals/${record.id}`)
 }
 
-function onApprove(record: Application) {
+function onApprove(record: ApprovalListItem) {
   router.push(`/approvals/${record.id}`)
 }
 
@@ -85,9 +62,9 @@ onMounted(async () => {
         <a-form-item label="申请单号" field="keyword">
           <a-input
             v-model="filters.keyword"
-            placeholder="搜索申请单号或传输类型"
+            placeholder="搜索申请单号"
             allow-clear
-            style="width: 240px"
+            style="width: 200px"
             @press-enter="handleSearch"
           />
         </a-form-item>
@@ -96,26 +73,7 @@ onMounted(async () => {
           <a-select
             v-model="filters.transferType"
             :options="transferTypeOptions"
-            style="width: 180px"
-          />
-        </a-form-item>
-
-        <a-form-item label="申请人" field="applicant">
-          <a-input
-            v-model="filters.applicant"
-            placeholder="输入申请人姓名"
-            allow-clear
             style="width: 160px"
-            @press-enter="handleSearch"
-          />
-        </a-form-item>
-
-        <a-form-item label="申请时间" field="dateRange">
-          <a-range-picker
-            v-model="filters.dateRange"
-            value-format="YYYY-MM-DD"
-            style="width: 260px"
-            allow-clear
           />
         </a-form-item>
 
@@ -151,13 +109,11 @@ onMounted(async () => {
 
             <a-table-column title="传输类型" :width="150">
               <template #cell="{ record }">
-                {{ transferTypeLabelMap[record.transferType as Application['transferType']] }}
+                {{ transferTypeLabelMap[record.transferType as TransferType] }}
               </template>
             </a-table-column>
 
             <a-table-column title="申请人" data-index="applicantName" :width="120" />
-
-            <a-table-column title="申请部门" data-index="applicantDepartmentName" :width="150" ellipsis tooltip />
 
             <a-table-column title="申请时间" :width="170">
               <template #cell="{ record }">
@@ -165,10 +121,10 @@ onMounted(async () => {
               </template>
             </a-table-column>
 
-            <a-table-column title="当前审批层级" :width="130" align="center">
+            <a-table-column title="当前审批状态" :width="140" align="center">
               <template #cell="{ record }">
-                <a-tag :color="getApprovalLevelColor(record.currentApprovalLevel)">
-                  {{ getApprovalLevelLabel(record.currentApprovalLevel) }}
+                <a-tag color="arcoblue">
+                  {{ record.currentApprovalStatus || '-' }}
                 </a-tag>
               </template>
             </a-table-column>

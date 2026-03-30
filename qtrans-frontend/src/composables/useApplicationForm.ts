@@ -3,8 +3,8 @@ import type { SecurityArea } from '@/constants'
 import { Message } from '@arco-design/web-vue'
 
 import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
-import { APPROVAL_LEVEL_MAP, MAX_FILE_SIZE } from '@/utils/constants'
-import { ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
+import { MAX_FILE_SIZE } from '@/utils/constants'
+import { APPROVAL_LEVEL_MAP, ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
@@ -41,9 +41,11 @@ export interface ApplicationFormData {
   sourceArea: SecurityArea
   targetArea: SecurityArea
   sourceCity: string[]
-  sourceCityId?: number       // 新增：源城市ID
+  sourceCityId?: number       // 源城市ID
+  sourceRegionId?: number     // 源区域通道ID（从城市选择接口获取）
   targetCity: string[]
-  targetCityId?: number       // 新增：目标城市ID
+  targetCityId?: number       // 目标城市ID
+  targetRegionId?: number     // 目标区域通道ID（从城市选择接口获取）
   downloaderAccounts: string[]
   ccAccounts: string[]
   containsCustomerData: 'yes' | 'no'
@@ -169,8 +171,10 @@ function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: s
     targetArea,
     sourceCity: [...DEFAULT_CITY],
     sourceCityId: 0,
+    sourceRegionId: 0,
     targetCity: [...DEFAULT_CITY],
     targetCityId: 0,
+    targetRegionId: 0,
     downloaderAccounts: [],
     ccAccounts: [],
     containsCustomerData: 'no',

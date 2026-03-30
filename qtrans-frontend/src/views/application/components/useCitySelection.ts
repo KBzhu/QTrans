@@ -43,8 +43,10 @@ export function useCitySelection(
         onUpdateFormData({
           sourceCity: [first.countryName, first.cityName],
           sourceCityId: first.cityId,
+          sourceRegionId: first.regionId,
           targetCity: [],
           targetCityId: 0,
+          targetRegionId: 0,
         })
         fetchDownloadCities(first.regionId)
       }
@@ -80,6 +82,7 @@ export function useCitySelection(
         onUpdateFormData({
           targetCity: [first.countryName, first.cityName],
           targetCityId: first.cityId,
+          targetRegionId: first.regionId,
         })
       }
     }
@@ -96,16 +99,21 @@ export function useCitySelection(
     onUpdateFormData({
       sourceCity: [value.province, value.city],
       sourceCityId: value.cityId,
+      sourceRegionId: value.regionId,
       targetCity: [],
       targetCityId: 0,
+      targetRegionId: 0,
     })
     fetchDownloadCities(value.regionId)
   }
 
   function onTargetCityChange(value: { province: string, city: string, cityId: number }) {
+    // 从选项中查找对应城市的 regionId
+    const cityOption = state.value.downloadCityOptions.find(c => c.cityId === value.cityId)
     onUpdateFormData({
       targetCity: [value.province, value.city],
       targetCityId: value.cityId,
+      targetRegionId: cityOption?.regionId || 0,
     })
   }
 
@@ -122,8 +130,10 @@ export function useCitySelection(
       onUpdateFormData({
         sourceCity: [],
         sourceCityId: 0,
+        sourceRegionId: 0,
         targetCity: [],
         targetCityId: 0,
+        targetRegionId: 0,
       })
       fetchUploadCities()
     },
