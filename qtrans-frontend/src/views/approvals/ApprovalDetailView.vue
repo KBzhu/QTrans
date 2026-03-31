@@ -5,7 +5,7 @@ import { IconCheckCircleFill } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import TransferProgress from '@/components/business/TransferProgress.vue'
-import ApprovalTimeline from '@/components/business/approval/ApprovalTimeline.vue'
+import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import { useApprovalDetail } from '@/composables/useApprovalDetail'
@@ -19,7 +19,6 @@ const {
   detailData,
   activeTab,
   approvalOpinion,
-  approvalRecords,
   statusLabel,
   basicInfoRows,
   applicationInfoRows,
@@ -27,8 +26,6 @@ const {
   fileLoading,
   totalFiles,
   pagination,
-  currentApprovalLevel,
-  totalApprovalLevels,
   currentApprovalLabel,
   canOperate,
   canExempt,
@@ -46,9 +43,10 @@ const {
 
 const id = String(route.params.id || '')
 
+/** 后端 applicationStatus: 3=已批准, 5=传输中, 6=已完成 */
 const showTransferProgress = computed(() => {
-  const status = detailData.value?.status
-  return status === 'approved' || status === 'transferring' || status === 'completed'
+  const appStatus = detailData.value?.appBaseInfo.applicationStatus
+  return appStatus === 3 || appStatus === 5 || appStatus === 6
 })
 
 const transferFileSize = computed(() => {
@@ -56,24 +54,35 @@ const transferFileSize = computed(() => {
   if (total > 0)
     return total
 
-  return Math.max(1024 * 1024, Math.round((detailData.value?.storageSize || 0) * 1024 * 1024))
+  return Math.max(1024 * 1024, Math.round((detailData.value?.appBaseUploadDownloadInfo?.applicationSize || 0) * 1024 * 1024))
 })
 
 const transferStatusHint = computed<TransferState['status']>(() => {
-  if (detailData.value?.status === 'completed')
+  const appStatus = detailData.value?.appBaseInfo.applicationStatus
+  if (appStatus === 6)
     return 'completed'
 
-  if (detailData.value?.status === 'transferring')
+  if (appStatus === 5)
     return 'transferring'
 
   return 'pending'
 })
 
-function onApprove() {
+/** 状态样式 class */
+const statusClass = computed(() => {
+  const appStatus = detailData.value?.appBaseInfo.applicationStatus
+  if (appStatus === 6) return 'completed'
+  if (appStatus === 5) return 'transferring'
+  if (appStatus === 3) return 'approved'
+  if (appStatus === 4) return 'rejected'
+  if (appStatus === 2) return 'pending_approval'
+  return 'draft'
+})
 
+function onApprove() {
   Modal.confirm({
     title: '确认通过该申请单？',
-    content: `申请单号：${detailData.value?.applicationNo || '-'}`,
+    content: `申请单号：${detailData.value?.appBaseInfo?.applicationId || '-'}`,
     okText: '确认通过',
     cancelText: '取消',
     onOk: handleApprove,
@@ -123,12 +132,12 @@ onMounted(async () => {
     <header class="approval-detail-page__header">
       <div>
         <h1 class="approval-detail-page__title">审批详情</h1>
-        <p class="approval-detail-page__no">申请单号：{{ detailData?.applicationNo || '-' }}</p>
+        <p class="approval-detail-page__no">申请单号：{{ detailData?.appBaseInfo?.applicationId || '-' }}</p>
       </div>
 
       <div class="approval-detail-page__header-right">
         <a-tag color="arcoblue">{{ currentApprovalLabel }}</a-tag>
-        <div class="status-pill" :class="`status-pill--${detailData?.status || 'draft'}`">
+        <div class="status-pill" :class="`status-pill--${statusClass}`">
           <IconCheckCircleFill />
           <span>{{ statusLabel }}</span>
         </div>
@@ -158,15 +167,7 @@ onMounted(async () => {
 
           <section class="approval-timeline-wrap">
             <h3 class="approval-timeline-wrap__title">审批时间线</h3>
-            <ApprovalTimeline
-              :application-id="detailData?.id || id"
-              :applicant-name="detailData?.applicantName || '-'"
-              :submitted-at="detailData?.createdAt || new Date().toISOString()"
-              :approval-records="approvalRecords"
-              :current-level="currentApprovalLevel"
-              :total-levels="totalApprovalLevels"
-              :status="detailData?.status || 'pending_approval'"
-            />
+            <ProcessTimeline :application-id="detailData?.appBaseInfo?.applicationId || id" />
           </section>
         </template>
 
@@ -185,7 +186,7 @@ onMounted(async () => {
 
     <section v-if="showTransferProgress" class="approval-detail-page__transfer">
       <TransferProgress
-        :application-id="detailData?.id || id"
+        :application-id="detailData?.appBaseInfo?.applicationId || id"
         :file-size="transferFileSize"
         :status-hint="transferStatusHint"
       />

@@ -29,6 +29,8 @@ export interface ApprovalListItem {
   updatedAt: string
   currentApprovalStatus: string
   reason: string
+  currentHandler: string
+  applicationStatus: number | null
 }
 
 /**
@@ -46,6 +48,8 @@ function mapToListItem(item: WaitingApprovalItem): ApprovalListItem {
     updatedAt: item.lastUpdateDate,
     currentApprovalStatus: item.currentStatus,
     reason: item.reason,
+    currentHandler: item.currentHandler || '',
+    applicationStatus: item.applicationStatus,
   }
 }
 

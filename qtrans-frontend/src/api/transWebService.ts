@@ -5,6 +5,7 @@
  * 接口规范参考 task_Trans_Web.md 文档
  */
 import axios, { type AxiosInstance, type AxiosProgressEvent } from 'axios'
+import { useAuthStore } from '@/stores'
 
 // ============ 类型定义 ============
 
@@ -100,11 +101,17 @@ const createTransClient = (): AxiosInstance => {
     timeout: 60000,
   })
 
-  // 请求拦截器：自动携带token
+  // 请求拦截器：自动携带 auth token 和 trans token
   client.interceptors.request.use((config) => {
-    const token = sessionStorage.getItem(TRANS_TOKEN_KEY)
-    if (token) {
-      config.headers.Authorization = token
+    // auth token（与 rawClient/request.ts 保持一致）
+    const authStore = useAuthStore()
+    if (authStore.token) {
+      config.headers.token = authStore.token
+    }
+    // trans token
+    const transToken = sessionStorage.getItem(TRANS_TOKEN_KEY)
+    if (transToken) {
+      config.headers.Authorization = transToken
     }
     return config
   })
@@ -141,7 +148,7 @@ export async function initUpload(
   params: string,
   lang = 'zh_CN',
 ): Promise<UploadInitResponse> {
-  const response = await axios.get('/transWeb/api/upload/init', {
+  const response = await transClient.get('/api/upload/init', {
     params: { params, lang },
   })
 
@@ -161,7 +168,7 @@ export async function initDownload(
   params: string,
   lang = 'zh_CN',
 ): Promise<DownloadInitResponse> {
-  const response = await axios.get('/transWeb/api/download/init', {
+  const response = await transClient.get('/api/download/init', {
     params: { params, lang },
   })
 
@@ -312,14 +319,21 @@ export async function downloadFile(
   params: string,
   onProgress?: (percent: number, loaded: number, total: number) => void,
 ): Promise<Blob> {
-  const token = sessionStorage.getItem(TRANS_TOKEN_KEY)
+  const transToken = sessionStorage.getItem(TRANS_TOKEN_KEY)
+  const authStore = useAuthStore()
+  const authToken = authStore.token
   const url = `/transWeb/api/file/download?fileName=${encodeURIComponent(fileName)}&relativeDir=${encodeURIComponent(relativeDir)}&params=${params}`
+
+  const headers: Record<string, string> = {
+    Authorization: transToken || '',
+  }
+  if (authToken) {
+    headers.token = authToken
+  }
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      Authorization: token || '',
-    },
+    headers,
   })
 
   if (!response.ok) {

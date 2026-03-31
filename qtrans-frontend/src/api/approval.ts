@@ -81,17 +81,20 @@ export const approvalApi = {
     )
   },
 
+  /** 审批操作（通过/驳回）- 真实后端接口 */
+  userApproved(params: {
+    approvedType: 1 | 0
+    comments: string
+    appBpmWorkFlow: { applicationId: number }
+  }): Promise<{ code: string }> {
+    return request.raw<{ code: string }>(
+      '/workflowService/services/frontendService/frontend/application/userApproved',
+      { ...params, isSecurityLevelChange: '0' },
+    )
+  },
+
   getHistory(applicationId: string): Promise<ApprovalRecord[]> {
     return request.get<ApprovalRecord[]>(`/approvals/${applicationId}/history`)
-  },
-  approve(id: string, opinion: string): Promise<void> {
-    return request.post<void>(`/approvals/${id}/approve`, { opinion })
-  },
-  reject(id: string, opinion: string): Promise<void> {
-    return request.post<void>(`/approvals/${id}/reject`, { opinion })
-  },
-  skip(id: string, opinion: string): Promise<void> {
-    return request.post<void>(`/approvals/${id}/skip`, { opinion })
   },
 }
 

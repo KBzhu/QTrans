@@ -1,79 +1,81 @@
-import type { Application, ApplicationStatus, ApprovalRecord, DetailFieldItem, DetailFileItem, UserRole, TransferType } from '@/types'
-import type { ApplicationDetailResponse } from '@/api/application'
+import type { ApplicationDetailResponse, ProcessDetailsResponse } from '@/api/application'
+import type { DetailFieldItem, DetailFileItem } from '@/types'
 
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useApplicationStore, useApprovalStore, useAuthStore, useFileStore } from '@/stores'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore, useFileStore } from '@/stores'
+import { approvalApi } from '@/api/approval'
 import { applicationApi } from '@/api/application'
 import { useFileList } from '@/composables/useFileList'
 import { useFileDownload } from '@/composables/useFileDownload'
 
-
-const transferTypeLabelMap: Record<TransferType, string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
+/** 区域类型ID到名称的反向映射 */
+const REGION_ID_TO_NAME: Record<number, string> = {
+  1: '绿区',
+  0: '黄区',
+  4: '红区',
+  2: '外网',
 }
 
-const statusLabelMap: Record<ApplicationStatus, string> = {
-  draft: '草稿',
-  pending_upload: '待上传',
-  pending_approval: '待审批',
-  approved: '已批准',
-  rejected: '已驳回',
-  transferring: '传输中',
-  completed: '已完成',
+function formatTransWay(transWay: string): string {
+  return transWay.split(',').map(s => s.trim()).join(' → ')
 }
 
-const approvalLevelMap: Record<TransferType, number> = {
-  'green-to-green': 0,
-  'green-to-yellow': 1,
-  'green-to-red': 2,
-  'yellow-to-yellow': 1,
-  'yellow-to-red': 2,
-  'red-to-red': 2,
-  'cross-country': 3,
+function parseNotification(notification: string): string {
+  if (!notification)
+    return '-'
+  try {
+    const arr = JSON.parse(notification)
+    if (!Array.isArray(arr) || arr.length === 0)
+      return '-'
+    const map: Record<number, string> = {
+      1: '邮件',
+      2: '短信',
+    }
+    return arr.map((id: number) => map[id] || id).join('、')
+  }
+  catch {
+    return notification
+  }
 }
 
-function toArrayText(value: unknown, separator = ' / ') {
-  if (Array.isArray(value))
-    return value.map(item => String(item)).filter(Boolean).join(separator)
-
-  return String(value || '')
+/**
+ * 根据后端 applicationStatus 数字映射中文状态标签
+ */
+function getStatusLabel(applicationStatus: number): string {
+  const map: Record<number, string> = {
+    0: '草稿',
+    1: '待上传',
+    2: '待审批',
+    3: '已批准',
+    4: '已驳回',
+    5: '传输中',
+    6: '已完成',
+  }
+  return map[applicationStatus] || '未知'
 }
 
-function getApprovalLevelByRole(roles: UserRole[]): number {
-  if (roles.includes('admin'))
-    return 99
-  if (roles.includes('approver3'))
-    return 3
-  if (roles.includes('approver2'))
-    return 2
-  if (roles.includes('approver1'))
-    return 1
-  return 0
+/**
+ * 判断当前状态是否为待审批
+ */
+function isPendingApproval(applicationStatus: number): boolean {
+  return applicationStatus === 2
 }
 
 
 export function useApprovalDetail() {
+  const route = useRoute()
   const router = useRouter()
-  const applicationStore = useApplicationStore()
-  const approvalStore = useApprovalStore()
   const authStore = useAuthStore()
   const fileStore = useFileStore()
 
   const loading = ref(false)
-  const detailData = ref<Application | null>(null)
-  const realDetailData = ref<ApplicationDetailResponse | null>(null) // 真实接口数据
+  const detailData = ref<ApplicationDetailResponse | null>(null)
+  const processDetailData = ref<ProcessDetailsResponse | null>(null)
   const activeTab = ref<'info' | 'files'>('info')
   const approvalOpinion = ref('')
-  const approvalRecords = ref<ApprovalRecord[]>([])
 
   // 文件列表 - 使用真实接口
   const {
@@ -94,99 +96,106 @@ export function useApprovalDetail() {
     batchDownload: downloadBatchFiles,
   } = useFileDownload()
 
+  // 当前状态标签
   const statusLabel = computed(() => {
     if (!detailData.value)
       return '-'
-    return statusLabelMap[detailData.value.status]
+    return getStatusLabel(detailData.value.appBaseInfo.applicationStatus)
   })
 
-  const transferTypeLabel = computed(() => {
-    if (!detailData.value)
-      return '-'
-    return transferTypeLabelMap[detailData.value.transferType]
-  })
+  // 从列表页跳转时通过 query 传入的值（详情接口返回前先展示）
+  const currentHandler = computed(() => (route.query.currentHandler as string) || '')
+  const currentStatusFromList = computed(() => (route.query.currentStatus as string) || '')
 
-  const totalApprovalLevels = computed(() => {
-    if (!detailData.value)
-      return 1
-    return Math.max(1, approvalLevelMap[detailData.value.transferType])
-  })
-
-  const currentApprovalLevel = computed(() => {
-    if (!detailData.value)
-      return 1
-    return Math.max(1, detailData.value.currentApprovalLevel || 1)
-  })
-
+  // 当前流程状态标签（优先用列表接口的 currentStatus）
   const currentApprovalLabel = computed(() => {
-    if (!detailData.value)
-      return '-'
-
-    if (detailData.value.status !== 'pending_approval')
-      return '审批已结束'
-
-    const levelMap: Record<number, string> = {
-      1: '一级审批',
-      2: '二级审批',
-      3: '三级审批',
+    // 详情接口返回后，根据 isNeedApproval 判断审批是否结束
+    if (detailData.value) {
+      const isNeedApproval = detailData.value.appBaseApprovalRoute?.isNeedApproval === 1
+      if (!isNeedApproval)
+        return '审批已结束'
     }
-
-    return levelMap[currentApprovalLevel.value] || `${currentApprovalLevel.value}级审批`
+    // 审批中时，优先展示列表页传入的 currentStatus（如"直接主管审批"）
+    return currentStatusFromList.value || processDetailData.value?.applicationStatus || '审批中'
   })
 
+  // 当前用户是否是当前审批人
   const canHandleCurrentLevel = computed(() => {
-    if (!detailData.value)
+    if (!currentHandler.value)
       return false
-
-    const userLevel = getApprovalLevelByRole(authStore.userRoles)
-    if (userLevel === 99)
+    if (authStore.isAdmin)
       return true
 
-    return detailData.value.currentApprovalLevel === userLevel
+    const currentUserAccount = authStore.currentUser?.username || ''
+    if (!currentUserAccount)
+      return false
+
+    // currentHandler 可能包含多个账号（逗号分隔），检查当前用户是否在其中
+    return currentHandler.value.split(',').map(s => s.trim()).includes(currentUserAccount)
   })
 
-  const canOperate = computed(() => detailData.value?.status === 'pending_approval' && canHandleCurrentLevel.value)
+  const canOperate = computed(() => {
+    if (!detailData.value)
+      return false
+    // isNeedApproval === 1 表示还需要审批
+    const isNeedApproval = detailData.value.appBaseApprovalRoute?.isNeedApproval === 1
+    return isNeedApproval && canHandleCurrentLevel.value
+  })
+
   const canExempt = computed(() => authStore.isAdmin)
 
-
+  // 基本信息
   const basicInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
       return []
 
-    const item = detailData.value
+    const { appBaseInfo, appBpmWorkFlow } = detailData.value
+    const creationDate = dayjs(appBaseInfo.creationDate)
+
     return [
-      { label: '申请人', value: `${item.applicantId} ${item.applicantName}`.trim() },
-      { label: '申请单号', value: item.applicationNo },
-      { label: '当前审批层级', value: currentApprovalLabel.value },
+      { label: '申请人', value: appBaseInfo.applicantW3Account },
+      { label: '申请单号', value: String(appBaseInfo.applicationId) },
+      { label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' },
       { label: '当前状态', value: statusLabel.value },
-      { label: '申请时间', value: dayjs(item.createdAt).format('YYYY/MM/DD HH:mm:ss') },
-      { label: '更新时间', value: dayjs(item.updatedAt || item.createdAt).format('YYYY/MM/DD HH:mm:ss') },
+      { label: '申请时间', value: creationDate.format('YYYY/MM/DD HH:mm:ss') },
+      { label: '更新时间', value: dayjs(appBaseInfo.lastUpdateDate || appBaseInfo.creationDate).format('YYYY/MM/DD HH:mm:ss') },
     ]
   })
 
+  // 申请信息
   const applicationInfoRows = computed<DetailFieldItem[]>(() => {
     if (!detailData.value)
       return []
 
-    const item = detailData.value
+    const { appBaseInfo, appBaseApprovalRoute, appBaseCountryCityRegionRelation, appBaseUploadDownloadInfo } = detailData.value
+
+    const sourceAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.fromRegionTypeId] || '-'
+    const targetAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.toRegionTypeId] || '-'
+
     return [
-      { label: '部门', value: item.department || '-' },
-      { label: '申请类型', value: transferTypeLabel.value },
-      { label: '上传区域', value: item.sourceArea },
-      { label: '下载区域', value: item.targetArea },
-      { label: '数据传出国家/城市', value: `${item.sourceCountry} / ${toArrayText(item.sourceCity, '、')}` },
-      { label: '数据传至国家/城市', value: `${item.targetCountry} / ${toArrayText(item.targetCity, '、')}` },
-      { label: '下载人账号', value: toArrayText(item.downloaderAccounts, '、') || '-' },
-      { label: '抄送人', value: toArrayText(item.ccAccounts, '、') || '-' },
-      { label: '包含客户网络数据', value: item.containsCustomerData ? '是' : '否' },
-      { label: '申请原因', value: item.applyReason || '-', fullRow: true },
+      { label: '部门', value: appBaseApprovalRoute.selectedDeptName || '-' },
+      { label: '传输路由', value: formatTransWay(appBaseInfo.transWay) },
+      { label: '上传区域', value: sourceAreaName },
+      { label: '下载区域', value: targetAreaName },
+      { label: '数据传出国家/城市', value: `${appBaseCountryCityRegionRelation.fromCountryName || '-'} / ${appBaseCountryCityRegionRelation.fromCityName || '-'}` },
+      { label: '数据传至国家/城市', value: `${appBaseCountryCityRegionRelation.toCountryName || '-'} / ${appBaseCountryCityRegionRelation.toCityName || '-'}` },
+      { label: '下载人账号', value: appBaseUploadDownloadInfo.downloadUser?.map((u: { fullName: string, w3Account: string }) => `${u.fullName}(${u.w3Account})`).join('、') || '-' },
+      { label: '抄送人', value: appBaseApprovalRoute.managerCopyW3Account || '-' },
+      { label: '包含客户网络数据', value: appBaseApprovalRoute.isCustomerData ? '是' : '否' },
+      { label: '申请原因', value: appBaseInfo.reason || '-', fullRow: true },
     ]
   })
 
-  async function fetchApprovalHistory(id: string) {
-    const records = await approvalStore.fetchApprovalHistory(id)
-    approvalRecords.value = records
-    return records
+  // 获取流程进展（真实接口）
+  async function fetchProcessDetail(id: string | number) {
+    try {
+      const res = await applicationApi.getProcessDetails(id)
+      processDetailData.value = res
+      return res
+    }
+    catch (error) {
+      console.error('获取流程进展失败:', error)
+    }
   }
 
   async function fetchDetail(id: string) {
@@ -195,19 +204,12 @@ export function useApprovalDetail() {
     try {
       // 使用真实接口获取详情
       const res = await applicationApi.getApplicationDetail(id)
-      realDetailData.value = res
+      detailData.value = res
 
-      // 同时获取文件列表
+      // 同时获取流程进展、文件列表
+      fetchProcessDetail(id)
       fetchFileList(id)
 
-      // 兼容旧数据结构（审批相关逻辑依赖 detailData）
-      if (applicationStore.applications.length === 0)
-        await applicationStore.fetchApplications({ pageNum: 1, pageSize: 200 })
-
-      const local = [...applicationStore.applications, ...applicationStore.drafts].find(item => item.id === id)
-      detailData.value = local || await applicationStore.fetchApplicationDetail(id)
-
-      await fetchApprovalHistory(id)
       return detailData.value
     }
     finally {
@@ -215,30 +217,18 @@ export function useApprovalDetail() {
     }
   }
 
-  function isLastLevel(transferType: TransferType, currentLevel: number): boolean {
-    const requiredLevels = approvalLevelMap[transferType]
-    return currentLevel >= requiredLevels
-  }
-
   async function handleApprove() {
     if (!detailData.value)
       return
 
-    const isLast = isLastLevel(detailData.value.transferType, currentApprovalLevel.value)
-    const updated = await approvalStore.approve(detailData.value.id, approvalOpinion.value.trim() || '审批通过')
-    detailData.value = updated
+    const appId = detailData.value.appBaseInfo.applicationId
+    await approvalApi.userApproved({
+      approvedType: 1,
+      comments: approvalOpinion.value.trim() || '审批通过',
+      appBpmWorkFlow: { applicationId: appId },
+    })
     approvalOpinion.value = ''
-    await fetchApprovalHistory(updated.id)
-
-    if (isLast) {
-      await fileStore.startTransfer(updated.id)
-      detailData.value = applicationStore.applications.find(item => item.id === updated.id) || updated
-      Message.success('审批通过，已自动开始传输')
-    }
-    else {
-      Message.success('审批通过，已通知下一级审批人')
-    }
-
+    Message.success('审批通过')
 
     setTimeout(() => {
       router.push('/approvals')
@@ -254,10 +244,13 @@ export function useApprovalDetail() {
       return
     }
 
-    const updated = await approvalStore.reject(detailData.value.id, approvalOpinion.value.trim())
-    detailData.value = updated
+    const appId = detailData.value.appBaseInfo.applicationId
+    await approvalApi.userApproved({
+      approvedType: 0,
+      comments: approvalOpinion.value.trim(),
+      appBpmWorkFlow: { applicationId: appId },
+    })
     approvalOpinion.value = ''
-    await fetchApprovalHistory(updated.id)
     Message.success('申请已驳回')
 
     setTimeout(() => {
@@ -269,13 +262,14 @@ export function useApprovalDetail() {
     if (!detailData.value)
       return
 
-    const updated = await approvalStore.skip(detailData.value.id, approvalOpinion.value.trim() || '免审通过')
-    await fileStore.startTransfer(updated.id)
-    detailData.value = applicationStore.applications.find(item => item.id === updated.id) || updated
+    const appId = detailData.value.appBaseInfo.applicationId
+    await approvalApi.userApproved({
+      approvedType: 1,
+      comments: approvalOpinion.value.trim() || '免审通过',
+      appBpmWorkFlow: { applicationId: appId },
+    })
     approvalOpinion.value = ''
-    await fetchApprovalHistory(updated.id)
-    Message.success('申请已免审通过，已自动开始传输')
-
+    Message.success('申请已免审通过')
 
     setTimeout(() => {
       router.push('/approvals')
@@ -283,7 +277,7 @@ export function useApprovalDetail() {
   }
 
   function handleDownloadFile(file: DetailFileItem) {
-    const downloadUrl = realDetailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
     if (!downloadUrl) {
       Message.error('当前申请单暂无下载链接')
       return
@@ -292,7 +286,7 @@ export function useApprovalDetail() {
   }
 
   function handleBatchDownload(fileIds: string[]) {
-    const downloadUrl = realDetailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
     if (!downloadUrl) {
       Message.error('当前申请单暂无下载链接')
       return
@@ -308,20 +302,16 @@ export function useApprovalDetail() {
   return {
     loading,
     detailData,
-    realDetailData,
+    processDetailData,
     activeTab,
     approvalOpinion,
-    approvalRecords,
     statusLabel,
-    transferTypeLabel,
     basicInfoRows,
     applicationInfoRows,
     files: computed(() => files.value),
     fileLoading,
     totalFiles,
     pagination,
-    currentApprovalLevel,
-    totalApprovalLevels,
     currentApprovalLabel,
     canOperate,
     canExempt,

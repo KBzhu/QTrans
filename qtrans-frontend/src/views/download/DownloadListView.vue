@@ -142,12 +142,6 @@ onMounted(async () => {
             <a-table-column title="申请类型" :width="160" ellipsis tooltip>
               <template #cell="{ record }">{{ getTransferTypeLabel(record.transWay) }}</template>
             </a-table-column>
-
-            <!-- 文件数：真实接口暂无此字段，用 mock 0 填充 -->
-            <a-table-column title="文件数" :width="90" align="center">
-              <template #cell="{ record }">{{ getFileCountByApplicationId(record.applicationId) }}</template>
-            </a-table-column>
-
             <!-- 申请人：真实字段 applicantW3Account，无姓名 -->
             <a-table-column title="申请人账号" :width="140">
               <template #cell="{ record }">{{ record.applicantW3Account || '-' }}</template>
@@ -178,7 +172,7 @@ onMounted(async () => {
 
             <a-table-column title="下载状态" :width="110">
               <template #cell="{ record }">
-                {{ getDownloadStatusLabel(getDownloadStatusByApplicationId(record.applicationId)) }}
+                {{ record.downloadStatus || '-' }}
               </template>
             </a-table-column>
 

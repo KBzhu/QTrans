@@ -31,11 +31,25 @@ const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
 const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
 function onViewDetail(record: ApprovalListItem) {
-  router.push(`/approvals/${record.id}`)
+  router.push({
+    path: `/approvals/${record.id}`,
+    query: {
+      currentHandler: record.currentHandler,
+      currentStatus: record.currentApprovalStatus,
+      applicationStatus: record.applicationStatus != null ? String(record.applicationStatus) : undefined,
+    },
+  })
 }
 
 function onApprove(record: ApprovalListItem) {
-  router.push(`/approvals/${record.id}`)
+  router.push({
+    path: `/approvals/${record.id}`,
+    query: {
+      currentHandler: record.currentHandler,
+      currentStatus: record.currentApprovalStatus,
+      applicationStatus: record.applicationStatus != null ? String(record.applicationStatus) : undefined,
+    },
+  })
 }
 
 function onTabChange(tab: string) {
