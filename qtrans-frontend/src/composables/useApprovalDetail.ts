@@ -1,7 +1,7 @@
 import type { ApplicationDetailResponse, ProcessDetailsResponse } from '@/api/application'
 import type { DetailFieldItem, DetailFileItem } from '@/types'
 
-import { Message } from '@arco-design/web-vue'
+import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -217,22 +217,34 @@ export function useApprovalDetail() {
     }
   }
 
+  /** 审批操作成功后的统一处理 */
+  function onApprovalSuccess(title: string, content: string) {
+    approvalOpinion.value = ''
+    Modal.success({
+      title,
+      content,
+      okText: '查看',
+      onOk: () => {
+        router.push({ path: '/approvals', query: { tab: 'approved' } })
+      },
+    })
+  }
+
   async function handleApprove() {
     if (!detailData.value)
       return
 
     const appId = detailData.value.appBaseInfo.applicationId
-    await approvalApi.userApproved({
+    const res = await approvalApi.userApproved({
       approvedType: 1,
       comments: approvalOpinion.value.trim() || '审批通过',
       appBpmWorkFlow: { applicationId: appId },
     })
-    approvalOpinion.value = ''
-    Message.success('审批通过')
-
-    setTimeout(() => {
-      router.push('/approvals')
-    }, 1500)
+    if (res.code !== '200') {
+      Message.error('操作失败，请重试')
+      return
+    }
+    onApprovalSuccess('审批通过', '申请已审批通过')
   }
 
   async function handleReject() {
@@ -245,17 +257,16 @@ export function useApprovalDetail() {
     }
 
     const appId = detailData.value.appBaseInfo.applicationId
-    await approvalApi.userApproved({
+    const res = await approvalApi.userApproved({
       approvedType: 0,
       comments: approvalOpinion.value.trim(),
       appBpmWorkFlow: { applicationId: appId },
     })
-    approvalOpinion.value = ''
-    Message.success('申请已驳回')
-
-    setTimeout(() => {
-      router.push('/approvals')
-    }, 1500)
+    if (res.code !== '200') {
+      Message.error('操作失败，请重试')
+      return
+    }
+    onApprovalSuccess('已驳回', '申请已驳回')
   }
 
   async function handleExempt() {
@@ -263,17 +274,16 @@ export function useApprovalDetail() {
       return
 
     const appId = detailData.value.appBaseInfo.applicationId
-    await approvalApi.userApproved({
+    const res = await approvalApi.userApproved({
       approvedType: 1,
       comments: approvalOpinion.value.trim() || '免审通过',
       appBpmWorkFlow: { applicationId: appId },
     })
-    approvalOpinion.value = ''
-    Message.success('申请已免审通过')
-
-    setTimeout(() => {
-      router.push('/approvals')
-    }, 1500)
+    if (res.code !== '200') {
+      Message.error('操作失败，请重试')
+      return
+    }
+    onApprovalSuccess('已免审', '申请已免审通过')
   }
 
   function handleDownloadFile(file: DetailFileItem) {

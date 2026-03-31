@@ -1,6 +1,7 @@
 import type { WaitingApprovalItem } from '@/api/approval'
 import type { TransferType } from '@/constants'
 import { reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { approvalApi } from '@/api/approval'
 import { AREA_ID_MAP, transWayToTransferType } from '@/constants'
 
@@ -37,6 +38,12 @@ export interface ApprovalListItem {
  * 将后端数据映射为前端列表项
  */
 function mapToListItem(item: WaitingApprovalItem): ApprovalListItem {
+  // 已驳回的单，currentStatus 显示"创建申请单"，转为"申请人重填"
+  let currentApprovalStatus = item.currentStatus
+  if (item.currentStatus === '创建申请单') {
+    currentApprovalStatus = '申请人重填'
+  }
+
   return {
     id: String(item.applicationId),
     applicationId: item.applicationId,
@@ -46,7 +53,7 @@ function mapToListItem(item: WaitingApprovalItem): ApprovalListItem {
     applicantDepartmentName: '',
     createdAt: item.creationDate,
     updatedAt: item.lastUpdateDate,
-    currentApprovalStatus: item.currentStatus,
+    currentApprovalStatus,
     reason: item.reason,
     currentHandler: item.currentHandler || '',
     applicationStatus: item.applicationStatus,
@@ -54,8 +61,11 @@ function mapToListItem(item: WaitingApprovalItem): ApprovalListItem {
 }
 
 export function useApprovalList() {
+  const route = useRoute()
   const loading = ref(false)
-  const activeTab = ref<ApprovalTabType>('pending')
+  // 支持通过 query.tab 初始化（如 /approvals?tab=approved）
+  const initialTab = (route.query.tab as ApprovalTabType) || 'pending'
+  const activeTab = ref<ApprovalTabType>(initialTab)
 
   const filters = reactive<ApprovalListFilters>({
     keyword: '',

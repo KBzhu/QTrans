@@ -6,7 +6,40 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+- **TransWebService 请求携带 auth token**: `initUpload`、`initDownload`、`downloadFile` 请求现在通过 `transClient` 拦截器自动携带 pinia auth token（`headers.token`），修复请求头缺失导致后端鉴权失败的问题
+  - `initUpload`/`initDownload` 从裸 `axios.get` 改为 `transClient.get`，走拦截器
+  - `transClient` 请求拦截器新增 auth token 注入（与 `rawClient` 保持一致）
+  - `downloadFile`（fetch 方式）手动注入 `headers.token`
+- **审批详情页数据展示修复**: 重构 `useApprovalDetail.ts`，改为直接使用 `ApplicationDetailResponse`（真实接口）作为数据源，修复基本信息/申请信息为空的问题
+  - `detailData` 类型从 `Application`（mock）改为 `ApplicationDetailResponse`
+  - `basicInfoRows`/`applicationInfoRows` 从 `appBaseInfo`/`appBaseApprovalRoute`/`appBaseCountryCityRegionRelation`/`appBaseUploadDownloadInfo` 提取真实字段
+  - 移除对 `applicationStore` mock 数据的依赖
+- **审批详情页时间线修复**: 审批时间线从 mock `ApprovalTimeline` 组件替换为真实 `ProcessTimeline` 组件，自动调用 `getProcessDetails` 接口获取流程进展
+- **审批操作组件可见性修复**: `canOperate` 判断逻辑从基于 mock role 层级改为基于后端 `appBpmWorkFlow.currentHandler` 与当前用户 w3Account 匹配，修复审批人看不到审批操作组件的问题
+  - `statusLabel`/`canOperate` 改为基于后端 `applicationStatus` 数字判断（2=待审批）
+  - `ApprovalDetailView.vue` 中所有 `detailData?.xxx` 引用更新为 `detailData?.appBaseInfo?.xxx` 等真实字段路径
+- **审批人判断逻辑修正**: 从列表接口 `/waitingForApproval` 获取 `currentHandler`，通过路由 query 传递到详情页，与当前登录用户 `username` 匹配来判断审批权限
+  - `ApprovalListItem` 新增 `currentHandler` 字段
+  - 列表跳转详情时通过 `query.currentHandler` 传递
+- **审批操作接口对接真实后端**: 通过/驳回/免审统一调用 `POST /workflowService/services/frontendService/frontend/application/userApproved`，替换原 mock 接口
+  - `approvedType: 1`（通过）/ `0`（驳回），`isSecurityLevelChange` 固定传 `"0"`
+  - `handleApprove`/`handleReject`/`handleExempt` 直接调用 `approvalApi.userApproved`，不再通过 approvalStore
+- **审批操作交互优化**: 审批成功后弹 `Modal.success` 对话框提示结果，点击"查看"跳转到"我已审批" tab；接口返回非 `code: "200"` 时提示"操作失败"
+  - 列表页 `useApprovalList` 支持通过 `?tab=approved` query 初始化激活的 tab
+- **审批列表"传输类型"列显示为空**: `TRANSFER_TYPE_LABEL_MAP` 缺少反向区域组合（如 `yellow-to-green`、`red-to-green` 等），已补全所有 9 种区域组合的类型定义和标签映射
+- **已驳回单审批状态显示修正**: 后端 `currentStatus` 为"创建申请单"时，前端映射为"申请人重填"
+
 ### Added
+- **文件下载功能对接**: "待我下载"和"审批管理"详情页支持文件下载，"我的申请单"详情不显示下载按钮
+  - 新增 `useFileDownload` composable，封装下载流程（extractParams → initDownload → downloadAndSave）
+  - 单文件下载：从 `downloadUrl` 提取 params → `initDownload` 获取 token → `downloadAndSave` 保存文件
+  - 批量下载：串行逐个下载，首次初始化 token 后复用
+  - `DetailFileTable.vue` 新增 `showDownload` prop，替代原 `status` 控制下载按钮显示
+  - `ApplicationDetailView.vue` 读取 `route.query.showDownload` 决定是否显示下载按钮
+  - `ApprovalDetailView.vue` 始终显示下载按钮（`:show-download="true"`）
+  - `DownloadListView.vue` 跳转详情时携带 `?showDownload=true`
+  - `useApprovalDetail.ts` 对接 `getApplicationDetail` 真实接口获取 `downloadUrl`
 - **详情页文件列表真实接口对接**: 申请详情和审批详情页文件列表对接真实后端接口
   - 新增 `useFileList` 共享 composable，封装文件列表获取、分页、重置逻辑
   - 新增 `getMyFileInfoList` API 接口（`GET /myFileInfo/page/{pageSize}/{pageNum}?applicationId={id}`）

@@ -170,12 +170,14 @@ export function useDownloadList() {
     return getMockFileCount(applicationId)
   }
 
+  //未用上
   function getDownloadStatusByApplicationId(applicationId: string): DownloadStatus {
     const item = rawList.value.find(i => i.applicationId === applicationId)
     if (!item) return 'not_started'
     return downloadStatusMap[item.downloadStatus] || 'not_started'
   }
 
+  //未用上，后端不支持
   function getDownloadStatusLabel(status: DownloadStatus): string {
     return downloadStatusLabelMap[status]
   }
