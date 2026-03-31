@@ -1,6 +1,22 @@
 import type { ApprovalRecord, RealPageVO } from '@/types'
 import { request } from '@/utils'
 
+/** 审批日志条目 */
+export interface ApprovalLogItem {
+  status: number
+  createdBy: string
+  creationDate: string
+  lastUpdatedBy: string
+  lastUpdateDate: string
+  comments: string
+  approvalNodeNames: string | null
+  approval_log_id: number
+  approve_type: 1 | 0 // 1=通过, 0=驳回
+  approve_node_name: string
+  application_id: number
+  approver_w3_account: string
+}
+
 /** 待我审批/我已审批 - 单条记录 */
 export interface WaitingApprovalItem {
   applicationId: number
@@ -90,6 +106,14 @@ export const approvalApi = {
     return request.raw<{ code: string }>(
       '/workflowService/services/frontendService/frontend/application/userApproved',
       { ...params, isSecurityLevelChange: '0' },
+    )
+  },
+
+  /** 审批日志 - 真实后端接口 */
+  getApprovalLog(applicationId: number | string): Promise<ApprovalLogItem[]> {
+    return request.rawGet<ApprovalLogItem[]>(
+      '/workflowService/services/frontendService/frontend/approvalLog/page/999/1',
+      { params: { applicationId } },
     )
   },
 

@@ -31,14 +31,15 @@ const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
 const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
 function onViewDetail(record: ApprovalListItem) {
-  router.push({
-    path: `/approvals/${record.id}`,
-    query: {
-      currentHandler: record.currentHandler,
-      currentStatus: record.currentApprovalStatus,
-      applicationStatus: record.applicationStatus != null ? String(record.applicationStatus) : undefined,
-    },
-  })
+  const query: Record<string, string | undefined> = {
+    currentStatus: record.currentApprovalStatus,
+    applicationStatus: record.applicationStatus != null ? String(record.applicationStatus) : undefined,
+  }
+  // 仅"待我审批" tab 传入 currentHandler，用于判断审批权限
+  if (activeTab.value === 'pending') {
+    query.currentHandler = record.currentHandler
+  }
+  router.push({ path: `/approvals/${record.id}`, query })
 }
 
 function onApprove(record: ApprovalListItem) {
