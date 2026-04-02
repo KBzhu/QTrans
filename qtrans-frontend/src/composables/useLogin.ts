@@ -21,6 +21,13 @@ export const demoAccounts: DemoAccount[] = [
 ]
 
 function getDefaultRouteByRole(roles?: UserRole[]): string {
+  const appType = import.meta.env.VITE_APP_TYPE as string || 'tenant'
+
+  // 管理面所有角色都跳转到传输管理
+  if (appType === 'admin')
+    return '/transfers'
+
+  // 租户面根据角色跳转
   if (!roles || roles.length === 0)
     return '/dashboard'
 

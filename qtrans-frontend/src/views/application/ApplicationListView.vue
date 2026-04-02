@@ -132,7 +132,7 @@ onMounted(async () => {
 
         <a-button class="filter-advanced-btn" @click="onToggleAdvanced">
           <template #icon>
-            <img src="/figma/3961_3234/3.svg" alt="高级" class="filter-icon" />
+            <img :src="assetPath('/figma/3961_3234/3.svg')" alt="高级" class="filter-icon" />
           </template>
           高级搜索
           <img src="/figma/3961_3234/2.svg" alt="展开" class="filter-arrow" :class="{ 'is-expanded': advancedVisible }" />
@@ -149,7 +149,7 @@ onMounted(async () => {
       <div class="application-table-card__toolbar">
         <a-button type="primary" @click="onExport">
           <template #icon>
-            <img src="/figma/3961_3234/4.svg" alt="导出" class="filter-icon" />
+            <img :src="assetPath('/figma/3961_3234/4.svg')" alt="导出" class="filter-icon" />
           </template>
           导出
         </a-button>

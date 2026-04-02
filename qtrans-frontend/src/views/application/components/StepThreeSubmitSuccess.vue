@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Application } from '@/types'
+import { assetPath } from '@/utils/path'
 
 interface Props {
   submittedApplication: Application | null
@@ -37,8 +38,8 @@ const summaryRows = computed(() => {
 <template>
   <div class="submit-success">
     <div class="submit-success__icon" aria-hidden="true">
-      <img src="/figma/3960_2183/3.svg" alt="" class="submit-success__icon-bg" />
-      <img src="/figma/3960_2183/4.svg" alt="" class="submit-success__icon-check" />
+      <img :src="assetPath('/figma/3960_2183/3.svg')" alt="" class="submit-success__icon-bg" />
+      <img :src="assetPath('/figma/3960_2183/4.svg')" alt="" class="submit-success__icon-check" />
     </div>
 
     <h2>申请已提交成功！</h2>

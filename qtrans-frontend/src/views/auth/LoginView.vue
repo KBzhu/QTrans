@@ -71,7 +71,7 @@ const demoColumns = [
             size="large"
           >
             <template #prefix>
-              <img src="/figma/3971_1023/3.svg" alt="" style="width: 20px; height: 20px" />
+              <img :src="assetPath('/figma/3971_1023/3.svg')" alt="" style="width: 20px; height: 20px" />
             </template>
           </a-input-password>
         </a-form-item>

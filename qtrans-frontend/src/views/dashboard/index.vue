@@ -36,7 +36,7 @@ const helpDocs = [
     <div class="dashboard__bottom">
       <section class="glass-panel notices">
         <header class="panel-header">
-          <img src="/figma/3830_3/22.svg" alt="重要公告" />
+          <img :src="assetPath('/figma/3830_3/22.svg')" alt="重要公告" />
           <h3>重要公告</h3>
         </header>
         <ul>

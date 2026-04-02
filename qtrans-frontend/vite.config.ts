@@ -8,8 +8,20 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const appType = env.VITE_APP_TYPE || 'tenant'
+
+  // 根据 appType 设置不同的文根和端口
+  const base: Record<string, string> = {
+    tenant: '/tenant/',
+    admin: '/admin/',
+  }
+  const port: Record<string, number> = {
+    tenant: 3000,
+    admin: 3001,
+  }
 
   return {
+    base: base[appType] || '/',
     plugins: [
       vue(),
       AutoImport({
@@ -28,16 +40,20 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 3000,
+      port: Number(env.VITE_DEV_PORT) || port[appType] || 3000,
       strictPort: true,
       proxy: {
+        // API 代理 - 开发环境 mock 或转发到后端
+        '/api': {
+          target: 'http://127.0.0.1:8087',
+          changeOrigin: true,
+          secure: false,
+        },
         // TransWebService 代理 - 上传下载服务
         '/transWeb': {
           target: 'https://localhost.huawei.com:8110',
           changeOrigin: true,
-          secure: false, // 允许自签名证书
-          // 如果后端路径不包含 /transWeb 前缀，取消下面的注释
-          // rewrite: (path) => path.replace(/^\/transWeb/, ''),
+          secure: false,
         },
         // WorkflowService 代理 - 申请单创建等服务
         '/workflowService': {

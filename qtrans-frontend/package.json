@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tenant": "vite --mode tenant.development",
+    "dev:admin": "vite --mode admin.development",
     "build": "vue-tsc -b && vite build",
+    "build:tenant": "vue-tsc -b && vite build --mode tenant",
+    "build:admin": "vue-tsc -b && vite build --mode admin",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",

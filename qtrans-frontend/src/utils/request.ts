@@ -35,11 +35,13 @@ requestClient.interceptors.response.use(
       // 通过 store 清理认证状态
       const authStore = useAuthStore()
       authStore.clearAuthState()
+      const basePath = import.meta.env.BASE_URL || '/'
       if (!window.location.pathname.includes('/login'))
-        window.location.href = '/login'
+        window.location.href = `${basePath}login`
     }
     else if (status === 403) {
-      window.location.href = '/403'
+      const basePath = import.meta.env.BASE_URL || '/'
+      window.location.href = `${basePath}403`
     }
     else if (status === 500) {
       Message.error('服务器异常，请稍后重试')

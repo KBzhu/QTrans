@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "sessions": {
+    "810e5431a6f847a8a8bd359fbbe39981": [
+      {
+        "expertId": "SeniorProjectManager",
+        "name": "Dylan",
+        "profession": "高级项目经理",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/07-ProjectManagement/SeniorProjectManager/SeniorProjectManager.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/07-ProjectManagement/SeniorProjectManager/SeniorProjectManager_zh.md",
+        "usedAt": 1775033291509,
+        "industryId": "07-ProjectManagement"
+      },
+      {
+        "expertId": "PresalesTechnicalConsultant",
+        "name": "Sage",
+        "profession": "售前技术顾问",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/05-Sales/PresalesTechnicalConsultant/PresalesTechnicalConsultant.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/05-Sales/PresalesTechnicalConsultant/PresalesTechnicalConsultant_zh.md",
+        "usedAt": 1775010700618,
+        "industryId": "05-Sales"
+      },
+      {
+        "expertId": "DataAnalyticsReporter",
+        "name": "Phoebe",
+        "profession": "数据分析报告师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/09-Operations/DataAnalyticsReporter/DataAnalyticsReporter.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/09-Operations/DataAnalyticsReporter/DataAnalyticsReporter_zh.md",
+        "usedAt": 1775010063803,
+        "industryId": "all"
+      }
+    ],
+    "cf6ff61041704dde8d0b1a8b171ea3b0": [
+      {
+        "expertId": "FrontendDeveloper",
+        "name": "Paul",
+        "profession": "前端开发工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/FrontendDeveloper/FrontendDeveloper.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/FrontendDeveloper/FrontendDeveloper_zh.md",
+        "usedAt": 1775025966669,
+        "industryId": "02-Engineering"
+      }
+    ]
+  },
+  "lastUpdated": 1775034274627
+}

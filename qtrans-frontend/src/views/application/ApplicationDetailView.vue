@@ -64,7 +64,7 @@ onMounted(async () => {
   <section class="application-detail-page">
     <div class="application-detail-page__crumbs">
       <button class="back-btn" @click="goBack">
-        <img src="/figma/3971_1904/1.svg" alt="返回" />
+        <img :src="assetPath('/figma/3971_1904/1.svg')" alt="返回" />
       </button>
       <span class="crumb-text">我的申请 / 详情</span>
     </div>

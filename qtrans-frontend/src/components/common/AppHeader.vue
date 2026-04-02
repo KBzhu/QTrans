@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, useNotificationStore } from '@/stores'
 import type { UserRole } from '@/types'
+import { assetPath } from '@/utils/path'
 import RoleSwitcher from './RoleSwitcher.vue'
 
 const router = useRouter()
@@ -66,7 +67,7 @@ watch(
   <header class="app-header">
     <div class="app-header__left">
       <div class="logo-box">
-        <img src="/figma/3830_3/4.svg" alt="logo" class="logo-icon" />
+        <img :src="assetPath('/figma/3830_3/4.svg')" alt="logo" class="logo-icon" />
       </div>
       <div class="title">文件传输系统</div>
     </div>
@@ -75,14 +76,14 @@ watch(
       <RoleSwitcher />
 
       <button class="notify-btn" @click="goNotifications">
-        <img src="/figma/3971_1105/5.svg" alt="通知" />
+        <img :src="assetPath('/figma/3971_1105/5.svg')" alt="通知" />
         <span v-if="notificationStore.unreadCount > 0" class="badge">{{ notificationStore.unreadCount }}</span>
       </button>
 
       <a-dropdown trigger="click" position="br">
         <button class="user-name-btn">
           <span class="name">{{ accountText }}</span>
-          <img src="/figma/3971_1105/6.svg" alt="展开" class="name-arrow" />
+          <img :src="assetPath('/figma/3971_1105/6.svg')" alt="展开" class="name-arrow" />
         </button>
 
         <template #content>
@@ -97,7 +98,7 @@ watch(
               个人中心
             </button>
             <button class="user-dropdown__action user-dropdown__action--logout" @click="handleLogout">
-              <img src="/figma/3971_1105/29.svg" alt="退出" class="logout-icon" />
+              <img :src="assetPath('/figma/3971_1105/29.svg')" alt="退出" class="logout-icon" />
               <span>退出登录</span>
             </button>
           </div>

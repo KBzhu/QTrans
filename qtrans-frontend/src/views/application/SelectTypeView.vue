@@ -3,6 +3,7 @@ import type { UITransferTypeConfigItem } from '@/types'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTransferConfig } from '@/composables/useTransferConfig'
+import { assetPath } from '@/utils/path'
 
 const router = useRouter()
 const { tabs, transferTypes } = useTransferConfig()
@@ -40,9 +41,9 @@ const routineCards: RoutineCard[] = [
     key: 'routine-apply',
     title: '例行申请',
     desc: '定期传输任务',
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/9.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
+    fromIcon: assetPath('/figma/3971_812/7.svg'),
+    toIcon: assetPath('/figma/3971_812/9.svg'),
+    arrowIcon: assetPath('/figma/3971_812/8.svg'),
     fromZone: 'green',
     toZone: 'green',
   },
@@ -50,9 +51,9 @@ const routineCards: RoutineCard[] = [
     key: 'routine-channel',
     title: '例行通道',
     desc: '常规传输通道',
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
+    fromIcon: assetPath('/figma/3971_812/10.svg'),
+    toIcon: assetPath('/figma/3971_812/12.svg'),
+    arrowIcon: assetPath('/figma/3971_812/11.svg'),
     fromZone: 'cross',
     toZone: 'cross',
   },

@@ -340,6 +340,17 @@
   - 原因：`StepOneBasicInfo.vue` 在 `defineModel` 新数据流下每次都整体替换 `formData`；同时 `useApprovalRoute/useSecurityLevel/useCitySelection` 的 watch 使用 getter 返回新数组，导致依赖未变化时也重复触发，其中审批清空逻辑再次写回相同字段，形成递归更新。
   - 处理：为 `updateFormData` 增加变更比对，未变化时不再回写；将 3 个 composable 的 watch 改为 getter 数组源；为 `clearApprovers()` 增加空值保护，阻断递归链路。
 
+- 2026-04-01 用户面/管理面拆分后启动报错（3 个问题）
+  - 问题1：`AppHeader.vue:70 TypeError: Cannot read properties of undefined (reading 'BASE_URL')`
+    - 原因：第 70 行残留 `$env.BASE_URL`（Vue 模板中不存在的全局变量），此前批量修改时漏改
+    - 修复：改为 `assetPath('/figma/3830_3/4.svg')`
+  - 问题2：`MSW 启动失败: Service Worker script does not exist at the given path`
+    - 原因：当 Vite base 变为 `/admin/` 时，MSW 默认在 `{base}mockServiceWorker.js` 路径下注册 SW，但该文件实际在 `public/` 根目录下
+    - 修复：在 `mocks/browser.ts` 的 `setupWorker()` 中显式指定 `serviceWorker.url: '/mockServiceWorker.js'`（从根路径加载）
+  - 问题3：`Failed to load resource: /notifications?userId=1 404`
+    - 原因：`.env.admin` 中 `VITE_API_BASE_URL=/admin/api`，但 MSW handler 注册的路径是 `/api/notifications`，导致 mock 无法拦截，请求打到开发服务器返回 404
+    - 修复：在 `.env.admin.development` 和 `.env.tenant.development` 中覆盖 `VITE_API_BASE_URL=/api`（开发环境保持 /api 让 MSW 正确拦截，生产环境才加 base 前缀）
+
 
 
 

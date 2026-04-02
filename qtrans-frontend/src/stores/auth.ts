@@ -96,8 +96,9 @@ export const useAuthStore = defineStore('auth', () => {
       pauseRefresh() // 停止刷新定时器
       clearAuthState()
       // pinia 插件会自动清理 localStorage
+      const basePath = import.meta.env.BASE_URL || '/'
       if (!window.location.pathname.includes('/login'))
-        window.location.href = '/login'
+        window.location.href = `${basePath}login`
     }
   }
 
