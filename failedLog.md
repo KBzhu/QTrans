@@ -1,5 +1,16 @@
 # failedLog
 
+- 2026-04-02 tenant/admin 开发模式修复期间 lint 首次报错：`qtrans-frontend/vite.config.ts`
+  - 错误信息：`找不到名称“appTitle”(TS2304)`，原因是首次替换仅更新了 `define.__APP_TITLE__`，未同步补充 `appTitle` 定义。
+  - 处理：补齐 `const appTitle = ...` 后重新执行定向 lint 校验，问题已修复。
+- 2026-04-02 tenant/admin 修复回归构建失败：`pnpm --dir "d:/VibeCoding/QTrans-0302new/qtrans-frontend" run build:tenant`
+  - 错误信息：构建被项目内既有 TypeScript 错误阻塞，包括 `src/api/regionManage.ts` 缺少 `request.patch`、`src/api/transWebService.ts` `BlobPart` 类型不兼容、`DepartmentSelector.spec.ts` 空值/类型错误、`RoleSwitcher.vue` 参数签名不匹配，以及多处 `TransFileTableDemo.vue` / `TransUploadView.vue` / `TransferManageView.vue` 现存类型问题。
+  - 处理：确认本轮修改文件定向 lint 全部通过；该构建失败为仓库既有问题，未在本轮继续扩散处理。
+
+
+
+
+
 - 2026-03-10 P10.3 覆盖率首次失败：`pnpm --dir "d:\VibeCoding\QTrans-0302new\qtrans-frontend" test:coverage`
   - 错误信息：`useNotificationList.spec.ts` 断言错误，先执行 `handleMarkRead('n-1')` 后又执行 `handleClearRead()`，此时 `n-1` 已变为已读并被清理，原断言仍期待保留 `['n-1']`，实际结果为空数组。
   - 处理：修正测试预期为清空已读后的空列表，并重新执行覆盖率验证。

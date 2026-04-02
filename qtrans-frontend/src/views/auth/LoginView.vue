@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { useLogin, demoAccounts } from '@/composables/useLogin'
 import type { DemoAccount } from '@/composables/useLogin'
+import { assetPath } from '@/utils/path'
+
 
 const formRef = ref()
 const {
@@ -36,7 +38,8 @@ const demoColumns = [
   <div class="login-page">
     <div class="login-brand">
       <div class="login-brand__logo">
-        <img src="/figma/3971_1023/1.svg" alt="logo" />
+        <img :src="assetPath('/figma/3971_1023/1.svg')" alt="logo" />
+
       </div>
       <div class="login-brand__title">文件传输平台</div>
       <div class="login-brand__subtitle">请登录您的账户</div>
@@ -58,7 +61,8 @@ const demoColumns = [
             size="large"
           >
             <template #prefix>
-              <img src="/figma/3971_1023/2.svg" alt="" style="width: 20px; height: 20px" />
+              <img :src="assetPath('/figma/3971_1023/2.svg')" alt="" style="width: 20px; height: 20px" />
+
             </template>
           </a-input>
         </a-form-item>

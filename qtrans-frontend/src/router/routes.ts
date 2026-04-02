@@ -254,7 +254,7 @@ export const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       roles: authRoles,
       hidden: true,
-      appType: 'tenant',
+      appType: 'shared',
     } as AppRouteMeta,
   },
   {
@@ -268,9 +268,10 @@ export const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       roles: authRoles,
       hidden: true,
-      appType: 'tenant',
+      appType: 'shared',
     } as AppRouteMeta,
   },
+
 
   // ==================== 管理面路由 (admin) ====================
   {

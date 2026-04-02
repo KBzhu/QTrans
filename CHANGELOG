@@ -7,6 +7,13 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- **tenant/admin 开发模式文根修复**: 为 `.env.tenant.development` / `.env.admin.development` 补齐 `VITE_APP_TYPE` 与 `VITE_APP_TITLE`，并在 `vite.config.ts` 增加基于 `mode` 的兜底识别，修复 `dev:admin` 仍落到 `/tenant/`、路由/菜单按租户面过滤的问题。
+- **共享头部跨面可用性修复**: 将 `个人中心` 与 `通知中心` 路由改为 `shared`，并为 `auth` / `notification` 持久化增加按 `appType` 隔离的 storage key，避免租户面与管理面状态串用。
+- **通知请求报错降级处理**: `notification` store 在拉取通知失败时改为优雅回退，避免头部初始化时产生未捕获 Promise 报错。
+- **静态资源 base 适配补齐**: 修复 `LoginView`、`ApplicationListView`、`CreateApplicationView`、`ApplicationDetailView`、`ApprovalDetailView`、`Dashboard` 等页面残留的 `/figma/...` 绝对路径，统一走 `assetPath()`，兼容 `/tenant/` 与 `/admin/` 文根。
+
+### Changed
+
 - **TransWebService 请求携带 auth token**: `initUpload`、`initDownload`、`downloadFile` 请求现在通过 `transClient` 拦截器自动携带 pinia auth token（`headers.token`），修复请求头缺失导致后端鉴权失败的问题
   - `initUpload`/`initDownload` 从裸 `axios.get` 改为 `transClient.get`，走拦截器
   - `transClient` 请求拦截器新增 auth token 注入（与 `rawClient` 保持一致）

@@ -19,7 +19,10 @@ const permissionMap: Record<UserRole, string[]> = {
   subsidiary: ['application:read'],
 }
 
+const authPersistKey = `auth:${import.meta.env.VITE_APP_TYPE || 'tenant'}`
+
 export const useAuthStore = defineStore('auth', () => {
+
   const token = ref('')
   const currentUser = ref<User | null>(null)
   const isRefreshing = ref(false)
@@ -135,8 +138,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 }, {
   persist: {
-    key: 'auth',
+    key: authPersistKey,
     storage: localStorage,
+
     pick: ['token', 'currentUser'],
     // 使用 serializer 确保 token 直接存储为字符串，user 存储为 JSON
     serializer: {

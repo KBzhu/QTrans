@@ -4,7 +4,10 @@ import { computed, ref, watch } from 'vue'
 import { notificationApi } from '@/api/notification'
 import { useAuthStore } from './auth'
 
+const notificationPersistKey = `notification:${import.meta.env.VITE_APP_TYPE || 'tenant'}`
+
 function sortNotifications(list: AppNotification[]) {
+
   return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
@@ -59,11 +62,19 @@ export const useNotificationStore = defineStore('notification', () => {
       return []
     }
 
-    const list = await notificationApi.getList(userId)
-    replaceScopedNotifications(userId, list)
+    try {
+      const list = await notificationApi.getList(userId)
+      replaceScopedNotifications(userId, list)
+    }
+    catch {
+      recalculateUnreadCount()
+      return getNotificationsByUser(userId)
+    }
+
     recalculateUnreadCount()
     return getNotificationsByUser(userId)
   }
+
 
   async function markAsRead(id: string) {
     const target = notifications.value.find(item => item.id === id)
@@ -149,8 +160,10 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 }, {
   persist: {
+    key: notificationPersistKey,
     pick: ['notifications', 'unreadCount'],
   },
+
 })
 
 

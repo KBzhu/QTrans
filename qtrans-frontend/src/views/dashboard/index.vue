@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import SelectTypeView from '@/views/application/SelectTypeView.vue'
+import { assetPath } from '@/utils/path'
 
 const notices = [
+
   {
     title: '2024年一季度系统维护通告 (进行中)',
     content: '维护时间：18:00-24:00。传输Trans产品正在进行数据迁移与业务平稳性能测试。详情咨询用户支撑团队。',
@@ -42,7 +44,8 @@ const helpDocs = [
         <ul>
           <li v-for="notice in notices" :key="notice.title">
             <div class="notice-title">
-              <img :src="notice.icon" :alt="notice.title" />
+              <img :src="assetPath(notice.icon)" :alt="notice.title" />
+
               <span>{{ notice.title }}</span>
             </div>
             <p>{{ notice.content }}</p>
@@ -53,7 +56,8 @@ const helpDocs = [
       <section class="glass-panel helps">
         <header class="panel-header">
           <div class="help-title">
-            <img src="/figma/3830_3/28.svg" alt="帮助文档" />
+            <img :src="assetPath('/figma/3830_3/28.svg')" alt="帮助文档" />
+
             <h3>帮助文档</h3>
           </div>
           <span class="hotline">IT 热线</span>

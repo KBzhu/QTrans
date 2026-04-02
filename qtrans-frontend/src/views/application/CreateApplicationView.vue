@@ -194,7 +194,8 @@ onBeforeRouteLeave(() => {
   <section class="create-application-page">
     <div class="create-application-page__crumbs">
       <button class="back-btn" @click="goBack">
-        <img src="/figma/3960_2183/1.svg" alt="返回" />
+        <img :src="assetPath('/figma/3960_2183/1.svg')" alt="返回" />
+
         <span>返回</span>
       </button>
       <span class="crumb-divider">/</span>

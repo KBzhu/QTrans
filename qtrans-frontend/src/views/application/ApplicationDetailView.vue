@@ -7,7 +7,9 @@ import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
+import { assetPath } from '@/utils/path'
 import './application-detail.scss'
+
 
 const route = useRoute()
 const router = useRouter()

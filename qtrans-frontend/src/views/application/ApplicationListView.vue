@@ -5,9 +5,11 @@ import { IconCopy, IconEye, IconFile, IconStop } from '@arco-design/web-vue/es/i
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
-import { formatDateTime } from '@/utils'
 import { useApplicationList } from '@/composables/useApplicationList'
+import { formatDateTime } from '@/utils'
+import { assetPath } from '@/utils/path'
 import './application-list.scss'
+
 
 const router = useRouter()
 const selectedRowKeys = ref<string[]>([])
@@ -126,7 +128,8 @@ onMounted(async () => {
           @press-enter="handleSearch"
         >
           <template #prefix>
-            <img src="/figma/3961_3234/1.svg" alt="搜索" class="filter-icon" />
+            <img :src="assetPath('/figma/3961_3234/1.svg')" alt="搜索" class="filter-icon" />
+
           </template>
         </a-input>
 
@@ -135,7 +138,8 @@ onMounted(async () => {
             <img :src="assetPath('/figma/3961_3234/3.svg')" alt="高级" class="filter-icon" />
           </template>
           高级搜索
-          <img src="/figma/3961_3234/2.svg" alt="展开" class="filter-arrow" :class="{ 'is-expanded': advancedVisible }" />
+          <img :src="assetPath('/figma/3961_3234/2.svg')" alt="展开" class="filter-arrow" :class="{ 'is-expanded': advancedVisible }" />
+
         </a-button>
       </div>
 

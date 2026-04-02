@@ -8,7 +8,8 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const appType = env.VITE_APP_TYPE || 'tenant'
+  const appType = env.VITE_APP_TYPE || (mode.startsWith('admin') ? 'admin' : 'tenant')
+  const appTitle = env.VITE_APP_TITLE || (appType === 'admin' ? 'QTrans-管理端' : 'QTrans-租户端')
 
   // 根据 appType 设置不同的文根和端口
   const base: Record<string, string> = {
@@ -84,7 +85,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      __APP_TITLE__: JSON.stringify(env.VITE_APP_TITLE || 'QTrans'),
+      __APP_TITLE__: JSON.stringify(appTitle),
     },
   }
 })
