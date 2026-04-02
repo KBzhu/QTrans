@@ -4,79 +4,16 @@ import { ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { parseAreaFromAttr } from '@/constants'
 import { uiConfigApi } from '@/api/uiConfig'
+import { getTransferIcons } from '@/config/icons'
 
-// 图标映射：根据 fromZone + toZone 组合确定图标
-const ICON_MAP: Record<string, { fromIcon: string, toIcon: string, arrowIcon: string }> = {
-  'green-green': {
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/9.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
-  },
-  'green-yellow': {
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/10.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
-  },
-  'green-red': {
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
-  },
-  'green-external': {
-    fromIcon: '/figma/3971_812/7.svg',
-    toIcon: '/figma/3971_812/14.svg',
-    arrowIcon: '/figma/3971_812/8.svg',
-  },
-  'yellow-green': {
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/9.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-  },
-  'yellow-yellow': {
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/10.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-  },
-  'yellow-red': {
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-  },
-  'yellow-external': {
-    fromIcon: '/figma/3971_812/10.svg',
-    toIcon: '/figma/3971_812/14.svg',
-    arrowIcon: '/figma/3971_812/11.svg',
-  },
-  'red-green': {
-    fromIcon: '/figma/3971_812/12.svg',
-    toIcon: '/figma/3971_812/9.svg',
-    arrowIcon: '/figma/3971_812/13.svg',
-  },
-  'red-yellow': {
-    fromIcon: '/figma/3971_812/12.svg',
-    toIcon: '/figma/3971_812/10.svg',
-    arrowIcon: '/figma/3971_812/13.svg',
-  },
-  'red-red': {
-    fromIcon: '/figma/3971_812/12.svg',
-    toIcon: '/figma/3971_812/12.svg',
-    arrowIcon: '/figma/3971_812/13.svg',
-  },
-}
-
-// 默认图标
-const DEFAULT_ICONS = {
-  fromIcon: '/figma/3971_812/7.svg',
-  toIcon: '/figma/3971_812/9.svg',
-  arrowIcon: '/figma/3971_812/8.svg',
-}
+// 默认图标（使用新的图标配置）
+const DEFAULT_ICONS = getTransferIcons('green', 'green')
 
 /**
  * 获取图标配置
  */
 function getIcons(fromZone: string, toZone: string) {
-  const key = `${fromZone}-${toZone}`
-  return ICON_MAP[key] || DEFAULT_ICONS
+  return getTransferIcons(fromZone, toZone)
 }
 
 /**
