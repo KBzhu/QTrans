@@ -11,6 +11,9 @@ The format is based on Keep a Changelog.
 - **共享头部跨面可用性修复**: 将 `个人中心` 与 `通知中心` 路由改为 `shared`，并为 `auth` / `notification` 持久化增加按 `appType` 隔离的 storage key，避免租户面与管理面状态串用。
 - **通知请求报错降级处理**: `notification` store 在拉取通知失败时改为优雅回退，避免头部初始化时产生未捕获 Promise 报错。
 - **静态资源 base 适配补齐**: 修复 `LoginView`、`ApplicationListView`、`CreateApplicationView`、`ApplicationDetailView`、`ApprovalDetailView`、`Dashboard` 等页面残留的 `/figma/...` 绝对路径，统一走 `assetPath()`，兼容 `/tenant/` 与 `/admin/` 文根。
+- **MSW 与本地接口文根对齐修复**: `worker.start()` 改为按 `BASE_URL` 注册 `mockServiceWorker.js` 和 scope，mock handlers 统一走带文根前缀的 `baseHttp`，并在 `vite.config.ts` 为 `/tenant/*`、`/admin/*` 补齐代理转发，修复开发环境下 `mockServiceWorker.js` 404 与 `/api/*` 请求未命中 mock/代理的问题。
+- **跨文根请求客户端补齐**: `request.ts`、`transWebService.ts` 中的本地相对接口统一经 `assetPath()` 归一化，修复 `/tenant/`、`/admin/` 下 `notifications`、`transWeb` 等请求落到站点根路径导致的 404。
+
 
 ### Changed
 

@@ -1,4 +1,5 @@
-import { http, HttpResponse } from 'msw'
+import { HttpResponse } from 'msw'
+import { baseHttp as http } from './_utils'
 
 // 模拟存储的分片数据
 const uploadedChunks = new Map<string, Set<number>>()

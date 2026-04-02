@@ -1,4 +1,5 @@
-import { http, passthrough } from 'msw'
+import { passthrough } from 'msw'
+import { baseHttp as http } from './_utils'
 import { applicationHandlers } from './application'
 import { approvalHandlers } from './approval'
 import { authHandlers } from './auth'

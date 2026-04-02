@@ -1,6 +1,6 @@
 import type { ApprovalAction, ApprovalLevel, ApprovalRecord, Application, TransferType, UserRole } from '@/types'
 import type { DemoState } from '../data/demo-init'
-import { http } from 'msw'
+import { baseHttp as http } from './_utils'
 import { getDemoState } from '../data/demo-init'
 import { failed, mockDelay, success } from './_utils'
 

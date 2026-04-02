@@ -6,7 +6,7 @@ import type {
   SaveChannelServersRequest,
   TransferChannel,
 } from '@/types'
-import { http } from 'msw'
+import { baseHttp as http } from './_utils'
 import { failed, getPagination, mockDelay, success } from './_utils'
 
 const defaultServers: ChannelServer[] = [

@@ -3,9 +3,10 @@ import { Message } from '@arco-design/web-vue'
 
 import type { ApiResponse } from '@/types'
 import { useAuthStore } from '@/stores'
+import { assetPath } from '@/utils/path'
 
 const requestClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: assetPath(import.meta.env.VITE_API_BASE_URL || '/api'),
   timeout: 15000,
 })
 
@@ -70,6 +71,9 @@ rawClient.interceptors.request.use((config) => {
   const token = authStore.token
   if (token)
     config.headers.token = token
+
+  if (config.url)
+    config.url = assetPath(config.url)
 
   // 为 /commonService 文根的请求添加 Referer 头（本地调试需要）
   if (config.url?.includes('/commonService')) {

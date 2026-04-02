@@ -1,5 +1,5 @@
 import type { LoginRequest } from '@/types'
-import { http } from 'msw'
+import { baseHttp as http } from './_utils'
 import { getDemoState } from '../data/demo-init'
 import { failed, mockDelay, success } from './_utils'
 

@@ -9,7 +9,7 @@ import type {
   UITransferTabConfigItem,
   UITransferTypeConfigItem,
 } from '@/types'
-import { http } from 'msw'
+import { baseHttp as http } from './_utils'
 import { failed, mockDelay, success } from './_utils'
 
 const initialTextItems: UITextConfigItem[] = [

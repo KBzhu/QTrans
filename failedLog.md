@@ -6,6 +6,11 @@
 - 2026-04-02 tenant/admin 修复回归构建失败：`pnpm --dir "d:/VibeCoding/QTrans-0302new/qtrans-frontend" run build:tenant`
   - 错误信息：构建被项目内既有 TypeScript 错误阻塞，包括 `src/api/regionManage.ts` 缺少 `request.patch`、`src/api/transWebService.ts` `BlobPart` 类型不兼容、`DepartmentSelector.spec.ts` 空值/类型错误、`RoleSwitcher.vue` 参数签名不匹配，以及多处 `TransFileTableDemo.vue` / `TransUploadView.vue` / `TransferManageView.vue` 现存类型问题。
   - 处理：确认本轮修改文件定向 lint 全部通过；该构建失败为仓库既有问题，未在本轮继续扩散处理。
+- 2026-04-02 tenant/admin 文根适配二次修复期间定向 lint 失败：`qtrans-frontend/src/mocks/browser.ts`、`qtrans-frontend/vite.config.ts`
+  - 错误信息：首次将 `serviceWorker` 选项错误地传给 `setupWorker(...handlers, options)`，触发 `TS2353`；同时 `vite.config.ts` 在代理抽取过程中遗漏 `proxy` 定义，触发 `TS2552`。
+  - 处理：将 `serviceWorker.url/scope` 配置移回 `worker.start(...)`，并在 `vite.config.ts` 中补齐 `basePath`/`basePrefix`/`withBaseProxy`/`proxy` 定义后重新执行定向 lint，问题已修复。
+
+
 
 
 

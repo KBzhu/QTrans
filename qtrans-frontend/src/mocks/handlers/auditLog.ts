@@ -1,6 +1,6 @@
 import type { AuditActionType, AuditLogRecord, AuditResult } from '@/types'
 import dayjs from 'dayjs'
-import { http } from 'msw'
+import { baseHttp as http } from './_utils'
 import { getPagination, mockDelay, success } from './_utils'
 
 const actionTypePool: AuditActionType[] = ['login', 'application', 'file', 'approval', 'transfer', 'system']

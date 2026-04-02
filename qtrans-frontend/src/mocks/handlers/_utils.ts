@@ -1,5 +1,34 @@
 import type { ApiResponse } from '@/types'
-import { HttpResponse, delay } from 'msw'
+import { HttpResponse, delay, http as mswHttp } from 'msw'
+
+function getBasePath() {
+  return import.meta.env.BASE_URL || '/'
+}
+
+function withBasePath(path: string) {
+  const base = getBasePath()
+
+  if (!path.startsWith('/') || base === '/' || path.startsWith(base))
+    return path
+
+  return `${base}${path.replace(/^\//, '')}`
+}
+
+function createHandler(method: keyof typeof mswHttp) {
+  return ((path: Parameters<typeof mswHttp.get>[0], ...rest: unknown[]) => {
+    const normalizedPath = typeof path === 'string' ? withBasePath(path) : path
+    return (mswHttp[method] as (...args: unknown[]) => unknown)(normalizedPath, ...rest)
+  }) as typeof mswHttp.get
+}
+
+export const baseHttp = {
+  all: createHandler('all') as typeof mswHttp.all,
+  get: createHandler('get'),
+  post: createHandler('post'),
+  put: createHandler('put'),
+  patch: createHandler('patch'),
+  delete: createHandler('delete'),
+}
 
 export async function mockDelay(ms = 200) {
   await delay(ms)

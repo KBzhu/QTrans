@@ -6,6 +6,7 @@
  */
 import axios, { type AxiosInstance, type AxiosProgressEvent } from 'axios'
 import { useAuthStore } from '@/stores'
+import { assetPath } from '@/utils/path'
 
 // ============ 类型定义 ============
 
@@ -97,7 +98,7 @@ const CHUNK_SIZE = 4 * 1024 * 1024
 
 const createTransClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: '/transWeb',
+    baseURL: assetPath('/transWeb'),
     timeout: 60000,
   })
 
@@ -322,7 +323,7 @@ export async function downloadFile(
   const transToken = sessionStorage.getItem(TRANS_TOKEN_KEY)
   const authStore = useAuthStore()
   const authToken = authStore.token
-  const url = `/transWeb/api/file/download?fileName=${encodeURIComponent(fileName)}&relativeDir=${encodeURIComponent(relativeDir)}&params=${params}`
+  const url = assetPath(`/transWeb/api/file/download?fileName=${encodeURIComponent(fileName)}&relativeDir=${encodeURIComponent(relativeDir)}&params=${params}`)
 
   const headers: Record<string, string> = {
     Authorization: transToken || '',

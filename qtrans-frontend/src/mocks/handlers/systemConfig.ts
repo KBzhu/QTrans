@@ -1,4 +1,5 @@
-import { http, HttpResponse } from 'msw'
+import { HttpResponse } from 'msw'
+import { baseHttp as http } from './_utils'
 
 // 默认配置数据
 const defaultConfigs = {
