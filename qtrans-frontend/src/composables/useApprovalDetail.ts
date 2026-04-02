@@ -134,7 +134,8 @@ export function useApprovalDetail() {
     return currentHandler.value.split(',').map(s => s.trim()).includes(currentUserAccount)
   })
 
-  const canOperate = computed(() => {
+  // 基础操作权限（不含资产确认检查）
+  const canOperateBase = computed(() => {
     if (!detailData.value)
       return false
     // isNeedApproval === 1 表示还需要审批
@@ -323,7 +324,7 @@ export function useApprovalDetail() {
     totalFiles,
     pagination,
     currentApprovalLabel,
-    canOperate,
+    canOperateBase,
     canExempt,
     downloading,
     downloadingFile,

@@ -6,6 +6,51 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added - 2026-04-02
+
+### Added - 2026-04-02
+
+#### 资产检测结果模块
+- **新增组件** `AssetDetectionResult.vue` - 资产检测结果展示组件
+  - 统计卡片展示关键资产数量和总大小
+  - 可展开的文件列表（文件名、文件类型、密级）
+  - 支持审批确认功能（逐条确认后才能操作）
+  - 通过 props 接收数据，支持父组件状态共享
+
+- **新增 API** `src/api/assetDetection.ts`
+  - `getKiaResultCount` - 查询关键资产统计
+  - `getKiaResultKeyList` - 查询关键资产列表
+  - `getSecretLevelList` - 查询密级枚举
+
+- **新增 Composable** `useAssetDetection.ts`
+  - 封装资产检测数据获取逻辑
+  - 提供确认状态管理
+  - 提供 `processedFileList`（带展示名称的文件列表）
+
+- **新增常量** `src/constants/fileType.ts`
+  - fileType 枚举映射（中文名称）
+
+- **新增类型** `src/types/assetDetection.ts`
+  - KiaResultItem、KiaResultCountResponse
+  - KiaKeyFileItem、SecretLevelItem
+
+#### 申请单详情页面优化
+- 集成资产检测结果展示（独立卡片）
+- "继续上传文件"按钮仅在"创建申请单"和"文件上传"状态展示
+- **关键资产确认逻辑**：
+  - 当 `count > 0`（有关键资产）时，按钮置灰
+  - 用户确认完所有关键资产后，按钮恢复可点击
+
+#### 审批单详情页面优化
+- 集成资产检测结果展示（独立卡片）
+- **关键资产确认逻辑**：
+  - 关键资产需逐条确认
+  - 全部确认后审批按钮（通过/驳回）才可点击
+  - 显示确认进度提示
+
+
+## [Unreleased]
+
 ### Fixed
 - **tenant/admin 开发模式文根修复**: 为 `.env.tenant.development` / `.env.admin.development` 补齐 `VITE_APP_TYPE` 与 `VITE_APP_TITLE`，并在 `vite.config.ts` 增加基于 `mode` 的兜底识别，修复 `dev:admin` 仍落到 `/tenant/`、路由/菜单按租户面过滤的问题。
 - **共享头部跨面可用性修复**: 将 `个人中心` 与 `通知中心` 路由改为 `shared`，并为 `auth` / `notification` 持久化增加按 `appType` 隔离的 storage key，避免租户面与管理面状态串用。

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { DetailFileItem } from '@/types/detail'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
+import AssetDetectionResult from '@/components/business/AssetDetectionResult.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
+import { useAssetDetection } from '@/composables/useAssetDetection'
 import { assetPath } from '@/utils/path'
 import './application-detail.scss'
 
@@ -38,11 +40,51 @@ const {
   onFilePageChange,
 } = useApplicationDetail()
 
+// 资产检测
+const {
+  countLoading,
+  countData,
+  processedFileList,
+  hasKeyAssets,
+  allFilesConfirmed,
+  initAssetDetection,
+  confirmFile,
+  unconfirmFile,
+} = useAssetDetection()
+
 const id = String(route.params.id || '')
 const closeModalVisible = ref(false)
 
 // 当前流程状态 - 使用 processDetailData.applicationStatus
 const currentStatus = computed(() => processDetailData.value?.applicationStatus || '-')
+
+// 是否可以继续上传文件（状态为"创建申请单"或"文件上传"）
+const canContinueUpload = computed(() => {
+  const status = processDetailData.value?.applicationStatus
+  return status === '创建申请单' || status === '文件上传'
+})
+
+// 按钮是否置灰：有关键资产且未全部确认时置灰
+const isUploadButtonDisabled = computed(() => {
+  // 没有关键资产，按钮可用
+  if (!hasKeyAssets.value)
+    return false
+  // 有关键资产，需要全部确认后才能点击
+  return !allFilesConfirmed.value
+})
+
+// 资产检测加载状态
+const assetLoading = computed(() => countLoading.value)
+
+// 处理确认操作
+function handleAssetConfirm(fileName: string, confirmed: boolean) {
+  if (confirmed) {
+    confirmFile(fileName)
+  }
+  else {
+    unconfirmFile(fileName)
+  }
+}
 
 function goBack() {
   router.push('/applications')
@@ -56,10 +98,26 @@ function onCloseSuccess() {
   router.push('/applications')
 }
 
+/** 资产确认状态变化回调 */
+function onAssetConfirmChange(_allConfirmed: boolean) {
+  // 确认状态变化会自动更新 allFilesConfirmed，按钮状态通过 computed 自动响应
+}
+
 onMounted(async () => {
   if (id)
     await fetchDetail(id)
 })
+
+// 监听详情数据加载完成后初始化资产检测
+watch(
+  () => detailData.value?.appBaseInfo?.applicationId,
+  (applicationId) => {
+    if (applicationId) {
+      initAssetDetection(applicationId)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -123,8 +181,27 @@ onMounted(async () => {
       <ProcessTimeline :application-id="detailData?.appBaseInfo?.applicationId || id" />
     </div>
 
+    <!-- 资产检测结果 -->
+    <AssetDetectionResult
+      v-if="detailData?.appBaseInfo?.applicationId"
+      :application-id="detailData.appBaseInfo.applicationId"
+      :require-confirmation="canContinueUpload && hasKeyAssets"
+      :count-data="countData"
+      :file-list="processedFileList"
+      :loading="assetLoading"
+      :on-confirm="handleAssetConfirm"
+      @confirm-status-change="onAssetConfirmChange"
+    />
+
     <footer class="application-detail-page__actions">
-      <a-button v-if="isNotUploaded" type="primary" @click="handleContinueUpload">继续上传文件</a-button>
+      <a-button
+        v-if="canContinueUpload"
+        type="primary"
+        :disabled="isUploadButtonDisabled"
+        @click="handleContinueUpload"
+      >
+        继续上传文件
+      </a-button>
       <a-button type="outline" status="danger" @click="onCloseApplication">关闭申请单</a-button>
     </footer>
 

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type { TransferState } from '@/types'
 import { Message, Modal } from '@arco-design/web-vue'
-import { IconCheckCircleFill } from '@arco-design/web-vue/es/icon'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TransferProgress from '@/components/business/TransferProgress.vue'
 import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
+import AssetDetectionResult from '@/components/business/AssetDetectionResult.vue'
 import { useApprovalDetail } from '@/composables/useApprovalDetail'
+import { useAssetDetection } from '@/composables/useAssetDetection'
+import { assetPath } from '@/utils/path'
 import './approval-detail.scss'
 
 
@@ -19,7 +21,6 @@ const {
   detailData,
   activeTab,
   approvalOpinion,
-  statusLabel,
   basicInfoRows,
   applicationInfoRows,
   files,
@@ -27,10 +28,7 @@ const {
   totalFiles,
   pagination,
   currentApprovalLabel,
-  canOperate,
-  canExempt,
-  downloading,
-  downloadingFile,
+  canOperateBase,
   fetchDetail,
   handleApprove,
   handleReject,
@@ -41,7 +39,43 @@ const {
   goBack,
 } = useApprovalDetail()
 
+// 资产检测
+const {
+  countLoading,
+  countData,
+  processedFileList,
+  hasKeyAssets,
+  allFilesConfirmed,
+  initAssetDetection,
+  confirmFile,
+  unconfirmFile,
+} = useAssetDetection()
+
 const id = String(route.params.id || '')
+
+// 资产检测加载状态
+const assetLoading = computed(() => countLoading.value)
+
+// 审批按钮是否可用：有关键资产时需要全部确认
+const canOperate = computed(() => {
+  // 基础权限检查
+  if (!canOperateBase.value)
+    return false
+  // 有关键资产时，需要全部确认
+  if (hasKeyAssets.value)
+    return allFilesConfirmed.value
+  return true
+})
+
+// 处理确认操作
+function handleAssetConfirm(fileName: string, confirmed: boolean) {
+  if (confirmed) {
+    confirmFile(fileName)
+  }
+  else {
+    unconfirmFile(fileName)
+  }
+}
 
 /** 后端 applicationStatus: 3=已批准, 5=传输中, 6=已完成 */
 const showTransferProgress = computed(() => {
@@ -118,13 +152,24 @@ onMounted(async () => {
   if (id)
     await fetchDetail(id)
 })
+
+// 监听详情数据加载完成后初始化资产检测
+watch(
+  () => detailData.value?.appBaseInfo?.applicationId,
+  (applicationId) => {
+    if (applicationId) {
+      initAssetDetection(applicationId)
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <section class="approval-detail-page">
     <div class="approval-detail-page__crumbs">
       <button class="back-btn" @click="goBack">
-        <img :src="assetPath('/figma/3971_1904/1.svg')" alt="返回" />
+        <img :src="assetPath('/figma/3971_1904/1.svg')" alt="返回">
 
       </button>
       <span class="crumb-text">审批管理 / 详情</span>
@@ -138,17 +183,12 @@ onMounted(async () => {
 
       <div class="approval-detail-page__header-right">
         <a-tag color="arcoblue">{{ currentApprovalLabel }}</a-tag>
-        <div class="status-pill" :class="`status-pill--${statusClass}`">
-          <IconCheckCircleFill />
-          <span>{{ statusLabel }}</span>
-        </div>
       </div>
     </header>
 
     <div v-if="canOperate" class="approval-detail-page__top-actions">
       <a-button type="primary" @click="onApprove">通过</a-button>
       <a-button status="danger" @click="onReject">驳回</a-button>
-      <a-button v-if="canExempt" type="outline" @click="onExempt">免审</a-button>
     </div>
 
     <div class="detail-tabs">
@@ -185,6 +225,17 @@ onMounted(async () => {
       </a-spin>
     </div>
 
+    <!-- 资产检测结果 -->
+    <AssetDetectionResult
+      v-if="detailData?.appBaseInfo?.applicationId"
+      :application-id="detailData.appBaseInfo.applicationId"
+      :require-confirmation="canOperateBase"
+      :count-data="countData"
+      :file-list="processedFileList"
+      :loading="assetLoading"
+      :on-confirm="handleAssetConfirm"
+    />
+
     <section v-if="showTransferProgress" class="approval-detail-page__transfer">
       <TransferProgress
         :application-id="detailData?.appBaseInfo?.applicationId || id"
@@ -208,7 +259,6 @@ onMounted(async () => {
       <div class="approval-opinion-card__actions">
         <a-button type="primary" @click="onApprove">通过</a-button>
         <a-button status="danger" @click="onReject">驳回</a-button>
-        <a-button v-if="canExempt" type="outline" @click="onExempt">免审</a-button>
       </div>
     </section>
   </section>
