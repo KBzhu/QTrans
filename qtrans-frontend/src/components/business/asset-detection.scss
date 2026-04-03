@@ -255,6 +255,26 @@
         background: #f8fafc;
         color: #475569;
         font-weight: 600;
+        position: relative;
+
+        // 添加列分隔线
+        &::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 1px;
+          height: 50%;
+          background: #e2e8f0;
+          opacity: 1;
+          transition: opacity 0.2s;
+        }
+
+        // 最后一列不显示分隔线
+        &:last-child::after {
+          display: none;
+        }
       }
 
       // 斑马纹
@@ -273,14 +293,64 @@
         color: #166534;
       }
 
-      // 列宽拖拽手柄
+      // 列宽拖拽手柄优化
       .arco-table-col-resize-handle {
-        width: 4px;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 10px; // 增加可点击区域宽度
+        height: 100%;
+        cursor: col-resize;
+        z-index: 10;
         background: transparent;
-        
-        &:hover {
-          background: #165dff;
+        transition: background 0.2s;
+
+        // 拖拽图标(竖线)
+        &::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: 2px;
+          height: 40%;
+          background: #cbd5e1;
+          border-radius: 1px;
+          transition: all 0.2s;
         }
+
+        // hover 时高亮显示
+        &:hover {
+          background: rgba(22, 93, 255, 0.05);
+
+          &::before {
+            background: #165dff;
+            height: 60%;
+            width: 3px;
+          }
+        }
+
+        // 拖拽激活状态
+        &.arco-table-col-resize-handle-active {
+          background: rgba(22, 93, 255, 0.1);
+
+          &::before {
+            background: #165dff;
+            height: 80%;
+            width: 3px;
+          }
+        }
+      }
+
+      // 拖拽时的遮罩线
+      .arco-table-col-resize-indicator {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #165dff;
+        z-index: 100;
+        box-shadow: 0 0 8px rgba(22, 93, 255, 0.4);
       }
     }
   }
@@ -378,80 +448,8 @@
 }
 
 // ========== 表格样式 ==========
-.file-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-
-  th,
-  td {
-    padding: 12px 14px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-  }
-
-  th {
-    color: #475569;
-    font-weight: 600;
-    background: #f8fafc;
-  }
-
-  tbody tr {
-    transition: background-color 0.15s ease;
-
-    &:hover {
-      background: #f8fafc;
-    }
-
-    &.is-confirmed {
-      background: #f0fdf4;
-
-      td {
-        color: #166534;
-      }
-    }
-  }
-}
-
-// ========== 列宽定义 ==========
-.col-file-name {
-  min-width: 160px;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-file-type {
-  width: 120px;
-}
-
-.col-file-size {
-  width: 100px;
-  text-align: right;
-}
-
-.col-secret-level {
-  width: 80px;
-}
-
-.col-unzip-level {
-  width: 80px;
-  text-align: center;
-}
-
-.col-file-path {
-  min-width: 200px;
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.col-action {
-  width: 100px;
-  text-align: center;
-}
+// 注意: 列宽已通过 a-table 的 columns 属性配置,不再需要 CSS 类定义
+// 这样可以避免与 column-resizable 功能冲突
 
 // 响应式适配
 .file-type-tag {

@@ -8,6 +8,25 @@ The format is based on Keep a Changelog.
 
 ### Changed - 2026-04-03
 
+#### 表格列宽拖拽优化
+
+**问题修复**:
+- 🐛 修复拖拽手柄不可见问题 - 增加列分隔线和明显的拖拽图标
+- 🐛 修复拖拽响应不准确问题 - 移除 CSS min-width/max-width 约束,避免与 columns 配置冲突
+
+**样式优化**:
+- ✨ 表头增加列分隔线(浅灰色竖线),明确列边界
+- ✨ 拖拽手柄宽度从 4px 增加到 10px,提高可点击性
+- ✨ 拖拽手柄默认显示浅灰色竖线图标
+- ✨ hover 时显示蓝色背景和高亮图标,提供视觉反馈
+- ✨ 拖拽激活时图标变长,背景加深,提供进度反馈
+
+**技术改进**:
+- ♻️ 移除 CSS 中的列宽定义类(.col-file-name 等)
+- ♻️ 完全依赖 columns 配置管理列宽,避免冲突
+- 📝 新增文档: docs/tasks/task_column_resize_optimization.md
+- 📝 新增文档: docs/exec/task_column_resize_exec.md
+
 #### 资产检测结果组件重构
 
 **重构为 a-table**:
