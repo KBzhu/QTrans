@@ -87,7 +87,8 @@ rawClient.interceptors.response.use(
   (response) => {
     const data = response.data
     // 检查是否是错误响应（有 code 字段且不是成功状态）
-    if (data && typeof data.code === 'string' && data.code !== 'success' && data.code !== '0') {
+    // 成功状态码: 'success', '0', '200'
+    if (data && typeof data.code === 'string' && !['success', '0', '200'].includes(data.code)) {
       return Promise.reject(new Error(data.message || '请求失败'))
     }
     // 成功响应直接返回 data

@@ -8,6 +8,29 @@ The format is based on Keep a Changelog.
 
 ### Changed - 2026-04-03
 
+#### 审批接口响应处理修复
+
+**问题修复**:
+- 🐛 修复审批通过/驳回接口响应处理异常 - 后端返回 `{"code":"200"}` 被误判为错误
+- 🐛 修复点击审批按钮后页面无反应的问题
+
+**根本原因**:
+- `rawClient` 响应拦截器只检查了 `'success'` 和 `'0'` 成功状态码
+- 未包含 `'200'`，导致成功响应被 Promise.reject
+
+**解决方案**:
+- ✨ 在成功状态码列表中添加 `'200'`
+- ♻️ 使用数组 `includes` 方法优化判断逻辑
+- 📝 新增文档: docs/tasks/task_fix_approval_response.md
+- 📝 新增文档: docs/exec/task_fix_approval_response_exec.md
+
+#### 审批详情页自动切换 Tab 优化
+
+**用户体验优化**:
+- ✨ 有资产检测结果且未确认时，自动切换到资产检测 Tab
+- ✨ 审批人能立即看到需要确认的内容，避免不知所措
+- 📝 新增文档: docs/tasks/task_auto_switch_tab.md
+
 #### 表格列宽拖拽优化
 
 **问题修复**:

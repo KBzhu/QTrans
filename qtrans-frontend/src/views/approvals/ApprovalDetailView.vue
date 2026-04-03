@@ -207,6 +207,18 @@ watch(
   },
   { immediate: true },
 )
+
+// 监听资产检测结果：如果有检测结果且未全部确认，自动切换到资产检测 Tab
+watch(
+  [hasDetectionResult, canOperateAsset],
+  ([hasResult, canOperate]) => {
+    // 只有在有检测结果且需要确认时才自动切换
+    if (hasResult && !canOperate && canOperateBase.value) {
+      activeTab.value = 'detection'
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
