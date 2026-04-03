@@ -144,6 +144,10 @@ function onSourceAreaChange(val: SecurityArea) {
 function onTargetAreaChange(val: SecurityArea) {
   updateFormData({ targetArea: val })
   formRef.value?.clearValidate?.('targetArea')
+  // 切换区域时清除外网字段的验证
+  if (val !== 'external') {
+    formRef.value?.clearValidate?.(['vendorName', 'downloadEmail'])
+  }
 }
 
 function onDownloaderAccountsChange(val: string | string[] | undefined) {
@@ -289,6 +293,26 @@ defineExpose({ validate })
             </a-form-item>
           </div>
 
+          <!-- 外网下载字段（绿区/黄区到外网场景） -->
+          <template v-if="formData.targetArea === 'external'">
+            <a-form-item field="vendorName" label="下载方名称（单位）" required>
+              <a-input
+                :model-value="formData.vendorName"
+                :disabled="readonly"
+                placeholder="请输入下载方名称（单位）"
+                @input="(val: string) => updateFormData({ vendorName: val })"
+              />
+            </a-form-item>
+            <a-form-item field="downloadEmail" label="下载方邮箱地址" required>
+              <a-input
+                :model-value="formData.downloadEmail"
+                :disabled="readonly"
+                placeholder="请输入下载方邮箱地址"
+                @input="(val: string) => updateFormData({ downloadEmail: val })"
+              />
+            </a-form-item>
+          </template>
+
           <!-- 下载人账号 -->
           <a-form-item field="downloaderAccounts" label="下载人账号" required>
             <UserSuggestSelect
@@ -301,7 +325,7 @@ defineExpose({ validate })
           </a-form-item>
 
           <!-- 抄送人 -->
-          <a-form-item field="ccAccounts" label="抄送人" required>
+          <a-form-item field="ccAccounts" label="抄送人">
             <UserSuggestSelect
               :model-value="formData.ccAccounts"
               :disabled="readonly"

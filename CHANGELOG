@@ -8,6 +8,22 @@ The format is based on Keep a Changelog.
 
 ### Changed - 2026-04-03
 
+#### 外网下载字段扩展
+
+**新增功能**:
+- ✨ 绿区/黄区到外网场景新增必填字段：
+  - 下载方名称（单位）- vendorName
+  - 下载方邮箱地址 - downloadEmail
+- ✨ 字段仅在选择外网目标区域时显示
+
+**字段修改**:
+- ♻️ 抄送人字段改为非必填
+
+**技术改进**:
+- ♻️ 将 formRules 改为 computed 属性,支持动态验证规则
+- ✨ 添加邮箱格式验证
+- 📝 新增文档: docs/tasks/task_external_fields.md
+
 #### 审批接口响应处理修复
 
 **问题修复**:

@@ -60,6 +60,9 @@ export interface ApplicationFormData {
   approverLevel2?: string     // 二层审批人 W3 账号
   approverLevel3?: string     // 三层审批人 W3 账号
   approverLevel4?: string     // 四层审批人 W3 账号
+  // 外网下载字段（绿区/黄区到外网场景）
+  vendorName?: string         // 下载方名称（单位）
+  downloadEmail?: string      // 下载方邮箱地址
   // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
 }
 
@@ -189,6 +192,9 @@ function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: s
     approverLevel2: '',
     approverLevel3: '',
     approverLevel4: '',
+    // 外网下载字段初始化
+    vendorName: '',
+    downloadEmail: '',
   }
 }
 
@@ -237,18 +243,31 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       || uploadedFiles.value.length > 0
   })
 
-  const formRules: Record<string, any[]> = {
-    department: [{ required: true, message: '请选择所属部门' }],
-    sourceArea: [{ required: true, message: '请选择源安全域' }],
-    targetArea: [{ required: true, message: '请选择目标安全域' }],
-    sourceCity: [{ required: true, type: 'array', min: 1, message: '请选择源省份/城市' }],
-    targetCity: [{ required: true, type: 'array', min: 1, message: '请选择目标省份/城市' }],
-    downloaderAccounts: [{ required: true, type: 'array', min: 1, message: '请选择下载人账号' }],
-    ccAccounts: [{ required: true, type: 'array', min: 1, message: '请选择抄送人' }],
-    srNumber: [{ required: true, message: '请输入 SR 单号' }],
-   securityLevel: [{ required: true, message: '请选择文件最高密级' }],
-    applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
-  }
+  const formRules = computed<Record<string, any[]>>(() => {
+    const rules: Record<string, any[]> = {
+      department: [{ required: true, message: '请选择所属部门' }],
+      sourceArea: [{ required: true, message: '请选择源安全域' }],
+      targetArea: [{ required: true, message: '请选择目标安全域' }],
+      sourceCity: [{ required: true, type: 'array', min: 1, message: '请选择源省份/城市' }],
+      targetCity: [{ required: true, type: 'array', min: 1, message: '请选择目标省份/城市' }],
+      downloaderAccounts: [{ required: true, type: 'array', min: 1, message: '请选择下载人账号' }],
+      // ccAccounts 不再必填
+      srNumber: [{ required: true, message: '请输入 SR 单号' }],
+      securityLevel: [{ required: true, message: '请选择文件最高密级' }],
+      applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
+    }
+
+    // 外网场景：添加必填验证
+    if (formData.value.targetArea === 'external') {
+      rules.vendorName = [{ required: true, message: '请输入下载方名称' }]
+      rules.downloadEmail = [
+        { required: true, message: '请输入下载方邮箱地址' },
+        { type: 'email', message: '请输入正确的邮箱格式' },
+      ]
+    }
+
+    return rules
+  })
 
   function updateSnapshot() {
     lastSavedSnapshot.value = JSON.stringify(formData.value)
