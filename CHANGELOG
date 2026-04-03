@@ -6,7 +6,71 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed - 2026-04-03
+
+#### 资产检测结果模块重构
+
+**重大变更**: 资产检测从独立卡片改为第三个 Tab,与"申请单信息""文件列表"并列
+
+**新增功能**:
+- **新增接口** `findKiaResultList` - 分页查询所有检测文件
+  - 支持分页查询（pageNum, pageSize）
+  - 支持文件类型筛选（fileType）
+  - 支持关键字查询（fileName）
+  
+- **新增组件** `AssetDetectionTab.vue` - 新的 Tab 模式组件
+  - 统计概览（总数量、总大小、分类统计）
+  - 文件列表展示（支持分页）
+  - 筛选功能（文件类型筛选）
+  - 关键字查询功能（文件名搜索）
+  - 子 Tab 切换（文件列表/关键资产）
+  - 两级确认逻辑（文件确认 + 关键资产确认）
+
+- **新增组件** `AssetFilterBar.vue` - 筛选栏组件
+  - 文件类型下拉筛选
+  - 文件名关键字搜索
+  - 重置功能
+
+**功能优化**:
+- **确认逻辑重构**:
+  - 先确认所有文件（逐条确认）
+  - 确认完后如果有关键资产，再确认关键资产
+  - 关键资产未全部确认时，操作按钮置灰
+  
+- **接口职责调整**:
+  - `findKiaResultKeyList` - 仅查询 fileType=4 的关键资产
+  - `findKiaResultList` - 查询所有检测文件（支持分页和筛选）
+
+- **样式优化**:
+  - Tab 按钮支持自适应宽度（auto-fit）
+  - 资产检测结果 Tab 使用警醒样式（橙色背景 + 脉冲动画）
+  - 子 Tab 支持切换动画
+
+**类型定义更新**:
+- 新增 `KiaFileItem` - 检测文件项
+- 新增 `KiaResultListRequest` - 分页查询请求参数
+- 新增 `KiaResultListResponse` - 分页查询响应
+
+**Composable 重构** (`useAssetDetection.ts`):
+- 新增分页查询支持
+- 新增筛选和关键字查询支持
+- 新增两级确认状态管理
+- 新增 `canOperate` 计算属性（按钮置灰逻辑）
+- 新增 `categoryStats` 计算属性（分类统计）
+
+**页面集成**:
+- `ApplicationDetailView.vue` - 集成新的 Tab 模式
+- `ApprovalDetailView.vue` - 集成新的 Tab 模式
+- `activeTab` 类型从 `'info' | 'files'` 扩展为 `'info' | 'files' | 'detection'`
+
+**删除文件**:
+- 删除旧的 `AssetDetectionResult.vue` 组件（已被 `AssetDetectionTab.vue` 替代）
+
+### Fixed - 2026-04-02
+- **TransWeb 认证改为 Cookie 同步**: `src/api/transWebService.ts` 在保留 `headers.token` / `Authorization` 的同时，新增将主站 `token` 同步写入 Cookie 的逻辑，并在下载 `fetch` 请求中保持同源 Cookie 发送，适配后端新的 Cookie 鉴权要求。
+
 ### Added - 2026-04-02
+
 
 ### Added - 2026-04-02
 

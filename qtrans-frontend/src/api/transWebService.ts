@@ -90,9 +90,38 @@ export interface HashResponse {
 
 /** Token 存储键 */
 const TRANS_TOKEN_KEY = 'trans_token'
+const AUTH_TOKEN_COOKIE_KEY = 'token'
 
 /** 分片大小: 4MB */
 const CHUNK_SIZE = 4 * 1024 * 1024
+
+function setCookie(name: string, value: string) {
+  if (typeof document === 'undefined')
+    return
+
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/`
+}
+
+function clearCookie(name: string) {
+  if (typeof document === 'undefined')
+    return
+
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+}
+
+function syncAuthTokenCookie(token?: string | null) {
+  if (!token) {
+    clearCookie(AUTH_TOKEN_COOKIE_KEY)
+    return
+  }
+
+  setCookie(AUTH_TOKEN_COOKIE_KEY, token)
+}
+
+function setTransToken(token: string) {
+  sessionStorage.setItem(TRANS_TOKEN_KEY, token)
+}
+
 
 // ============ 创建请求实例 ============
 
@@ -104,18 +133,21 @@ const createTransClient = (): AxiosInstance => {
 
   // 请求拦截器：自动携带 auth token 和 trans token
   client.interceptors.request.use((config) => {
-    // auth token（与 rawClient/request.ts 保持一致）
     const authStore = useAuthStore()
-    if (authStore.token) {
-      config.headers.token = authStore.token
-    }
-    // trans token
+    const authToken = authStore.token
     const transToken = sessionStorage.getItem(TRANS_TOKEN_KEY)
-    if (transToken) {
+
+    syncAuthTokenCookie(authToken)
+
+    if (authToken)
+      config.headers.token = authToken
+
+    if (transToken)
       config.headers.Authorization = transToken
-    }
+
     return config
   })
+
 
   // 响应拦截器：处理登录过期
   client.interceptors.response.use(
@@ -126,9 +158,10 @@ const createTransClient = (): AxiosInstance => {
         (data.error?.includes('当前登录信息已过期') ||
           data.error?.includes('The current login information has expired'))
       ) {
-        sessionStorage.removeItem(TRANS_TOKEN_KEY)
+        clearTransToken()
         window.dispatchEvent(new CustomEvent('trans-token-expired'))
       }
+
       return response
     },
     (error) => Promise.reject(error),
@@ -154,12 +187,12 @@ export async function initUpload(
   })
 
   const { data } = response.data
-  if (data?.token) {
-    sessionStorage.setItem(TRANS_TOKEN_KEY, data.token)
-  }
+  if (data?.token)
+    setTransToken(data.token)
 
   return data
 }
+
 
 /**
  * 下载页面初始化
@@ -174,12 +207,12 @@ export async function initDownload(
   })
 
   const { data } = response.data
-  if (data?.token) {
-    sessionStorage.setItem(TRANS_TOKEN_KEY, data.token)
-  }
+  if (data?.token)
+    setTransToken(data.token)
 
   return data
 }
+
 
 // ============ 文件列表 API ============
 
@@ -325,17 +358,21 @@ export async function downloadFile(
   const authToken = authStore.token
   const url = assetPath(`/transWeb/api/file/download?fileName=${encodeURIComponent(fileName)}&relativeDir=${encodeURIComponent(relativeDir)}&params=${params}`)
 
-  const headers: Record<string, string> = {
-    Authorization: transToken || '',
-  }
-  if (authToken) {
+  syncAuthTokenCookie(authToken)
+
+  const headers: Record<string, string> = {}
+  if (transToken)
+    headers.Authorization = transToken
+
+  if (authToken)
     headers.token = authToken
-  }
 
   const response = await fetch(url, {
     method: 'GET',
     headers,
+    credentials: 'same-origin',
   })
+
 
   if (!response.ok) {
     throw new Error(`下载失败: ${response.statusText}`)

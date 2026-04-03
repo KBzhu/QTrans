@@ -46,7 +46,7 @@ export function useApplicationDetail() {
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)
   const processDetailData = ref<ProcessDetailsResponse | null>(null)
-  const activeTab = ref<'info' | 'files'>('info')
+  const activeTab = ref<'info' | 'files' | 'detection'>('info')
 
   // 文件列表
   const {

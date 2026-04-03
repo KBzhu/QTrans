@@ -6,7 +6,7 @@ import CloseApplicationModal from '@/components/business/CloseApplicationModal.v
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
-import AssetDetectionResult from '@/components/business/AssetDetectionResult.vue'
+import AssetDetectionTab from '@/components/business/AssetDetectionTab.vue'
 import { useApplicationDetail } from '@/composables/useApplicationDetail'
 import { useAssetDetection } from '@/composables/useAssetDetection'
 import { assetPath } from '@/utils/path'
@@ -43,13 +43,28 @@ const {
 // 资产检测
 const {
   countLoading,
+  listLoading,
   countData,
   processedFileList,
+  processedKeyFileList,
+  categoryStats,
+  pagination: assetPagination,
   hasKeyAssets,
+  hasDetectionResult,
   allFilesConfirmed,
+  allKeyAssetsConfirmed,
+  canOperate,
   initAssetDetection,
   confirmFile,
   unconfirmFile,
+  confirmKeyAsset,
+  unconfirmKeyAsset,
+  confirmAllCurrentPageFiles,
+  completeFileConfirmation,
+  confirmAllKeyAssets,
+  updateFilters,
+  changePage,
+  changePageSize,
 } = useAssetDetection()
 
 const id = String(route.params.id || '')
@@ -64,25 +79,47 @@ const canContinueUpload = computed(() => {
   return status === '创建申请单' || status === '文件上传'
 })
 
-// 按钮是否置灰：有关键资产且未全部确认时置灰
-const isUploadButtonDisabled = computed(() => {
-  // 没有关键资产，按钮可用
-  if (!hasKeyAssets.value)
-    return false
-  // 有关键资产，需要全部确认后才能点击
-  return !allFilesConfirmed.value
-})
-
 // 资产检测加载状态
-const assetLoading = computed(() => countLoading.value)
+const assetLoading = computed(() => countLoading.value || listLoading.value)
 
-// 处理确认操作
-function handleAssetConfirm(fileName: string, confirmed: boolean) {
+// 处理确认文件
+function handleConfirmFile(fileName: string, confirmed: boolean) {
   if (confirmed) {
     confirmFile(fileName)
   }
   else {
     unconfirmFile(fileName)
+  }
+}
+
+// 处理确认关键资产
+function handleConfirmKeyAsset(fileName: string, confirmed: boolean) {
+  if (confirmed) {
+    confirmKeyAsset(fileName)
+  }
+  else {
+    unconfirmKeyAsset(fileName)
+  }
+}
+
+// 处理筛选变化
+function handleFilterChange(filters: { fileType?: number; fileName?: string }) {
+  if (detailData.value?.appBaseInfo?.applicationId) {
+    updateFilters(detailData.value.appBaseInfo.applicationId, filters)
+  }
+}
+
+// 处理分页变化
+function handleAssetPageChange(page: number) {
+  if (detailData.value?.appBaseInfo?.applicationId) {
+    changePage(detailData.value.appBaseInfo.applicationId, page)
+  }
+}
+
+// 处理每页数量变化
+function handleAssetPageSizeChange(size: number) {
+  if (detailData.value?.appBaseInfo?.applicationId) {
+    changePageSize(detailData.value.appBaseInfo.applicationId, size)
   }
 }
 
@@ -96,11 +133,6 @@ function onCloseApplication() {
 
 function onCloseSuccess() {
   router.push('/applications')
-}
-
-/** 资产确认状态变化回调 */
-function onAssetConfirmChange(_allConfirmed: boolean) {
-  // 确认状态变化会自动更新 allFilesConfirmed，按钮状态通过 computed 自动响应
 }
 
 onMounted(async () => {
@@ -153,6 +185,15 @@ watch(
       >
         文件列表（{{ totalFiles }}）
       </button>
+      <button
+        v-if="hasDetectionResult"
+        class="detail-tabs__btn is-warning"
+        :class="{ 'is-active': activeTab === 'detection' }"
+        @click="activeTab = 'detection'"
+      >
+        <icon-exclamation-circle-fill />
+        资产检测结果
+      </button>
     </div>
 
     <div class="detail-card" :class="{ 'is-files': activeTab === 'files' }">
@@ -163,7 +204,7 @@ watch(
         </template>
 
         <DetailFileTable
-          v-else
+          v-else-if="activeTab === 'files'"
           :files="files as DetailFileItem[]"
           :loading="fileLoading"
           :show-download="showDownload"
@@ -171,6 +212,30 @@ watch(
           @download="handleDownloadFile"
           @batch-download="handleBatchDownload"
           @page-change="onFilePageChange"
+        />
+
+        <!-- 资产检测结果 Tab -->
+        <AssetDetectionTab
+          v-else-if="activeTab === 'detection'"
+          :application-id="detailData?.appBaseInfo?.applicationId || id"
+          :count-data="countData"
+          :file-list="processedFileList"
+          :key-file-list="processedKeyFileList"
+          :category-stats="categoryStats"
+          :loading="assetLoading"
+          :pagination="assetPagination"
+          :require-confirmation="canContinueUpload"
+          :all-files-confirmed="allFilesConfirmed"
+          :all-key-assets-confirmed="allKeyAssetsConfirmed"
+          :has-key-assets="hasKeyAssets"
+          @confirm-file="handleConfirmFile"
+          @confirm-key-asset="handleConfirmKeyAsset"
+          @confirm-current-page="confirmAllCurrentPageFiles"
+          @complete-file-confirmation="completeFileConfirmation"
+          @confirm-all-key-assets="confirmAllKeyAssets"
+          @filter-change="handleFilterChange"
+          @page-change="handleAssetPageChange"
+          @page-size-change="handleAssetPageSizeChange"
         />
       </a-spin>
     </div>
@@ -181,23 +246,11 @@ watch(
       <ProcessTimeline :application-id="detailData?.appBaseInfo?.applicationId || id" />
     </div>
 
-    <!-- 资产检测结果 -->
-    <AssetDetectionResult
-      v-if="detailData?.appBaseInfo?.applicationId"
-      :application-id="detailData.appBaseInfo.applicationId"
-      :require-confirmation="canContinueUpload && hasKeyAssets"
-      :count-data="countData"
-      :file-list="processedFileList"
-      :loading="assetLoading"
-      :on-confirm="handleAssetConfirm"
-      @confirm-status-change="onAssetConfirmChange"
-    />
-
     <footer class="application-detail-page__actions">
       <a-button
         v-if="canContinueUpload"
         type="primary"
-        :disabled="isUploadButtonDisabled"
+        :disabled="!canOperate"
         @click="handleContinueUpload"
       >
         继续上传文件

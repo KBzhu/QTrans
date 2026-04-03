@@ -1,4 +1,4 @@
-import type { KiaKeyFileItem, KiaResultCountResponse, SecretLevelItem } from '@/types/assetDetection'
+import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse, KiaResultListRequest, KiaResultListResponse, SecretLevelItem } from '@/types/assetDetection'
 import { request } from '@/utils'
 
 export const assetDetectionApi = {
@@ -14,13 +14,24 @@ export const assetDetectionApi = {
   },
 
   /**
-   * 查询关键资产列表
+   * 查询关键资产列表（仅查询 fileType=4 的关键资产）
    * POST /workflowService/services/frontendService/frontend/kiaResult/findKiaResultKeyList
    */
   getKiaResultKeyList(applicationId: number | string): Promise<KiaKeyFileItem[]> {
     return request.raw<KiaKeyFileItem[]>(
       '/workflowService/services/frontendService/frontend/kiaResult/findKiaResultKeyList',
       { applicationId },
+    )
+  },
+
+  /**
+   * 分页查询所有检测文件（新增）
+   * POST /workflowService/services/frontendService/frontend/kiaResult/findKiaResultList
+   */
+  getKiaResultList(params: KiaResultListRequest): Promise<KiaResultListResponse> {
+    return request.raw<KiaResultListResponse>(
+      '/workflowService/services/frontendService/frontend/kiaResult/findKiaResultList',
+      params,
     )
   },
 

@@ -74,7 +74,7 @@ export function useApprovalDetail() {
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)
   const processDetailData = ref<ProcessDetailsResponse | null>(null)
-  const activeTab = ref<'info' | 'files'>('info')
+  const activeTab = ref<'info' | 'files' | 'detection'>('info')
   const approvalOpinion = ref('')
 
   // 文件列表 - 使用真实接口

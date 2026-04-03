@@ -1,3 +1,4 @@
+// ========== 旧的资产检测卡片样式（保留兼容） ==========
 .asset-detection {
   margin-top: 16px;
   border-radius: 14px;
@@ -138,6 +139,242 @@
         td {
           color: #166534;
         }
+      }
+    }
+  }
+}
+
+// ========== 新的 Tab 模式样式 ==========
+.asset-detection-tab {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+
+  // 统计概览
+  &__stats {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f7f8fa;
+    border-radius: 8px;
+  }
+
+  // 子Tab切换
+  &__sub-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 4px;
+    background: #f7f8fa;
+    border-radius: 6px;
+
+    .sub-tab-btn {
+      flex: 1;
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      &.is-active {
+        background: #fff;
+        color: #165dff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      &.is-warning {
+        color: #f59e0b;
+
+        &.is-active {
+          color: #f59e0b;
+          background: #fffbeb;
+        }
+      }
+    }
+  }
+
+  // 确认提示
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+
+    &.is-warning {
+      background: #fffbeb;
+      color: #92400e;
+
+      .arco-icon {
+        color: #f59e0b;
+      }
+    }
+
+    &.is-success {
+      background: #f0fdf4;
+      color: #166534;
+
+      .arco-icon {
+        color: #00a63e;
+      }
+    }
+
+    &.is-info {
+      background: #eff6ff;
+      color: #1e40af;
+
+      .arco-icon {
+        color: #3b82f6;
+      }
+    }
+  }
+
+  // 内容区
+  &__content {
+    // 表格容器
+    .asset-detection-tab__table {
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+  }
+
+  // 分页
+  &__pagination {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  // 操作栏
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 0;
+    border-top: 1px solid #f0f0f0;
+  }
+}
+
+// ========== 统计概览 ==========
+.stats-summary {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 12px;
+
+  &__item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  &__label {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  &__value {
+    color: #1e293b;
+    font-size: 18px;
+    font-weight: 600;
+
+    &.highlight {
+      color: #dc2626;
+    }
+  }
+
+  &__divider {
+    width: 1px;
+    height: 20px;
+    background: #e2e8f0;
+  }
+}
+
+// 分类统计
+.stats-category {
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+
+  &__title {
+    margin-bottom: 8px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  &__name {
+    color: #475569;
+  }
+
+  &__count {
+    color: #165dff;
+    font-weight: 600;
+  }
+}
+
+// ========== 表格样式 ==========
+.file-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  th {
+    color: #475569;
+    font-weight: 600;
+    background: #f8fafc;
+  }
+
+  tbody tr {
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background: #f8fafc;
+    }
+
+    &.is-confirmed {
+      background: #f0fdf4;
+
+      td {
+        color: #166534;
       }
     }
   }

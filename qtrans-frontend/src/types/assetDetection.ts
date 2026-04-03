@@ -41,3 +41,39 @@ export interface SecretLevelItem {
   /** 展示名称 */
   label: string
 }
+
+/** 所有检测文件项（新增） */
+export interface KiaFileItem {
+  /** 文件路径 */
+  fileName: string
+  /** 文件类型 */
+  fileType: number
+  /** 备注 */
+  remark: string
+  /** 密级 */
+  secretLevel: number | string
+}
+
+/** 分页查询请求参数（新增） */
+export interface KiaResultListRequest {
+  /** 申请单ID */
+  applicationId: number | string
+  /** 页码 */
+  pageNum: number
+  /** 每页数量 */
+  pageSize: number
+  /** 文件类型筛选（可选） */
+  fileType?: number
+  /** 文件名关键字查询（可选） */
+  fileName?: string
+}
+
+/** 分页查询响应（新增） */
+export interface KiaResultListResponse {
+  /** 文件列表 */
+  list: KiaFileItem[]
+  /** 总数量 */
+  total: number
+  /** 总页数 */
+  pages: number
+}
