@@ -288,6 +288,19 @@ export const routes: RouteRecordRaw[] = [
     } as AppRouteMeta,
   },
   {
+    path: '/admin/applications',
+    name: 'AdminApplications',
+    component: () => import('@/views/admin/AdminApplicationView.vue'),
+    meta: {
+      title: '申请单管理',
+      icon: 'icon-file',
+      layout: 'default',
+      requiresAuth: true,
+      roles: adminRoles,
+      appType: 'admin',
+    } as AppRouteMeta,
+  },
+  {
     path: '/users',
     name: 'UserList',
     component: () => import('@/views/users/index.vue'),

@@ -1,0 +1,201 @@
+@import '../../assets/styles/mixins.scss';
+
+.admin-application-view {
+  @include glass-card;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== 筛选区域 ===== */
+.admin-application-filters {
+  background: linear-gradient(135deg, 
+    oklch(0.98 0.005 250) 0%, 
+    oklch(0.96 0.008 220) 100%
+  );
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 
+    0 1px 3px oklch(0.2 0.02 250 / 0.08),
+    0 4px 12px oklch(0.2 0.02 250 / 0.04);
+  border: 1px solid oklch(0.88 0.01 250 / 0.3);
+}
+
+.filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid oklch(0.88 0.01 250 / 0.2);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: oklch(0.25 0.03 250);
+  }
+
+  &__icon {
+    font-size: 20px;
+    color: oklch(0.45 0.15 250);
+  }
+
+  &__tip {
+    font-size: 13px;
+    color: oklch(0.5 0.02 250);
+  }
+}
+
+.filters-form {
+  width: 100%;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+
+  :deep(.arco-form-item) {
+    margin-bottom: 0;
+  }
+
+  :deep(.arco-form-item-label) {
+    color: oklch(0.35 0.03 250);
+    font-weight: 500;
+  }
+
+  :deep(.arco-input-wrapper),
+  :deep(.arco-select-view),
+  :deep(.arco-picker) {
+    background: oklch(0.99 0.002 250);
+    border: 1px solid oklch(0.85 0.01 250);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover {
+      border-color: oklch(0.65 0.15 250);
+      box-shadow: 0 2px 8px oklch(0.45 0.15 250 / 0.12);
+    }
+
+    &:focus-within {
+      border-color: oklch(0.55 0.18 250);
+      box-shadow: 0 0 0 3px oklch(0.55 0.18 250 / 0.15);
+    }
+  }
+
+  :deep(.arco-input-prefix),
+  :deep(.arco-select-view-prefix) {
+    color: oklch(0.45 0.12 250);
+    margin-right: 8px;
+  }
+}
+
+.filters-time {
+  grid-column: span 2;
+}
+
+.filters-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid oklch(0.88 0.01 250 / 0.2);
+
+  :deep(.arco-btn) {
+    min-width: 120px;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :deep(.arco-btn-primary) {
+    background: linear-gradient(135deg, 
+      oklch(0.48 0.16 250) 0%, 
+      oklch(0.42 0.18 250) 100%
+    );
+    border: none;
+    box-shadow: 0 2px 8px oklch(0.45 0.16 250 / 0.24);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px oklch(0.45 0.16 250 / 0.32);
+    }
+  }
+
+  :deep(.arco-btn-secondary) {
+    &:hover {
+      background: oklch(0.94 0.01 250);
+      border-color: oklch(0.7 0.12 250);
+    }
+  }
+}
+
+/* ===== 表格区域 ===== */
+.admin-application-table-wrapper {
+  background: var(--color-bg-2);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px oklch(0.2 0.02 250 / 0.06);
+}
+
+.admin-application-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  &__summary {
+    color: oklch(0.4 0.02 250);
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-application-pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== 响应式优化 ===== */
+@media (max-width: 1400px) {
+  .filters-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-time {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .filters-actions {
+    flex-direction: column;
+
+    :deep(.arco-btn) {
+      width: 100%;
+    }
+  }
+}
+

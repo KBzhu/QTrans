@@ -10,4 +10,6 @@ export * from './channelManage'
 export * from './uiConfig'
 export * from './transWebService'
 export * from './assetDetection'
+export * from './adminApplication'
+
 
