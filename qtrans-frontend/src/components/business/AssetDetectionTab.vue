@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse, SecretLevelItem } from '@/types/assetDetection'
+import type { TableColumnData } from '@arco-design/web-vue'
+import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse } from '@/types/assetDetection'
 import {
   IconCheckCircleFill,
   IconExclamationCircleFill,
   IconInfoCircle,
 } from '@arco-design/web-vue/es/icon'
-import { computed, ref, watch } from 'vue'
-import { getFileTypeName } from '@/constants/fileType'
+import { computed, ref } from 'vue'
 import AssetFilterBar from './AssetFilterBar.vue'
 import './asset-detection.scss'
 
@@ -66,6 +66,84 @@ const activeSubTab = ref<'files' | 'keyAssets'>('files')
 // 筛选条件
 const filterFileType = ref<number | undefined>(undefined)
 const filterFileName = ref<string | undefined>(undefined)
+
+// 文件列表表格列配置
+const fileColumns = computed<TableColumnData[]>(() => {
+  const baseColumns: TableColumnData[] = [
+    {
+      title: '文件名称',
+      dataIndex: 'fileName',
+      width: 180,
+      ellipsis: true,
+      tooltip: true,
+      resizable: true,
+    },
+    {
+      title: '文件类型',
+      dataIndex: 'fileTypeName',
+      width: 120,
+      resizable: true,
+      slotName: 'fileType',
+    },
+    {
+      title: '文件大小',
+      dataIndex: 'fileSizeUnit',
+      width: 100,
+      align: 'right',
+      resizable: true,
+    },
+    {
+      title: '密级',
+      dataIndex: 'secretLevelName',
+      width: 80,
+      resizable: true,
+    },
+    {
+      title: '压缩层级',
+      dataIndex: 'unzipLevel',
+      width: 90,
+      align: 'center',
+      resizable: true,
+      slotName: 'unzipLevel',
+    },
+    {
+      title: '文件路径',
+      dataIndex: 'filePath',
+      width: 220,
+      ellipsis: true,
+      tooltip: true,
+      resizable: true,
+      slotName: 'filePath',
+    },
+  ]
+
+  // 添加操作列
+  if (props.requireConfirmation) {
+    baseColumns.push({
+      title: '操作',
+      dataIndex: 'confirmed',
+      width: 100,
+      align: 'center',
+      fixed: 'right',
+      slotName: 'confirmed',
+    })
+  }
+
+  return baseColumns
+})
+
+// 关键资产表格列配置（与文件列表相同，但使用不同的插槽名）
+const keyAssetColumns = computed<TableColumnData[]>(() => {
+  const columns = [...fileColumns.value]
+  
+  // 修改文件类型列使用不同的插槽
+  const fileTypeCol = columns.find(col => col.slotName === 'fileType')
+  if (fileTypeCol) {
+    fileTypeCol.slotName = 'keyAssetFileType'
+  }
+  
+  return columns
+})
 
 // 文件确认提示
 const fileConfirmHint = computed(() => {
@@ -149,21 +227,6 @@ function handleFilterChange(filters: { fileType?: number; fileName?: string }) {
   emit('filter-change', filters)
 }
 
-// 处理搜索
-function handleSearch() {
-  emit('filter-change', {
-    fileType: filterFileType.value,
-    fileName: filterFileName.value,
-  })
-}
-
-// 处理重置
-function handleReset() {
-  filterFileType.value = undefined
-  filterFileName.value = undefined
-  emit('filter-change', {})
-}
-
 // 处理分页变化
 function handlePageChange(page: number) {
   emit('page-change', page)
@@ -173,210 +236,191 @@ function handlePageChange(page: number) {
 function handlePageSizeChange(size: number) {
   emit('page-size-change', size)
 }
+
+// 自定义行类名
+function getRowClassName(record: any) {
+  return record.confirmed ? 'is-confirmed' : ''
+}
 </script>
 
 <template>
   <div class="asset-detection-tab">
-    <a-spin :loading="loading" style="width: 100%">
-      <!-- 统计概览 -->
-      <div class="asset-detection-tab__stats">
-        <div class="stats-summary">
-          <div class="stats-summary__item">
-            <span class="stats-summary__label">检测到</span>
-            <span class="stats-summary__value highlight">{{ countData?.count || 0 }}</span>
-            <span class="stats-summary__label">个文件</span>
-          </div>
-          <div class="stats-summary__divider" />
-          <div class="stats-summary__item">
-            <span class="stats-summary__label">总大小</span>
-            <span class="stats-summary__value">{{ countData?.fileSizeSum || '0' }}</span>
-          </div>
+    <!-- 统计概览 -->
+    <div class="asset-detection-tab__stats">
+      <div class="stats-summary">
+        <div class="stats-summary__item">
+          <span class="stats-summary__label">检测到</span>
+          <span class="stats-summary__value highlight">{{ countData?.count || 0 }}</span>
+          <span class="stats-summary__label">个文件</span>
         </div>
-        
-        <!-- 分类统计 -->
-        <div v-if="categoryStats && categoryStats.length > 0" class="stats-category">
-          <div class="stats-category__title">分类统计</div>
-          <div class="stats-category__list">
-            <div
-              v-for="item in categoryStats"
-              :key="item.fileType"
-              class="stats-category__item"
-            >
-              <span class="stats-category__name">{{ item.fileTypeName }}</span>
-              <span class="stats-category__count">{{ item.count }}</span>
-            </div>
-          </div>
+        <div class="stats-summary__divider" />
+        <div class="stats-summary__item">
+          <span class="stats-summary__label">总大小</span>
+          <span class="stats-summary__value">{{ countData?.fileSizeSum || '0' }}</span>
         </div>
       </div>
-
-      <!-- 确认提示 -->
-      <div v-if="fileConfirmHint" class="asset-detection-tab__hint" :class="`is-${fileConfirmHint.type}`">
-        <IconExclamationCircleFill v-if="fileConfirmHint.type === 'warning'" />
-        <IconCheckCircleFill v-else-if="fileConfirmHint.type === 'success'" />
-        <IconInfoCircle v-else />
-        <span>{{ fileConfirmHint.message }}</span>
-      </div>
-
-      <!-- 子Tab切换（文件列表/关键资产） -->
-      <div v-if="hasKeyAssets" class="asset-detection-tab__sub-tabs">
-        <button
-          class="sub-tab-btn"
-          :class="{ 'is-active': activeSubTab === 'files' }"
-          @click="activeSubTab = 'files'"
-        >
-          文件列表
-        </button>
-        <button
-          class="sub-tab-btn is-warning"
-          :class="{ 'is-active': activeSubTab === 'keyAssets' }"
-          @click="activeSubTab = 'keyAssets'"
-        >
-          <IconExclamationCircleFill />
-          关键资产
-        </button>
-      </div>
-
-      <!-- 文件列表 -->
-      <div v-show="activeSubTab === 'files'" class="asset-detection-tab__content">
-        <!-- 筛选栏 -->
-        <AssetFilterBar
-          v-model="filterFileType"
-          v-model:search-keyword="filterFileName"
-          @search="handleSearch"
-          @reset="handleReset"
-        />
-
-        <!-- 文件列表表格 -->
-        <div class="asset-detection-tab__table">
-          <table class="file-table">
-            <thead>
-              <tr>
-                <th class="col-file-name">文件名称</th>
-                <th class="col-file-type">文件类型</th>
-                <th class="col-secret-level">密级</th>
-                <th v-if="requireConfirmation" class="col-action">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="file in fileList"
-                :key="file.fileName"
-                :class="{ 'is-confirmed': file.confirmed }"
-              >
-                <td class="col-file-name" :title="file.fileName">
-                  {{ file.fileName.split('/').pop() || file.fileName }}
-                </td>
-                <td class="col-file-type">
-                  <span class="file-type-tag">{{ file.fileTypeName }}</span>
-                </td>
-                <td class="col-secret-level">{{ file.secretLevelName }}</td>
-                <td v-if="requireConfirmation" class="col-action">
-                  <a-button
-                    size="small"
-                    :type="file.confirmed ? 'outline' : 'primary'"
-                    :status="file.confirmed ? 'success' : undefined"
-                    @click="handleConfirmFile(file)"
-                  >
-                    <template #icon>
-                      <IconCheckCircleFill v-if="file.confirmed" />
-                    </template>
-                    {{ file.confirmed ? '已确认' : '确认' }}
-                  </a-button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 分页 -->
-        <div v-if="pagination && pagination.total > 0" class="asset-detection-tab__pagination">
-          <a-pagination
-            :current="pagination.current"
-            :page-size="pagination.pageSize"
-            :total="pagination.total"
-            show-total
-            show-jumper
-            show-page-size
-            :page-size-options="[10, 20, 50, 100]"
-            @change="handlePageChange"
-            @page-size-change="handlePageSizeChange"
-          />
-        </div>
-
-        <!-- 文件确认操作栏 -->
-        <div v-if="requireConfirmation && !allFilesConfirmed" class="asset-detection-tab__actions">
-          <a-button type="outline" @click="handleConfirmCurrentPage">
-            确认当前页
-          </a-button>
-          <a-button
-            v-if="allFilesConfirmed"
-            type="primary"
-            @click="handleCompleteFileConfirmation"
+      
+      <!-- 分类统计 -->
+      <div v-if="categoryStats && categoryStats.length > 0" class="stats-category">
+        <div class="stats-category__title">分类统计</div>
+        <div class="stats-category__list">
+          <div
+            v-for="item in categoryStats"
+            :key="item.fileType"
+            class="stats-category__item"
           >
-            完成文件确认
-          </a-button>
+            <span class="stats-category__name">{{ item.fileTypeName }}</span>
+            <span class="stats-category__count">{{ item.count }}</span>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- 关键资产列表 -->
-      <div v-show="activeSubTab === 'keyAssets' && hasKeyAssets" class="asset-detection-tab__content">
-        <!-- 关键资产确认提示 -->
-        <div v-if="keyAssetConfirmHint" class="asset-detection-tab__hint" :class="`is-${keyAssetConfirmHint.type}`">
-          <IconExclamationCircleFill v-if="keyAssetConfirmHint.type === 'warning'" />
-          <IconCheckCircleFill v-else-if="keyAssetConfirmHint.type === 'success'" />
-          <IconInfoCircle v-else />
-          <span>{{ keyAssetConfirmHint.message }}</span>
-        </div>
+    <!-- 确认提示 -->
+    <div v-if="fileConfirmHint" class="asset-detection-tab__hint" :class="`is-${fileConfirmHint.type}`">
+      <IconExclamationCircleFill v-if="fileConfirmHint.type === 'warning'" />
+      <IconCheckCircleFill v-else-if="fileConfirmHint.type === 'success'" />
+      <IconInfoCircle v-else />
+      <span>{{ fileConfirmHint.message }}</span>
+    </div>
 
-        <!-- 关键资产表格 -->
-        <div class="asset-detection-tab__table">
-          <table class="file-table">
-            <thead>
-              <tr>
-                <th class="col-file-name">文件名称</th>
-                <th class="col-file-type">文件类型</th>
-                <th class="col-secret-level">密级</th>
-                <th v-if="requireConfirmation" class="col-action">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="file in keyFileList"
-                :key="file.fileName"
-                :class="{ 'is-confirmed': file.confirmed }"
-              >
-                <td class="col-file-name" :title="file.fileName">
-                  {{ file.fileName.split('/').pop() || file.fileName }}
-                </td>
-                <td class="col-file-type">
-                  <span class="file-type-tag is-key">{{ file.fileTypeName }}</span>
-                </td>
-                <td class="col-secret-level">{{ file.secretLevelName }}</td>
-                <td v-if="requireConfirmation" class="col-action">
-                  <a-button
-                    size="small"
-                    :type="file.confirmed ? 'outline' : 'primary'"
-                    :status="file.confirmed ? 'success' : undefined"
-                    @click="handleConfirmKeyAsset(file)"
-                  >
-                    <template #icon>
-                      <IconCheckCircleFill v-if="file.confirmed" />
-                    </template>
-                    {{ file.confirmed ? '已确认' : '确认' }}
-                  </a-button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <!-- 子Tab切换（文件列表/关键资产） -->
+    <div v-if="hasKeyAssets" class="asset-detection-tab__sub-tabs">
+      <button
+        class="sub-tab-btn"
+        :class="{ 'is-active': activeSubTab === 'files' }"
+        @click="activeSubTab = 'files'"
+      >
+        文件列表
+      </button>
+      <button
+        class="sub-tab-btn is-warning"
+        :class="{ 'is-active': activeSubTab === 'keyAssets' }"
+        @click="activeSubTab = 'keyAssets'"
+      >
+        <IconExclamationCircleFill />
+        关键资产
+      </button>
+    </div>
 
-        <!-- 关键资产确认操作栏 -->
-        <div v-if="requireConfirmation && !allKeyAssetsConfirmed" class="asset-detection-tab__actions">
-          <a-button type="primary" @click="handleConfirmAllKeyAssets">
-            确认所有关键资产
+    <!-- 文件列表 -->
+    <div v-show="activeSubTab === 'files'" class="asset-detection-tab__content">
+      <!-- 筛选栏 -->
+      <AssetFilterBar
+        v-model="filterFileType"
+        v-model:search-keyword="filterFileName"
+        @filter-change="handleFilterChange"
+      />
+
+      <!-- 文件列表表格 -->
+      <a-table
+        :data="fileList"
+        :columns="fileColumns"
+        :loading="loading"
+        :pagination="pagination"
+        :bordered="false"
+        :stripe="true"
+        :row-class="getRowClassName"
+        column-resizable
+        @page-change="handlePageChange"
+        @page-size-change="handlePageSizeChange"
+      >
+        <template #fileType="{ record }">
+          <span class="file-type-tag">{{ record.fileTypeName }}</span>
+        </template>
+        
+        <template #unzipLevel="{ record }">
+          {{ record.unzipLevel ?? '-' }}
+        </template>
+        
+        <template #filePath="{ record }">
+          {{ record.filePath || record.fileName }}
+        </template>
+        
+        <template #confirmed="{ record }">
+          <a-button
+            size="small"
+            :type="record.confirmed ? 'outline' : 'primary'"
+            :status="record.confirmed ? 'success' : undefined"
+            @click="handleConfirmFile(record)"
+          >
+            <template #icon>
+              <IconCheckCircleFill v-if="record.confirmed" />
+            </template>
+            {{ record.confirmed ? '已确认' : '确认' }}
           </a-button>
-        </div>
+        </template>
+      </a-table>
+
+      <!-- 文件确认操作栏 -->
+      <div v-if="requireConfirmation && !allFilesConfirmed" class="asset-detection-tab__actions">
+        <a-button type="outline" @click="handleConfirmCurrentPage">
+          确认当前页
+        </a-button>
+        <a-button
+          v-if="allFilesConfirmed"
+          type="primary"
+          @click="handleCompleteFileConfirmation"
+        >
+          完成文件确认
+        </a-button>
       </div>
-    </a-spin>
+    </div>
+
+    <!-- 关键资产列表 -->
+    <div v-show="activeSubTab === 'keyAssets' && hasKeyAssets" class="asset-detection-tab__content">
+      <!-- 关键资产确认提示 -->
+      <div v-if="keyAssetConfirmHint" class="asset-detection-tab__hint" :class="`is-${keyAssetConfirmHint.type}`">
+        <IconExclamationCircleFill v-if="keyAssetConfirmHint.type === 'warning'" />
+        <IconCheckCircleFill v-else-if="keyAssetConfirmHint.type === 'success'" />
+        <IconInfoCircle v-else />
+        <span>{{ keyAssetConfirmHint.message }}</span>
+      </div>
+
+      <!-- 关键资产表格 -->
+      <a-table
+        :data="keyFileList"
+        :columns="keyAssetColumns"
+        :loading="loading"
+        :pagination="false"
+        :bordered="false"
+        :stripe="true"
+        :row-class="getRowClassName"
+        column-resizable
+      >
+        <template #keyAssetFileType="{ record }">
+          <span class="file-type-tag is-key">{{ record.fileTypeName }}</span>
+        </template>
+        
+        <template #unzipLevel="{ record }">
+          {{ record.unzipLevel ?? '-' }}
+        </template>
+        
+        <template #filePath="{ record }">
+          {{ record.filePath || record.fileName }}
+        </template>
+        
+        <template #confirmed="{ record }">
+          <a-button
+            size="small"
+            :type="record.confirmed ? 'outline' : 'primary'"
+            :status="record.confirmed ? 'success' : undefined"
+            @click="handleConfirmKeyAsset(record)"
+          >
+            <template #icon>
+              <IconCheckCircleFill v-if="record.confirmed" />
+            </template>
+            {{ record.confirmed ? '已确认' : '确认' }}
+          </a-button>
+        </template>
+      </a-table>
+
+      <!-- 关键资产确认操作栏 -->
+      <div v-if="requireConfirmation && !allKeyAssetsConfirmed" class="asset-detection-tab__actions">
+        <a-button type="primary" @click="handleConfirmAllKeyAssets">
+          确认所有关键资产
+        </a-button>
+      </div>
+    </div>
   </div>
 </template>

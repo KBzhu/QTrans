@@ -32,6 +32,12 @@ export interface KiaKeyFileItem {
   remark: string
   /** 密级 */
   secretLevel: number | string
+  /** 文件大小（带单位） */
+  fileSizeUnit?: string
+  /** 压缩层级 */
+  unzipLevel?: number
+  /** 文件路径 */
+  filePath?: string
 }
 
 /** 密级枚举项 */
@@ -52,6 +58,12 @@ export interface KiaFileItem {
   remark: string
   /** 密级 */
   secretLevel: number | string
+  /** 文件大小（带单位） */
+  fileSizeUnit?: string
+  /** 压缩层级 */
+  unzipLevel?: number
+  /** 文件路径 */
+  filePath?: string
 }
 
 /** 分页查询请求参数（新增） */

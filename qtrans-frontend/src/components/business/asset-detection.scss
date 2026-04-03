@@ -245,14 +245,47 @@
 
   // 内容区
   &__content {
-    // 表格容器
-    .asset-detection-tab__table {
-      margin-bottom: 16px;
-      overflow-x: auto;
+    // Arco Design 表格样式优化
+    .arco-table {
+      border-radius: 6px;
+      overflow: hidden;
+      
+      // 表头
+      .arco-table-th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+      }
+
+      // 斑马纹
+      .arco-table-tr-striped .arco-table-td {
+        background: #fafbfc;
+      }
+
+      // Hover 效果
+      .arco-table-tr:hover .arco-table-td {
+        background: #f1f5f9;
+      }
+
+      // 已确认行
+      .is-confirmed .arco-table-td {
+        background: #f0fdf4 !important;
+        color: #166534;
+      }
+
+      // 列宽拖拽手柄
+      .arco-table-col-resize-handle {
+        width: 4px;
+        background: transparent;
+        
+        &:hover {
+          background: #165dff;
+        }
+      }
     }
   }
 
-  // 分页
+  // 分页（已集成到 a-table，保留样式兼容）
   &__pagination {
     display: flex;
     justify-content: center;
@@ -380,21 +413,39 @@
   }
 }
 
-// 列宽
+// ========== 列宽定义 ==========
 .col-file-name {
-  min-width: 280px;
-  max-width: 400px;
+  min-width: 160px;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .col-file-type {
-  width: 180px;
+  width: 120px;
+}
+
+.col-file-size {
+  width: 100px;
+  text-align: right;
 }
 
 .col-secret-level {
-  width: 100px;
+  width: 80px;
+}
+
+.col-unzip-level {
+  width: 80px;
+  text-align: center;
+}
+
+.col-file-path {
+  min-width: 200px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .col-action {
@@ -402,7 +453,7 @@
   text-align: center;
 }
 
-// 文件类型标签
+// 响应式适配
 .file-type-tag {
   display: inline-block;
   padding: 2px 8px;
