@@ -9,8 +9,10 @@ import {
   IconDownload,
   IconLock,
   IconLocation,
+  IconEye,
 } from '@arco-design/web-vue/es/icon'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import AdminApplicationDetailModal from './AdminApplicationDetailModal.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import { useAdminApplication } from '@/composables/useAdminApplication'
 import './admin-application.scss'
@@ -45,7 +47,17 @@ const columns = [
   { title: '部门路径', dataIndex: 'userDepartmentNamePath', slotName: 'deptPath', width: 200 },
   { title: '客户数据', dataIndex: 'isCustomerData', slotName: 'isCustomerData', width: 90, align: 'center' },
   { title: '创建时间', dataIndex: 'creationDate', slotName: 'creationDate', width: 160 },
+  { title: '操作', slotName: 'actions', width: 100, fixed: 'right', align: 'center' },
 ]
+
+// 详情对话框
+const detailModalVisible = ref(false)
+const currentApplicationId = ref<string | number | null>(null)
+
+function handleViewDetail(record: AdminApplicationRecord) {
+  currentApplicationId.value = record.applicationId
+  detailModalVisible.value = true
+}
 
 onMounted(async () => {
   await fetchList()
@@ -216,6 +228,19 @@ onMounted(async () => {
           <template #creationDate="{ record }">
             {{ formatDateTime((record as AdminApplicationRecord).creationDate) }}
           </template>
+
+          <template #actions="{ record }">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleViewDetail(record as AdminApplicationRecord)"
+            >
+              <template #icon>
+                <IconEye />
+              </template>
+              查看详情
+            </a-button>
+          </template>
         </a-table>
 
         <!-- 分页 -->
@@ -235,4 +260,10 @@ onMounted(async () => {
       </div>
     </div>
   </PageContainer>
+
+  <!-- 详情弹窗 -->
+  <AdminApplicationDetailModal
+    v-model:visible="detailModalVisible"
+    :application-id="currentApplicationId"
+  />
 </template>
