@@ -288,7 +288,7 @@ export function useApprovalDetail() {
   }
 
   function handleDownloadFile(file: DetailFileItem) {
-    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.auditUrl
     if (!downloadUrl) {
       Message.error('当前申请单暂无下载链接')
       return
@@ -297,7 +297,7 @@ export function useApprovalDetail() {
   }
 
   function handleBatchDownload(fileIds: string[]) {
-    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
+    const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.auditUrl
     if (!downloadUrl) {
       Message.error('当前申请单暂无下载链接')
       return

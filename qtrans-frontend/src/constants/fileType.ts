@@ -22,10 +22,6 @@ export const FILE_TYPE_MAP: Record<number, string> = {
   67: '疑似夹带',
 }
 
-/**
- * 关键资产文件类型（需要重点关注的类型）
- */
-export const KEY_ASSET_FILE_TYPES = [4, 5, 51, 57, 62, 66, 67]
 
 /**
  * 获取文件类型名称
