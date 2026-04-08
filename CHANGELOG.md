@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TransFileTable.vue` 已上传列表项布局从水平排列改为上下排列，以容纳更多文件信息
 - 隐式 `any` 类型修复：`TransFileTable.vue`、`StepTwoUploadFile.vue` 中所有回调参数添加显式类型注解
 - 移除未使用的 `IconFile` import 和 `uploading` 变量
+- 重构自动提交 watch：从 `vue` 的 `watch + deep: true` 改为 VueUse 的 `watchDeep`，更简洁且语义明确
+- 新增 `@vueuse/core` 依赖（已在 `package.json` 声明，本次确认安装到 node_modules）
+
+### Added - 2026-04-08 (第二轮)
+
+#### 重复上传拦截
+
+- **SHA256 重复检测**: 上传文件时自动计算 SHA256 哈希值，与已上传且校验通过的文件进行双重比对（`clientFileHashCode === hashCode === fileHash`），拦截重复上传
+- **重复提示**: 被拦截的文件名以警告提示展示给用户，未重复的文件正常上传
 
 ### Added - 2026-04-03
 

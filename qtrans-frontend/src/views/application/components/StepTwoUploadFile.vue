@@ -2,8 +2,10 @@
 <script setup lang="ts">
 import { IconDelete, IconFile, IconRefresh } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
+import { watchDeep } from '@vueuse/core'
 import type { FileEntity } from '@/api/transWebService'
+import { calculateSHA256 } from '@/api/transWebService'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
@@ -48,7 +50,7 @@ const selectedUploadedFiles = ref<FileEntity[]>([])
 const autoSubmitTriggered = ref(false)
 
 // 监听上传列表变化，实现自动提交
-watch(uploadFileList, (list: TransUploadFileItem[]) => {
+watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
   if (!props.autoSubmitAfterUpload || list.length === 0 || autoSubmitTriggered.value) return
 
   // 检查是否所有文件都已结束（完成/错误/暂停），且至少有一个完成
@@ -69,7 +71,7 @@ watch(uploadFileList, (list: TransUploadFileItem[]) => {
     autoSubmitTriggered.value = true
     handleAutoSubmit()
   }
-}, { deep: true })
+})
 
 async function handleAutoSubmit() {
   const ok = await confirmUpload(props.params)
@@ -112,8 +114,33 @@ async function handleFiles(files: File[]) {
     if (file.size > maxSize)
       return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
+
+  // 重复上传拦截：通过 SHA256 比对已上传且校验通过的文件
+  const uploadedFiles = fileListData.value?.fileList ?? []
+  const duplicateFiles: string[] = []
+  const uniqueFiles: File[] = []
+
+  for (const file of files) {
+    const fileHash = await calculateSHA256(file)
+    const duplicate = uploadedFiles.find((f: FileEntity) =>
+      f.clientFileHashCode && f.clientFileHashCode === fileHash
+      && f.hashCode && f.hashCode === fileHash, // 确保服务端校验也通过
+    )
+    if (duplicate) {
+      duplicateFiles.push(file.name)
+    } else {
+      uniqueFiles.push(file)
+    }
+  }
+
+  if (duplicateFiles.length > 0) {
+    Message.warning(`以下文件已上传且校验通过，已跳过：${duplicateFiles.join('、')}`)
+  }
+
+  if (uniqueFiles.length === 0) return
+
   autoSubmitTriggered.value = false
-  await uploadFiles(files, props.params, '', updateUploadProgress)
+  await uploadFiles(uniqueFiles, props.params, '', updateUploadProgress)
 }
 
 function updateUploadProgress(item: TransUploadFileItem) {
