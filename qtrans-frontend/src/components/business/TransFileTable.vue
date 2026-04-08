@@ -11,12 +11,12 @@ import {
   IconCheck,
   IconDownload,
   IconFolder,
-  IconFile,
   IconLeft,
 } from '@arco-design/web-vue/es/icon'
 import { computed } from 'vue'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import type { DirectoryEntity, FileEntity } from '@/api/transWebService'
+import { formatFileSize, formatTransferSpeed } from '@/utils/format'
 import './trans-file-table.scss'
 
 // ============ Types ============
@@ -103,6 +103,7 @@ const emit = defineEmits<{
   
   // 已上传模式
   (e: 'toggle-select-uploaded', file: FileEntity): void
+  (e: 'delete-uploaded-file', file: FileEntity): void
   
   // 下载模式
   (e: 'enter-directory', dir: DirectoryEntity): void
@@ -121,21 +122,21 @@ const isUploadMode = computed(() => props.mode === 'upload')
 const isDownloadMode = computed(() => props.mode === 'download')
 
 const selectedCount = computed(() => 
-  props.files.filter(f => f.selected).length
+  props.files.filter((f: TransUploadFileItem) => f.selected).length
 )
 
 const hasSelection = computed(() => selectedCount.value > 0)
 
 const completedCount = computed(() =>
-  props.files.filter(f => f.status === 'completed').length
+  props.files.filter((f: TransUploadFileItem) => f.status === 'completed').length
 )
 
 const uploadingCount = computed(() =>
-  props.files.filter(f => f.status === 'uploading').length
+  props.files.filter((f: TransUploadFileItem) => f.status === 'uploading').length
 )
 
 const pausedCount = computed(() =>
-  props.files.filter(f => f.status === 'paused').length
+  props.files.filter((f: TransUploadFileItem) => f.status === 'paused').length
 )
 
 const selectedUploadedCount = computed(() =>
@@ -151,7 +152,7 @@ const totalDownloadItems = computed(() =>
 )
 
 const totalDownloadSize = computed(() =>
-  props.downloadFiles.reduce((sum, f) => sum + f.fileSize, 0)
+  props.downloadFiles.reduce((sum: number, f: FileEntity) => sum + f.fileSize, 0)
 )
 
 // ============ Methods ============
@@ -203,20 +204,6 @@ function getStatusColor(status: TransUploadFileItem['status']): string {
   return colorMap[status] || 'gray'
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
-  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-}
-
-function formatSpeed(bytesPerSecond: number): string {
-  if (bytesPerSecond === 0) return '0 B/s'
-  if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`
-  if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`
-  return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`
-}
-
 function handlePauseResume(item: TransUploadFileItem) {
   if (item.status === 'uploading') {
     emit('pause', item.id)
@@ -227,12 +214,33 @@ function handlePauseResume(item: TransUploadFileItem) {
 
 function isDownloadItemSelected(item: DownloadItem): boolean {
   return props.selectedDownloadItems.some(
-    s => s.name === item.name && s.relativeDir === item.relativeDir
+    (s: DownloadItem) => s.name === item.name && s.relativeDir === item.relativeDir
   )
 }
 
 function handleDownloadSelect(item: DownloadItem) {
   emit('toggle-select-download', item)
+}
+
+/** 截断哈希值展示 */
+function truncateHash(hash: string | undefined): string {
+  if (!hash) return '-'
+  if (hash.length <= 16) return hash
+  return `${hash.substring(0, 8)}...${hash.substring(hash.length - 4)}`
+}
+
+/** 判断哈希校验是否通过 */
+function getHashVerifyStatus(file: FileEntity): 'matched' | 'mismatched' | 'pending' {
+  if (!file.hashCode && !file.clientFileHashCode) return 'pending'
+  if (file.hashCode && file.clientFileHashCode) {
+    return file.hashCode === file.clientFileHashCode ? 'matched' : 'mismatched'
+  }
+  return 'pending'
+}
+
+/** 判断文件是否在已选中列表中 */
+function isUploadedFileSelected(file: FileEntity): boolean {
+  return props.selectedUploadedFiles.some(f => f.fileId === file.fileId)
 }
 </script>
 
@@ -341,7 +349,7 @@ function handleDownloadSelect(item: DownloadItem) {
                 :show-text="false"
               />
               <div class="upload-item__meta">
-                <span class="upload-item__speed">{{ formatSpeed(item.speed) }}</span>
+                <span class="upload-item__speed">{{ formatTransferSpeed(item.speed) }}</span>
                 <a-tag :color="getStatusColor(item.status)" size="small">
                   {{ getStatusLabel(item.status) }}
                 </a-tag>
@@ -444,15 +452,53 @@ function handleDownloadSelect(item: DownloadItem) {
           v-for="file in uploadedFiles"
           :key="file.fileId"
           class="uploaded-item"
-          :class="{ 'is-selected': selectedUploadedFiles.includes(file) }"
+          :class="{ 'is-selected': isUploadedFileSelected(file) }"
           @click="$emit('toggle-select-uploaded', file)"
         >
           <img :src="getFileIcon(file.fileName)" alt="file" class="uploaded-item__icon" />
           <div class="uploaded-item__info">
-            <span class="uploaded-item__name">{{ file.fileName }}</span>
-            <span class="uploaded-item__size">{{ formatFileSize(file.fileSize) }}</span>
+            <div class="uploaded-item__header">
+              <span class="uploaded-item__name" :title="file.fileName">{{ file.fileName }}</span>
+              <span class="uploaded-item__size">{{ formatFileSize(file.fileSize) }}</span>
+            </div>
+            <div v-if="showHashStatus" class="uploaded-item__hash">
+              <span class="uploaded-item__hash-label">SHA256:</span>
+              <span
+                class="uploaded-item__hash-value"
+                :class="{
+                  'hash-matched': getHashVerifyStatus(file) === 'matched',
+                  'hash-mismatched': getHashVerifyStatus(file) === 'mismatched',
+                  'hash-pending': getHashVerifyStatus(file) === 'pending',
+                }"
+                :title="file.clientFileHashCode || file.hashCode"
+              >
+                {{ truncateHash(file.clientFileHashCode || file.hashCode) }}
+              </span>
+              <span
+                v-if="getHashVerifyStatus(file) === 'matched'"
+                class="hash-status-tag hash-status--matched"
+              >通过</span>
+              <span
+                v-else-if="getHashVerifyStatus(file) === 'mismatched'"
+                class="hash-status-tag hash-status--mismatched"
+              >未通过</span>
+              <span
+                v-else
+                class="hash-status-tag hash-status--pending"
+              >未校验</span>
+            </div>
           </div>
-          <IconCheck v-if="selectedUploadedFiles.includes(file)" class="uploaded-item__check" />
+          <div class="uploaded-item__actions" @click.stop>
+            <a-button
+              type="text"
+              size="mini"
+              status="danger"
+              @click="$emit('delete-uploaded-file', file)"
+            >
+              删除
+            </a-button>
+          </div>
+          <IconCheck v-if="isUploadedFileSelected(file)" class="uploaded-item__check" />
         </div>
       </div>
 

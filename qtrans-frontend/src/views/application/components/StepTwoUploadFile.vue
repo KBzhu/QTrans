@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { IconDelete, IconFile, IconRefresh } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import type { FileEntity } from '@/api/transWebService'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
@@ -23,7 +23,6 @@ const emit = defineEmits<{
 }>()
 
 const {
-  uploading,
   initLoading,
   initData,
   fileListData,
@@ -46,11 +45,45 @@ const {
 const isDragging = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const selectedUploadedFiles = ref<FileEntity[]>([])
+const autoSubmitTriggered = ref(false)
+
+// 监听上传列表变化，实现自动提交
+watch(uploadFileList, (list: TransUploadFileItem[]) => {
+  if (!props.autoSubmitAfterUpload || list.length === 0 || autoSubmitTriggered.value) return
+
+  // 检查是否所有文件都已结束（完成/错误/暂停），且至少有一个完成
+  const completedFiles = list.filter((f: TransUploadFileItem) => f.status === 'completed')
+  if (completedFiles.length === 0) return
+
+  const hasActive = list.some((f: TransUploadFileItem) =>
+    f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying' || f.status === 'pending',
+  )
+  if (hasActive) return
+
+  // 检查所有已完成文件的哈希校验是否通过
+  const allHashMatched = completedFiles.every((f: TransUploadFileItem) =>
+    !f.hashState || f.hashState.status === 'matched' || f.hashState.status === 'skipped',
+  )
+
+  if (allHashMatched) {
+    autoSubmitTriggered.value = true
+    handleAutoSubmit()
+  }
+}, { deep: true })
+
+async function handleAutoSubmit() {
+  const ok = await confirmUpload(props.params)
+  if (ok) {
+    Message.success('自动提交成功')
+    emit('confirmed')
+  } else {
+    autoSubmitTriggered.value = false
+  }
+}
 
 onMounted(() => initPage())
 
 async function initPage() {
-  debugger
   if (!props.params) return Message.error('缺少必要参数 params')
   const ok = await initialize(props.params, props.lang)
   if (!ok) Message.error('初始化失败，请检查参数是否正确')
@@ -79,31 +112,34 @@ async function handleFiles(files: File[]) {
     if (file.size > maxSize)
       return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
+  autoSubmitTriggered.value = false
   await uploadFiles(files, props.params, '', updateUploadProgress)
 }
 
 function updateUploadProgress(item: TransUploadFileItem) {
   if (item.status === 'completed') {
-    const index = uploadFileList.value.findIndex(f => f.id === item.id)
-    if (index >= 0) uploadFileList.value.splice(index, 1)
+    const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
+    if (idx >= 0) uploadFileList.value.splice(idx, 1)
     loadFileList('', props.params)
     return
   }
-  const index = uploadFileList.value.findIndex(f => f.id === item.id)
-  if (index >= 0) uploadFileList.value[index] = { ...item }
+  const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
+  if (idx >= 0) uploadFileList.value[idx] = { ...item }
 }
 
 const handlePause = (id: string) => pauseUpload(id, props.params)
 const handleResume = (id: string) => resumeUpload(id, props.params, updateUploadProgress)
 const handleDelete = (id: string) => cancelUpload(id)
 const handleRetry = (id: string) => retryUpload(id, props.params, updateUploadProgress)
-const handleToggleSelect = (id: string) => {
-  const item = uploadFileList.value.find(f => f.id === id)
+
+function handleToggleSelect(id: string) {
+  const item = uploadFileList.value.find((f: TransUploadFileItem) => f.id === id)
   if (item) item.selected = !item.selected
 }
-const handleBatchPause = () => batchPause(props.params)
-const handleBatchResume = () => batchResume(props.params, updateUploadProgress)
-const handleBatchDelete = () => batchCancel()
+
+function handleBatchPause() { batchPause(props.params) }
+function handleBatchResume() { batchResume(props.params, updateUploadProgress) }
+function handleBatchDelete() { batchCancel() }
 
 async function handleRefresh() {
   await loadFileList('', props.params)
@@ -119,10 +155,17 @@ function handleToggleSelectUploaded(file: FileEntity) {
 async function handleDeleteSelectedUploaded() {
   if (!selectedUploadedFiles.value.length) return Message.warning('请先选择要删除的文件')
   await removeFiles(
-    selectedUploadedFiles.value.map(f => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
+    selectedUploadedFiles.value.map((f: FileEntity) => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
     props.params,
   )
   selectedUploadedFiles.value = []
+}
+
+async function handleDeleteUploadedFile(file: FileEntity) {
+  await removeFiles([{ fileName: file.fileName, relativeDir: file.relativeDir }], props.params)
+  // 从选中列表中移除
+  const idx = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
+  if (idx >= 0) selectedUploadedFiles.value.splice(idx, 1)
 }
 </script>
 
@@ -214,10 +257,12 @@ async function handleDeleteSelectedUploaded() {
           :files="[]"
           mode="uploaded"
           :show-batch-actions="false"
+          :show-hash-status="true"
           :uploaded-files="fileListData.fileList"
           :selected-uploaded-files="selectedUploadedFiles"
           @toggle-select-uploaded="handleToggleSelectUploaded"
           @batch-delete="handleDeleteSelectedUploaded"
+          @delete-uploaded-file="handleDeleteUploadedFile"
         />
       </section>
     </template>

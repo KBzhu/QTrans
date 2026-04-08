@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare module '*.scss' {
+  const content: string
+  export default content
+}
+
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string
   readonly VITE_APP_TYPE: 'tenant' | 'admin'

@@ -75,12 +75,6 @@ interface ChunkUploadState {
   status: 'pending' | 'uploading' | 'completed' | 'failed'
 }
 
-/** AbortController 映射表 */
-const abortControllers = new Map<string, AbortController>()
-
-/** 当前活跃的上传队列 */
-const activeUploads = ref(0)
-
 /**
  * 生成文件 UUID
  */
@@ -117,6 +111,12 @@ export function useTransUpload() {
   const initData = shallowRef<UploadInitResponse | null>(null)
   const fileListData = shallowRef<FileListData | null>(null)
   const uploadFileList = ref<TransUploadFileItem[]>([])
+
+  /** AbortController 映射表（实例级，避免多组件共享冲突） */
+  const abortControllers = new Map<string, AbortController>()
+
+  /** 当前活跃的上传队列 */
+  const activeUploads = ref(0)
   
   // 计算属性：选中的文件
   const selectedFiles = computed(() => 
@@ -399,7 +399,30 @@ export function useTransUpload() {
         }
 
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 开始上传`)
-        const result = await uploadSingleChunk(file, fileUUID, chunkIndex, totalChunks, params)
+
+        // 利用 axios onUploadProgress 将单分片字节进度映射到整体进度
+        const chunkStart = chunkIndex * CHUNK_SIZE
+        const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, file.size)
+        const chunkSize = chunkEnd - chunkStart
+        const baseUploadedBytes = uploadedCount * CHUNK_SIZE
+
+        const result = await uploadSingleChunk(
+          file,
+          fileUUID,
+          chunkIndex,
+          totalChunks,
+          params,
+          (chunkPercent: number) => {
+            // 将分片内进度映射到整体进度
+            const chunkUploadedBytes = Math.floor(chunkSize * chunkPercent / 100)
+            const totalUploadedBytes = Math.min(baseUploadedBytes + chunkUploadedBytes, file.size)
+            uploadItem.uploadedBytes = totalUploadedBytes
+            uploadItem.progress = Math.floor((totalUploadedBytes / file.size) * 100)
+            const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
+            uploadItem.speed = elapsed > 0 ? totalUploadedBytes / elapsed : 0
+            onProgress?.(uploadItem)
+          },
+        )
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 完成:`, result)
 
         uploadedCount++

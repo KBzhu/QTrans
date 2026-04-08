@@ -11,8 +11,8 @@ import {
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type {  FileEntity } from '@/api/transWebService'
-import type {  TransUploadFileItem } from '@/composables/useTransUpload'
+import type { FileEntity } from '@/api/transWebService'
+import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
 import { formatFileSize } from '@/utils/format'
@@ -27,11 +27,8 @@ const {
   initData,
   fileListData,
   uploadFileList,
-  selectedFiles,
-  hasSelection,
   initialize,
   loadFileList,
-  uploadFile,
   uploadFiles,
   confirmUpload,
   pauseUpload,
@@ -39,14 +36,10 @@ const {
   cancelUpload,
   retryUpload,
   clearCompleted,
-  toggleSelectAll,
   batchPause,
   batchResume,
   batchCancel,
-  batchDeleteUploaded,
   removeFiles,
-  formatSpeed,
-  formatFileSize: formatSize,
 } = useTransUpload()
 
 // 获取路由参数
@@ -59,10 +52,6 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // 选中的已上传文件
 const selectedUploadedFiles = ref<FileEntity[]>([])
-
-// 统计信息
-const completedCount = computed(() => uploadFileList.value.filter(f => f.status === 'completed').length)
-const uploadingCount = computed(() => uploadFileList.value.filter(f => f.status === 'uploading').length)
 
 /**
  * 初始化页面
@@ -136,20 +125,20 @@ async function handleFiles(files: File[]) {
 function updateUploadProgress(item: TransUploadFileItem) {
   console.log(`Upload progress: ${item.file?.name} - ${item.progress}%`)
 
+  const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
+
   // 上传完成：从上传列表移除，并刷新已上传列表
   if (item.status === 'completed' && params.value) {
-    const index = uploadFileList.value.findIndex(f => f.id === item.id)
-    if (index >= 0) {
-      uploadFileList.value.splice(index, 1)
+    if (idx >= 0) {
+      uploadFileList.value.splice(idx, 1)
     }
     loadFileList('', params.value)
     return
   }
 
   // 其他状态：更新列表项
-  const index = uploadFileList.value.findIndex(f => f.id === item.id)
-  if (index >= 0) {
-    uploadFileList.value[index] = { ...item }
+  if (idx >= 0) {
+    uploadFileList.value[idx] = { ...item }
   }
 }
 
@@ -185,7 +174,7 @@ async function handleRetry(fileId: string) {
  * 切换选择
  */
 function handleToggleSelect(fileId: string) {
-  const item = uploadFileList.value.find(f => f.id === fileId)
+  const item = uploadFileList.value.find((f: TransUploadFileItem) => f.id === fileId)
   if (item) {
     item.selected = !item.selected
   }
@@ -216,7 +205,7 @@ async function handleBatchDelete() {
  * 确认上传完成
  */
 async function handleConfirm() {
-  if (uploadFileList.value.some(f => f.status === 'uploading')) {
+  if (uploadFileList.value.some((f: TransUploadFileItem) => f.status === 'uploading')) {
     Message.warning('还有文件正在上传，请等待完成')
     return
   }
@@ -245,7 +234,7 @@ async function handleDeleteSelectedUploaded() {
     return
   }
 
-  const files = selectedUploadedFiles.value.map(f => ({
+  const files = selectedUploadedFiles.value.map((f: FileEntity) => ({
     fileName: f.fileName,
     relativeDir: f.relativeDir,
   }))
@@ -383,7 +372,7 @@ onMounted(() => {
         <a-button
           type="primary"
           :loading="uploading"
-          :disabled="uploadFileList.some(f => f.status === 'uploading')"
+          :disabled="uploadFileList.some((f: TransUploadFileItem) => f.status === 'uploading')"
           @click="handleConfirm"
         >
           确认上传完成

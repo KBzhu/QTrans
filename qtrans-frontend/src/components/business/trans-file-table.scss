@@ -186,6 +186,9 @@
 .uploaded-item__info {
   flex: 1;
   min-width: 0;
+}
+
+.uploaded-item__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -202,6 +205,70 @@
 .uploaded-item__size {
   font-size: 12px;
   color: var(--color-text-3);
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.uploaded-item__hash {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.uploaded-item__hash-label {
+  color: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+.uploaded-item__hash-value {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--color-text-2);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &.hash-matched {
+    color: rgb(var(--success-6));
+  }
+
+  &.hash-mismatched {
+    color: rgb(var(--danger-6));
+  }
+
+  &.hash-pending {
+    color: var(--color-text-4);
+  }
+}
+
+.hash-status-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 18px;
+
+  &.hash-status--matched {
+    color: rgb(var(--success-6));
+    background: rgba(var(--success-1), 0.3);
+  }
+
+  &.hash-status--mismatched {
+    color: rgb(var(--danger-6));
+    background: rgba(var(--danger-1), 0.3);
+  }
+
+  &.hash-status--pending {
+    color: var(--color-text-4);
+    background: var(--color-fill-2);
+  }
+}
+
+.uploaded-item__actions {
+  flex-shrink: 0;
 }
 
 .uploaded-item__check {

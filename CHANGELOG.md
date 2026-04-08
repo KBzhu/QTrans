@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-04-08
+
+#### 上传组件 Bug 修复
+
+- **修复进度条立即打满问题**: 在 `useTransUpload.ts` 的 `uploadFile` 函数中，向 `uploadSingleChunk` 传入 `onProgress` 回调，利用 axios `onUploadProgress` 将单分片内的字节进度实时映射到整体进度，替代原有的分片计数式跳变更新
+- **修复自动提交勾选未生效**: 在 `StepTwoUploadFile.vue` 中添加 `watch` 监听 `uploadFileList` 变化，当所有文件上传完毕且哈希校验通过后自动调用 `confirmUpload` 并 emit `confirmed` 事件
+- **移除 `debugger` 语句**: 清理 `StepTwoUploadFile.vue` 中遗留的 `debugger`
+
+### Added - 2026-04-08
+
+#### 已上传文件列表增强
+
+- **单行删除按钮**: 已上传文件列表每行末尾增加"删除"文字按钮，支持单文件快速删除
+- **SHA256 校验状态展示**: 已上传文件列表展示截断的 SHA256 哈希值（前8位...后4位），并通过颜色标记和状态标签展示校验结果（通过/未通过/未校验）
+- **新增 emit 事件**: `TransFileTable` 组件新增 `delete-uploaded-file` 事件
+
+### Changed - 2026-04-08
+
+- `TransFileTable.vue` 已上传列表项布局从水平排列改为上下排列，以容纳更多文件信息
+- 隐式 `any` 类型修复：`TransFileTable.vue`、`StepTwoUploadFile.vue` 中所有回调参数添加显式类型注解
+- 移除未使用的 `IconFile` import 和 `uploading` 变量
+
 ### Added - 2026-04-03
 
 #### 申请单管理（管理员）功能
