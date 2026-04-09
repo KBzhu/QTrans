@@ -3,26 +3,28 @@
  * 所有图标路径统一配置，便于管理和替换
  */
 
+import { assetPath } from "@/utils/path"
+
 // 图标基础路径 - 使用public目录便于打包后替换
 const ICON_BASE_PATH = '/icons'
 
 // 传输类型图标配置
 export const TRANSFER_ICONS = {
   // 区域图标
-  GREEN: `${ICON_BASE_PATH}/green.svg`,
-  YELLOW: `${ICON_BASE_PATH}/yellow.svg`,
-  RED: `${ICON_BASE_PATH}/red.svg`,
-  EXTERNAL: `${ICON_BASE_PATH}/external.svg`,
+  GREEN: assetPath(`${ICON_BASE_PATH}/green.svg`),
+  YELLOW: assetPath(`${ICON_BASE_PATH}/yellow.svg`),
+  RED: assetPath(`${ICON_BASE_PATH}/red.svg`),
+  EXTERNAL: assetPath(`${ICON_BASE_PATH}/external.svg`),
   
   // 箭头图标
-  GREEN_ARROW: `${ICON_BASE_PATH}/arrow-green.svg`,
-  YELLOW_ARROW: `${ICON_BASE_PATH}/arrow-yellow.svg`,
-  RED_ARROW: `${ICON_BASE_PATH}/arrow-red.svg`,
+  GREEN_ARROW: assetPath(`${ICON_BASE_PATH}/arrow-green.svg`),
+  YELLOW_ARROW: assetPath(`${ICON_BASE_PATH}/arrow-yellow.svg`),
+  RED_ARROW: assetPath(`${ICON_BASE_PATH}/arrow-red.svg`),
   
   // 默认图标
-  DEFAULT_FROM: `${ICON_BASE_PATH}/green.svg`,
-  DEFAULT_TO: `${ICON_BASE_PATH}/green.svg`,
-  DEFAULT_ARROW: `${ICON_BASE_PATH}/arrow-green.svg`,
+  DEFAULT_FROM: assetPath(`${ICON_BASE_PATH}/green.svg`),
+  DEFAULT_TO: assetPath(`${ICON_BASE_PATH}/green.svg`),
+  DEFAULT_ARROW: assetPath(`${ICON_BASE_PATH}/arrow-green.svg`),
 }
 
 // 传输类型图标映射
