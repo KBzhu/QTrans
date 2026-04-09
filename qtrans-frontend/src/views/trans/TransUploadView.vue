@@ -10,8 +10,10 @@ import {
 } from '@arco-design/web-vue/es/icon'
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref } from 'vue'
+import { watchDeep } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import type { FileEntity } from '@/api/transWebService'
+import { calculateSHA256 } from '@/api/transWebService'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
@@ -52,6 +54,41 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // 选中的已上传文件
 const selectedUploadedFiles = ref<FileEntity[]>([])
+
+// 自动提交
+const autoSubmitAfterUpload = ref(false)
+const autoSubmitTriggered = ref(false)
+
+// 监听上传列表变化，实现自动提交
+watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
+  if (!autoSubmitAfterUpload.value || list.length === 0 || autoSubmitTriggered.value) return
+
+  const completedFiles = list.filter((f: TransUploadFileItem) => f.status === 'completed')
+  if (completedFiles.length === 0) return
+
+  const hasActive = list.some((f: TransUploadFileItem) =>
+    f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying' || f.status === 'pending',
+  )
+  if (hasActive) return
+
+  const allHashMatched = completedFiles.every((f: TransUploadFileItem) =>
+    !f.hashState || f.hashState.status === 'matched' || f.hashState.status === 'skipped',
+  )
+
+  if (allHashMatched) {
+    autoSubmitTriggered.value = true
+    handleAutoSubmit()
+  }
+})
+
+async function handleAutoSubmit() {
+  const ok = await confirmUpload(params.value)
+  if (ok) {
+    Message.success('自动提交成功')
+  } else {
+    autoSubmitTriggered.value = false
+  }
+}
 
 /**
  * 初始化页面
@@ -115,16 +152,38 @@ async function handleFiles(files: File[]) {
     }
   }
 
-  // 批量上传
-  await uploadFiles(files, params.value, '', updateUploadProgress)
+  // 重复上传拦截：通过 SHA256 比对已上传且校验通过的文件
+  const uploadedFiles = fileListData.value?.fileList ?? []
+  const duplicateFiles: string[] = []
+  const uniqueFiles: File[] = []
+
+  for (const file of files) {
+    const fileHash = await calculateSHA256(file)
+    const duplicate = uploadedFiles.find((f: FileEntity) =>
+      f.clientFileHashCode && f.clientFileHashCode === fileHash
+      && f.hashCode && f.hashCode === fileHash,
+    )
+    if (duplicate) {
+      duplicateFiles.push(file.name)
+    } else {
+      uniqueFiles.push(file)
+    }
+  }
+
+  if (duplicateFiles.length > 0) {
+    Message.warning(`以下文件已上传且校验通过，已跳过：${duplicateFiles.join('、')}`)
+  }
+
+  if (uniqueFiles.length === 0) return
+
+  autoSubmitTriggered.value = false
+  await uploadFiles(uniqueFiles, params.value, '', updateUploadProgress)
 }
 
 /**
  * 更新上传进度
  */
 function updateUploadProgress(item: TransUploadFileItem) {
-  console.log(`Upload progress: ${item.file?.name} - ${item.progress}%`)
-
   const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
 
   // 上传完成：从上传列表移除，并刷新已上传列表
@@ -256,6 +315,15 @@ function handleToggleSelectUploaded(file: FileEntity) {
 }
 
 /**
+ * 删除单个已上传文件
+ */
+async function handleDeleteUploadedFile(file: FileEntity) {
+  await removeFiles([{ fileName: file.fileName, relativeDir: file.relativeDir }], params.value)
+  const idx = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
+  if (idx >= 0) selectedUploadedFiles.value.splice(idx, 1)
+}
+
+/**
  * 返回
  */
 function goBack() {
@@ -292,8 +360,7 @@ onMounted(() => {
     <template v-else-if="initData">
       <!-- 上传区域 -->
       <section class="trans-upload-dropzone">
-        <div
-          class="dropzone-area"
+        <div class="dropzone-area"
           :class="{ 'is-dragging': isDragging }"
           @drop="handleDrop"
           @dragover.prevent="isDragging = true"
@@ -305,6 +372,9 @@ onMounted(() => {
           <p class="dropzone-hint">
             支持批量上传，单个文件不超过 {{ formatFileSize((initData.applicationSize || 10) * 1024 * 1024 * 1024) }}
           </p>
+        </div>
+        <div class="dropzone-toolbar">
+          <a-checkbox v-model="autoSubmitAfterUpload">上传完毕后自动提交</a-checkbox>
         </div>
         <input
           ref="fileInputRef"
@@ -359,10 +429,12 @@ onMounted(() => {
           :files="[]"
           mode="uploaded"
           :show-batch-actions="false"
+          :show-hash-status="true"
           :uploaded-files="fileListData.fileList"
           :selected-uploaded-files="selectedUploadedFiles"
           @toggle-select-uploaded="handleToggleSelectUploaded"
           @batch-delete="handleDeleteSelectedUploaded"
+          @delete-uploaded-file="handleDeleteUploadedFile"
         />
       </section>
 

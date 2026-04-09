@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SHA256 重复检测**: 上传文件时自动计算 SHA256 哈希值，与已上传且校验通过的文件进行双重比对（`clientFileHashCode === hashCode === fileHash`），拦截重复上传
 - **重复提示**: 被拦截的文件名以警告提示展示给用户，未重复的文件正常上传
 
+#### TransUploadView 功能对齐
+
+- **自动提交**: 新增 `autoSubmitAfterUpload` 勾选框 + `watchDeep` 监听，上传完毕自动 `confirmUpload`
+- **重复上传拦截**: 与 StepTwoUploadFile 一致的 SHA256 双重比对逻辑
+- **已上传文件单个删除**: 新增 `handleDeleteUploadedFile` 方法 + `@delete-uploaded-file` 事件绑定
+- **已上传列表 show-hash-status**: 已上传文件列表新增 `:show-hash-status="true"` prop
+- **移除调试日志**: 删除 `updateUploadProgress` 中的 `console.log`
+
 ### Added - 2026-04-03
 
 #### 申请单管理（管理员）功能

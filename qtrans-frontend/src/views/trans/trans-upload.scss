@@ -80,6 +80,12 @@
     color: #86909c;
     margin: 0;
   }
+
+  .dropzone-toolbar {
+    display: flex;
+    align-items: center;
+    margin-top: 12px;
+  }
 }
 
 /* ===== 工具栏 ===== */

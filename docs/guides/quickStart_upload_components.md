@@ -1,4 +1,4 @@
-# QuickStart: 上传组件（StepTwoUploadFile + TransFileTable）
+# QuickStart: 上传组件（StepTwoUploadFile + TransUploadView + TransFileTable）
 
 ## 给开发者
 
@@ -6,9 +6,20 @@
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| `StepTwoUploadFile` | `src/views/application/components/StepTwoUploadFile.vue` | 上传页面主组件，组合拖拽上传、文件列表、已上传列表 |
+| `StepTwoUploadFile` | `src/views/application/components/StepTwoUploadFile.vue` | 嵌入式上传组件（申请流程步骤二），props 传入参数 |
+| `TransUploadView` | `src/views/trans/TransUploadView.vue` | 外网独立上传页面，路由参数传入，有完整导航/错误恢复 |
 | `TransFileTable` | `src/components/business/TransFileTable.vue` | 通用文件表格，支持 upload/uploaded/download 三种模式 |
 | `useTransUpload` | `src/composables/useTransUpload.ts` | 上传核心 composable，分片上传 + 断点续传 + 哈希校验 |
+
+### 两个上传组件功能一致
+
+`StepTwoUploadFile` 和 `TransUploadView` 现已功能对齐，均支持：
+- 自动提交（`watchDeep` + 勾选框）
+- SHA256 重复上传拦截
+- 已上传文件单个/批量删除
+- SHA256 校验状态展示
+
+差异仅在参数来源和页面结构：StepTwoUploadFile 为嵌入式组件（props），TransUploadView 为独立页面（route.query）。
 
 ### 快速集成
 
@@ -93,13 +104,15 @@ function handleConfirmed() {
 - **未通过** (红色): `clientFileHashCode !== hashCode`
 - **未校验** (灰色): 缺少哈希值
 
-### 自动提交逻辑
+### 自动提交逻辑（两个组件通用）
 
 1. 用户勾选"上传完毕后自动提交"
-2. watch 深度监听 `uploadFileList` 变化
+2. 使用 VueUse `watchDeep` 深度监听 `uploadFileList` 变化
 3. 当所有文件结束（completed/error/paused），且至少有一个 completed
 4. 且所有 completed 文件哈希校验通过（matched 或 skipped）
-5. 自动调用 `confirmUpload` 并 emit `confirmed`
+5. 自动调用 `confirmUpload`
+
+> StepTwoUploadFile 额外 emit `confirmed` 事件；TransUploadView 为独立页面，提交成功后仅提示
 
 ---
 
