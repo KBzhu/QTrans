@@ -76,7 +76,9 @@ export interface DownloadInitResponse {
 export interface UploadResponse {
   success: boolean
   error: string
+  /** 服务端计算耗时（秒） — 对齐老代码 onUploadChunkSuccess 的 elapsedTime */
   elapsedTime?: string
+  /** 服务端预估剩余时间（秒） — 对齐老代码 onUploadChunkSuccess 的 timeLeft */
   timeLeft?: string
 }
 
@@ -512,6 +514,47 @@ export async function pauseUpload(
   return response.data
 }
 
+/**
+ * 取消上传（通知后端清理临时文件）
+ * POST /Handler/UploadHandler?act=cancel
+ *
+ * 对齐老代码 onCancel: 调用 UploadHandler?act=cancel 通知后端
+ * 否则后端会残留临时分片文件
+ */
+export async function cancelUploadApi(
+  fileName: string,
+  qqpath: string,
+  params: string,
+): Promise<UploadResponse> {
+  const response = await transClient.post('/Handler/UploadHandler', null, {
+    params: {
+      act: 'cancel',
+      name: fileName,
+      qqpath: qqpath,
+      params: params,
+    },
+  })
+  return response.data
+}
+
+/**
+ * 获取存储空间信息
+ * POST /Handler/UploadHandler?act=storage
+ *
+ * 对齐老代码 onValidate: 检查总空间是否超限
+ */
+export async function getStorageInfo(
+  params: string,
+): Promise<{ success: boolean; usedSize: number; totalSize: number; error?: string }> {
+  const response = await transClient.get('/Handler/UploadHandler', {
+    params: {
+      act: 'storage',
+      params: params,
+    },
+  })
+  return response.data
+}
+
 // ============ 哈希计算工具（前端Mock实现）============
 
 /**
@@ -594,6 +637,12 @@ export const transApi = {
   
   // 断点续传
   getUploadedChunks,
+
+  // 取消上传
+  cancelUploadApi,
+
+  // 存储空间
+  getStorageInfo,
 
   // 下载相关
   downloadFile,

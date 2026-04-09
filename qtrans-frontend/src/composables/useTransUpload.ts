@@ -8,20 +8,24 @@ import {
   type FileEntity,
   type FileListData,
   type UploadInitResponse,
+  type UploadResponse,
   type ChunkStatusInfo,
   calculateSHA256,
   calculateChunkHash,
+  cancelUploadApi,
   completeUpload,
   deleteFiles,
   getChunkSize,
   getFileList,
   getServerHash,
+  getStorageInfo,
   getUploadedChunks,
   initUpload,
   pauseUpload as apiPauseUpload,
   updateClientHash,
   uploadChunk as apiUploadChunk,
 } from '@/api/transWebService'
+import { classifyUploadError, UploadErrorType } from '@/types/upload-error'
 import {
   type ChunkInfo,
   type UploadRecord,
@@ -42,12 +46,25 @@ const CHUNK_SIZE = getChunkSize()
 /** 最大并发上传数 */
 const MAX_CONCURRENT_UPLOADS = 3
 
+/** 自动重试最大次数（对齐老代码 FineUploader autoAttempts: 3） */
+const MAX_AUTO_RETRY = 3
+
+/** 自动重试间隔（毫秒） */
+const AUTO_RETRY_DELAY = 2000
+
+/** 小文件阈值（字节），小于此值时在上传前预计算哈希（对齐老代码 onUpload 逻辑） */
+const SMALL_FILE_THRESHOLD = 4 * 1024 * 1024 // 4MB
+
 /** 哈希校验状态 */
 export interface HashVerifyState {
   clientHash: string
   serverHash: string
-  status: 'pending' | 'calculating' | 'verifying' | 'matched' | 'mismatched' | 'skipped'
+  status: 'pending' | 'calculating' | 'verifying' | 'matched' | 'mismatched'
   error?: string
+  /** 服务端计算耗时（秒） */
+  elapsedTime?: string
+  /** 服务端预估剩余时间（秒） */
+  timeLeft?: string
 }
 
 /** 上传文件项 */
@@ -65,6 +82,7 @@ export interface TransUploadFileItem {
   totalChunks?: number          // 总分片数
   uploadedChunks?: number[]     // 已上传分片索引
   selected?: boolean            // 是否被选中（用于批量操作）
+  retryCount?: number           // 自动重试次数（对齐老代码 retry.enableAuto）
 }
 
 /** 分片上传状态 */
@@ -278,7 +296,7 @@ export function useTransUpload() {
     totalChunks: number,
     params: string,
     onProgress?: (percent: number) => void,
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<UploadResponse> {
     const start = chunkIndex * CHUNK_SIZE
     const end = Math.min(start + CHUNK_SIZE, file.size)
     const chunkBlob = file.slice(start, end)
@@ -300,6 +318,8 @@ export function useTransUpload() {
     formData.append('qqpartbyteoffset', String(start))           // ✅ 分片偏移量
     formData.append('act', 'add')                                 // ✅ 操作类型（必须！）
     formData.append('name', file.name)
+    // P1-4: 对齐老代码 onUploadChunk，将分片哈希附到请求参数
+    formData.append('qqhashcode', chunkHash)
 
     console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 数据大小: ${chunkFile.size} bytes, 哈希: ${chunkHash.substring(0, 8)}...`)
 
@@ -353,8 +373,21 @@ export function useTransUpload() {
       uploadedChunks: [],
       selected: false,
       startTime: Date.now(),
+      retryCount: 0,
     }
     uploadFileList.value.push(uploadItem)
+
+    // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
+    // 老代码逻辑：小文件先算 hash 附到请求参数，上传完成后不需要再等后端算哈希
+    let preCalculatedHash = ''
+    if (file.size <= SMALL_FILE_THRESHOLD) {
+      try {
+        preCalculatedHash = await calculateSHA256(file)
+        console.log('[上传] 小文件预计算哈希:', preCalculatedHash.substring(0, 16) + '...')
+      } catch (e) {
+        console.warn('[上传] 小文件预计算哈希失败，将在上传后计算:', e)
+      }
+    }
 
     // 创建上传记录到 IndexedDB
     await createUploadRecord({
@@ -377,8 +410,11 @@ export function useTransUpload() {
       uploadItem.uploadedChunks = skip
 
       let uploadedCount = skip.length
-      uploadItem.progress = Math.floor((uploadedCount / totalChunks) * 100)
-      uploadItem.uploadedBytes = uploadedCount * CHUNK_SIZE
+      uploadItem.uploadedBytes = skip.reduce((sum, idx) => {
+        const chunkEnd = Math.min((idx + 1) * CHUNK_SIZE, file.size)
+        return sum + chunkEnd - idx * CHUNK_SIZE
+      }, 0)
+      uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
       onProgress?.(uploadItem)
 
       // 等待并发队列有空位
@@ -400,11 +436,12 @@ export function useTransUpload() {
 
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 开始上传`)
 
-        // 利用 axios onUploadProgress 将单分片字节进度映射到整体进度
+        // 计算当前分片在整个文件中的字节范围
         const chunkStart = chunkIndex * CHUNK_SIZE
         const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, file.size)
         const chunkSize = chunkEnd - chunkStart
-        const baseUploadedBytes = uploadedCount * CHUNK_SIZE
+        // 已上传分片的字节基线
+        const baseUploadedBytes = uploadItem.uploadedBytes
 
         const result = await uploadSingleChunk(
           file,
@@ -413,11 +450,12 @@ export function useTransUpload() {
           totalChunks,
           params,
           (chunkPercent: number) => {
-            // 将分片内进度映射到整体进度
+            // 将分片内字节进度映射到整体文件进度
             const chunkUploadedBytes = Math.floor(chunkSize * chunkPercent / 100)
             const totalUploadedBytes = Math.min(baseUploadedBytes + chunkUploadedBytes, file.size)
             uploadItem.uploadedBytes = totalUploadedBytes
-            uploadItem.progress = Math.floor((totalUploadedBytes / file.size) * 100)
+            // 上传阶段最多到 99%，留 1% 给哈希校验
+            uploadItem.progress = Math.min(Math.floor((totalUploadedBytes / file.size) * 99), 99)
             const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
             uploadItem.speed = elapsed > 0 ? totalUploadedBytes / elapsed : 0
             onProgress?.(uploadItem)
@@ -425,11 +463,26 @@ export function useTransUpload() {
         )
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 完成:`, result)
 
+        // P2-9: 对齐老代码 onUploadChunkSuccess，从响应获取 elapsedTime/timeLeft
+        if (result.elapsedTime || result.timeLeft) {
+          if (!uploadItem.hashState) {
+            uploadItem.hashState = {
+              clientHash: '',
+              serverHash: '',
+              status: 'pending',
+              elapsedTime: result.elapsedTime,
+              timeLeft: result.timeLeft,
+            }
+          } else {
+            uploadItem.hashState.elapsedTime = result.elapsedTime
+            uploadItem.hashState.timeLeft = result.timeLeft
+          }
+        }
+
         uploadedCount++
-        const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
-        uploadItem.progress = Math.floor((uploadedCount / totalChunks) * 100)
-        uploadItem.uploadedBytes = Math.min(uploadedCount * CHUNK_SIZE, file.size)
-        uploadItem.speed = elapsed > 0 ? uploadItem.uploadedBytes / elapsed : 0
+        // 分片完成后更新精确字节进度（而非暴力百分比）
+        uploadItem.uploadedBytes = Math.min(baseUploadedBytes + chunkSize, file.size)
+        uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
         uploadItem.uploadedChunks!.push(chunkIndex)
 
         onProgress?.(uploadItem)
@@ -443,10 +496,14 @@ export function useTransUpload() {
         clientHash: '',
         serverHash: '',
         status: 'calculating',
+        // 保留服务端耗时/剩余时间（分片上传阶段已获取）
+        elapsedTime: uploadItem.hashState?.elapsedTime,
+        timeLeft: uploadItem.hashState?.timeLeft,
       }
       onProgress?.(uploadItem)
 
-      const clientHash = await calculateSHA256(file)
+      // P2-7: 小文件可能已预计算过哈希，直接复用
+      const clientHash = preCalculatedHash || await calculateSHA256(file)
       uploadItem.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
 
@@ -457,65 +514,60 @@ export function useTransUpload() {
         console.warn('[哈希校验] 更新客户端哈希失败，跳过:', e)
       }
 
-      // 轮询获取服务端哈希并做前端比对校验（与老代码 validHashTimer 逻辑一致）
+      // 轮询获取服务端哈希并做前端比对校验（对齐老代码 validHashTimer + getServerHashTimer 逻辑）
+      // 老代码逻辑：无限轮询，直到 clientFileHashCode 和 serverFileHashCode 都有值再比对
       uploadItem.status = 'verifying'
       uploadItem.hashState!.status = 'verifying'
       onProgress?.(uploadItem)
 
-      let verifyAttempts = 0
-      const maxAttempts = 30
-      let hashMatched = false
+      const relativeFileName = relativeDir ? `${relativeDir}/${file.name}` : file.name
+      let serverHashValue = ''
 
-      while (verifyAttempts < maxAttempts) {
+      // 对齐老代码：无限轮询直到拿到服务端哈希（服务端大文件算哈希可能很慢）
+      while (true) {
         if (controller.signal.aborted) {
           uploadItem.status = 'paused'
           return false
         }
 
-        const relativeFileName = relativeDir ? `${relativeDir}/${file.name}` : file.name
-        console.log(`[哈希校验] 第 ${verifyAttempts + 1} 次查询服务端哈希...`)
-        
+        console.log('[哈希校验] 查询服务端哈希...')
+
         try {
           const hashResult = await getServerHash(relativeFileName, params)
-          console.log(`[哈希校验] 响应:`, hashResult)
 
           if (hashResult.success && hashResult.error) {
             // 解析服务端哈希：error 格式为 "文件名%2C服务端哈希"
             const parts = hashResult.error.split('%2C')
-            const serverHash = parts.length > 1 ? parts[1] : hashResult.error
-            uploadItem.hashState!.serverHash = serverHash.toUpperCase()
+            const parsedHash = parts.length > 1 ? parts[1] : hashResult.error
 
-            // 前端比对：clientFileHashCode === serverFileHashCode
-            if (uploadItem.hashState!.serverHash === clientHash.toUpperCase()) {
-              console.log('[哈希校验] 哈希校验通过，上传完成')
-              uploadItem.hashState!.status = 'matched'
-              hashMatched = true
-              break
-            } else {
-              console.warn('[哈希校验] 哈希不一致！客户端:', clientHash, '服务端:', uploadItem.hashState!.serverHash)
-              uploadItem.hashState!.status = 'mismatched'
-              hashMatched = false
+            // 对齐老代码：serverFileHashCode.length === 64 才视为有效
+            if (parsedHash && parsedHash.length === 64) {
+              serverHashValue = parsedHash.toUpperCase()
+              uploadItem.hashState!.serverHash = serverHashValue
+              console.log('[哈希校验] 服务端哈希获取成功:', serverHashValue.substring(0, 16) + '...')
               break
             }
-          } else {
-            // 哈希还在计算中，继续等待
-            console.log('[哈希校验] 服务端哈希计算中，等待重试...')
           }
+
+          // 哈希还在计算中，继续等待
+          console.log('[哈希校验] 服务端哈希计算中，3秒后重试...')
         } catch (e) {
           console.warn('[哈希校验] 查询服务端哈希失败:', e)
         }
 
-        verifyAttempts++
         await new Promise(resolve => setTimeout(resolve, 3000))
       }
 
-      // 如果哈希校验超时，跳过校验直接标记完成（后端可能不支持哈希接口）
-      if (!hashMatched && uploadItem.hashState!.status !== 'mismatched') {
-        console.warn('[哈希校验] 超时或后端不支持，跳过哈希校验')
-        uploadItem.hashState!.status = 'skipped'
+      // 对齐老代码 validHashTimer：双端哈希都有值后进行比对
+      if (serverHashValue === clientHash.toUpperCase()) {
+        console.log('[哈希校验] 哈希校验通过，上传完成')
+        uploadItem.hashState!.status = 'matched'
+      } else {
+        console.warn('[哈希校验] 哈希不一致！客户端:', clientHash.toUpperCase(), '服务端:', serverHashValue)
+        uploadItem.hashState!.status = 'mismatched'
       }
 
-      // 完成
+      // 完成（无论 matched 还是 mismatched，都标记 completed，mismatched 会在 UI 展示警示）
       uploadItem.status = 'completed'
       uploadItem.progress = 100
       uploadItem.speed = 0
@@ -525,8 +577,150 @@ export function useTransUpload() {
       return true
     }
     catch (error: any) {
+      // P0-1: 对齐老代码 onError，分类处理上传错误
+      const errorInfo = classifyUploadError(error)
+
       uploadItem.status = 'error'
-      uploadItem.error = error.message || '上传失败'
+      uploadItem.error = errorInfo.message
+
+      // 登录过期：触发全局事件
+      if (errorInfo.type === UploadErrorType.AUTH_EXPIRED) {
+        window.dispatchEvent(new CustomEvent('trans-token-expired'))
+      }
+
+      // P1-6: 对齐老代码 retry.enableAuto，可重试错误自动重试
+      if (errorInfo.retryable && (uploadItem.retryCount ?? 0) < MAX_AUTO_RETRY) {
+        uploadItem.retryCount = (uploadItem.retryCount ?? 0) + 1
+        console.log(`[上传] 自动重试 ${uploadItem.retryCount}/${MAX_AUTO_RETRY}: ${file.name}`)
+
+        // 重置上传状态，延迟后重试当前分片
+        uploadItem.status = 'uploading'
+        uploadItem.error = undefined
+        await updateUploadStatus(fileUUID, 'uploading')
+
+        // 延迟后重新走断点续传逻辑（会自动跳过已上传分片）
+        await new Promise(resolve => setTimeout(resolve, AUTO_RETRY_DELAY))
+        onProgress?.(uploadItem)
+
+        // 重新查询断点并继续上传缺失分片
+        try {
+          const { skip: retrySkip, reupload: retryReupload } = await checkChunkStatus(
+            fileUUID, file.name, relativeDir, params, totalChunks,
+          )
+          uploadItem.uploadedChunks = retrySkip
+
+          for (const retryChunkIndex of retryReupload) {
+            if (controller.signal.aborted) {
+              uploadItem.status = 'paused'
+              return false
+            }
+
+            const retryChunkStart = retryChunkIndex * CHUNK_SIZE
+            const retryChunkEnd = Math.min(retryChunkStart + CHUNK_SIZE, file.size)
+            const retryChunkSize = retryChunkEnd - retryChunkStart
+            const retryBaseBytes = uploadItem.uploadedBytes
+
+            const retryResult = await uploadSingleChunk(
+              file, fileUUID, retryChunkIndex, totalChunks, params,
+              (chunkPercent: number) => {
+                const chunkUploadedBytes = Math.floor(retryChunkSize * chunkPercent / 100)
+                const totalUploadedBytes = Math.min(retryBaseBytes + chunkUploadedBytes, file.size)
+                uploadItem.uploadedBytes = totalUploadedBytes
+                uploadItem.progress = Math.min(Math.floor((totalUploadedBytes / file.size) * 99), 99)
+                const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
+                uploadItem.speed = elapsed > 0 ? totalUploadedBytes / elapsed : 0
+                onProgress?.(uploadItem)
+              },
+            )
+
+            uploadItem.uploadedBytes = Math.min(retryBaseBytes + retryChunkSize, file.size)
+            uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
+            uploadItem.uploadedChunks!.push(retryChunkIndex)
+
+            if (retryResult.elapsedTime || retryResult.timeLeft) {
+              if (!uploadItem.hashState) {
+                uploadItem.hashState = { clientHash: '', serverHash: '', status: 'pending', elapsedTime: retryResult.elapsedTime, timeLeft: retryResult.timeLeft }
+              } else {
+                uploadItem.hashState.elapsedTime = retryResult.elapsedTime
+                uploadItem.hashState.timeLeft = retryResult.timeLeft
+              }
+            }
+            onProgress?.(uploadItem)
+          }
+
+          // 重试成功，继续哈希校验流程
+          console.log('[上传] 重试上传完成，继续哈希校验')
+          // 重新走哈希校验流程（直接跳到 hashing 阶段）
+          uploadItem.status = 'hashing'
+          uploadItem.hashState = {
+            clientHash: '',
+            serverHash: '',
+            status: 'calculating',
+            elapsedTime: uploadItem.hashState?.elapsedTime,
+            timeLeft: uploadItem.hashState?.timeLeft,
+          }
+          onProgress?.(uploadItem)
+
+          const retryClientHash = preCalculatedHash || await calculateSHA256(file)
+          uploadItem.hashState!.clientHash = retryClientHash
+
+          try {
+            await updateClientHash(file.name, relativeDir, retryClientHash)
+          } catch (e) {
+            console.warn('[哈希校验] 更新客户端哈希失败:', e)
+          }
+
+          uploadItem.status = 'verifying'
+          uploadItem.hashState!.status = 'verifying'
+          onProgress?.(uploadItem)
+
+          const retryRelativeFileName = relativeDir ? `${relativeDir}/${file.name}` : file.name
+          let retryServerHash = ''
+
+          while (true) {
+            if (controller.signal.aborted) {
+              uploadItem.status = 'paused'
+              return false
+            }
+            try {
+              const hashResult = await getServerHash(retryRelativeFileName, params)
+              if (hashResult.success && hashResult.error) {
+                const parts = hashResult.error.split('%2C')
+                const parsedHash = parts.length > 1 ? parts[1] : hashResult.error
+                if (parsedHash && parsedHash.length === 64) {
+                  retryServerHash = parsedHash.toUpperCase()
+                  uploadItem.hashState!.serverHash = retryServerHash
+                  break
+                }
+              }
+            } catch (e) {
+              console.warn('[哈希校验] 查询服务端哈希失败:', e)
+            }
+            await new Promise(resolve => setTimeout(resolve, 3000))
+          }
+
+          if (retryServerHash === retryClientHash.toUpperCase()) {
+            uploadItem.hashState!.status = 'matched'
+          } else {
+            uploadItem.hashState!.status = 'mismatched'
+          }
+
+          uploadItem.status = 'completed'
+          uploadItem.progress = 100
+          uploadItem.speed = 0
+          await updateUploadStatus(fileUUID, 'completed', { completedAt: new Date() })
+          onProgress?.(uploadItem)
+          return true
+        } catch (retryError: any) {
+          // 重试仍然失败
+          uploadItem.status = 'error'
+          uploadItem.error = retryError.message || '重试上传失败'
+          await updateUploadStatus(fileUUID, 'failed')
+          onProgress?.(uploadItem)
+          return false
+        }
+      }
+
       await updateUploadStatus(fileUUID, 'failed')
       onProgress?.(uploadItem)
       return false
@@ -663,13 +857,25 @@ export function useTransUpload() {
 
   /**
    * 取消上传（删除文件和记录）
+   * P0-2: 对齐老代码 onCancel，通知后端清理临时文件
    */
-  async function cancelUpload(fileId: string): Promise<void> {
+  async function cancelUpload(fileId: string, params?: string): Promise<void> {
     // 中止上传
     const controller = abortControllers.get(fileId)
     if (controller) {
       controller.abort()
       abortControllers.delete(fileId)
+    }
+
+    // P0-2: 对齐老代码 onCancel，通知后端取消上传并清理临时分片
+    const item = uploadFileList.value.find(f => f.id === fileId)
+    if (item && params) {
+      try {
+        await cancelUploadApi(item.file.name, item.relativeDir, params)
+        console.log('[取消上传] 已通知后端清理临时文件:', item.file.name)
+      } catch (e) {
+        console.warn('[取消上传] 通知后端取消失败（忽略）:', e)
+      }
     }
 
     // 清理 IndexedDB 数据
@@ -751,10 +957,10 @@ export function useTransUpload() {
   /**
    * 批量取消
    */
-  async function batchCancel(): Promise<void> {
+  async function batchCancel(params?: string): Promise<void> {
     const selected = uploadFileList.value.filter(f => f.selected && f.status !== 'uploading')
     for (const item of selected) {
-      await cancelUpload(item.id)
+      await cancelUpload(item.id, params)
     }
     Message.success(`已取消 ${selected.length} 个文件`)
   }
@@ -803,6 +1009,27 @@ export function useTransUpload() {
     }
   }
 
+  /**
+   * P1-5: 检查存储空间是否充足
+   * 对齐老代码 onValidate: 检查总空间是否超限
+   */
+  async function checkStorageSpace(params: string, fileSize: number): Promise<boolean> {
+    try {
+      const storageInfo = await getStorageInfo(params)
+      if (!storageInfo.success) return true // 查询失败不阻止上传
+
+      const remainingSpace = storageInfo.totalSize - storageInfo.usedSize
+      if (remainingSpace < fileSize) {
+        Message.error(`存储空间不足，剩余 ${formatFileSize(remainingSpace)}，需要 ${formatFileSize(fileSize)}`)
+        return false
+      }
+      return true
+    } catch (e) {
+      console.warn('[存储空间] 查询失败，跳过校验:', e)
+      return true
+    }
+  }
+
   return {
     // 状态
     uploading,
@@ -826,6 +1053,7 @@ export function useTransUpload() {
     retryUpload,
     clearCompleted,
     cleanupExpiredData,
+    checkStorageSpace,
 
     // 批量操作
     toggleSelectAll,

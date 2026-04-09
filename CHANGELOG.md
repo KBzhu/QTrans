@@ -7,7 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - 2026-04-08
+### Added - 2026-04-09
+
+#### 老代码遗漏逻辑补充（按 P 级优先级）
+
+- **P0-1 上传错误分类处理**: 新增 `src/types/upload-error.ts`，定义 `UploadErrorType` 枚举和 `classifyUploadError` 函数，对齐老代码 `onError` 中的错误分类（登录过期、文件已存在、文件正在上传、文件名超长、拒绝访问等），`useTransUpload.ts` 的 `catch` 块使用错误分类替代简单 `error.message`
+- **P0-2 取消上传通知后端**: 新增 `cancelUploadApi` API（`UploadHandler?act=cancel`），`cancelUpload` 方法在取消上传时通知后端清理临时分片文件，对齐老代码 `onCancel` 逻辑
+- **P0-3 文件名/路径合法性校验**: 新增 `src/utils/upload-validator.ts`，实现 `validateFileName` 和 `validateFilePath`，对齐老代码 `onSubmit` 校验（黑名单字符 `blackList`、文件名长度 `maxLength4Name`、路径长度 `maxLength4Path`），两个上传页面在上传前批量校验
+
+- **P1-4 分片哈希传后端**: `uploadSingleChunk` 将 `qqhashcode` 附到 FormData，对齐老代码 `onUploadChunk` 将分片哈希传给后端
+- **P1-5 存储空间上限校验**: 新增 `getStorageInfo` API（`UploadHandler?act=storage`），`useTransUpload` 新增 `checkStorageSpace` 方法，两个上传页面在上传前检查总空间是否超限，对齐老代码 `onValidate`
+- **P1-6 自动重试机制**: `useTransUpload.ts` 的 `catch` 块中，对可重试错误（网络错误、服务端 5xx）自动重试最多 3 次（`MAX_AUTO_RETRY`），每次间隔 2 秒，对齐老代码 `retry.enableAuto: true, autoAttempts: 3`
+
+- **P2-7 小文件预计算哈希**: 对 ≤4MB 的文件，在分片上传前预计算 SHA256 哈希（`preCalculatedHash`），避免上传后再计算，对齐老代码 `onUpload` 中小文件先算 hash 的逻辑
+- **P2-9 服务端耗时/剩余时间展示**: `HashVerifyState` 新增 `elapsedTime`/`timeLeft` 字段，从分片上传响应中解析，`TransFileTable.vue` 在校验中和校验通过时展示耗时/剩余时间信息
+
+#### API 变更
+
+- `transWebService.ts`: 新增 `cancelUploadApi`、`getStorageInfo`，`UploadResponse` 已有 `elapsedTime`/`timeLeft` 字段（补充注释）
+- `useTransUpload.ts`: `cancelUpload` 签名改为 `(fileId: string, params?: string)`，`batchCancel` 签名改为 `(params?: string)`
+
+### Fixed - 2026-04-09
+
+#### 进度条修复
+
+- **修复进度条立即打满**: `useTransUpload.ts` 分片上传完成后不再用 `uploadedCount / totalChunks * 100` 暴力赋值进度，改为基于精确字节数计算；上传阶段进度上限99%，完成校验后才到100%
+- **断点续传进度基准修正**: 恢复已上传分片时使用精确字节累加（考虑最后一个分片非整块），替代 `count * CHUNK_SIZE`
+
+#### 哈希校验逻辑对齐老项目
+
+- **哈希校验改为无限轮询**: `useTransUpload.ts` 去掉30次重试上限，对齐老代码 `getServerHashTimer` 逻辑，服务端大文件算哈希可能很慢，需无限轮询直到 `serverFileHashCode.length === 64`
+- **双端哈希都有效才比对**: 对齐老代码 `validHashTimer` 逻辑，`clientFileHashCode` 和 `serverFileHashCode` 都有有效值后才进行比对
+- **去掉 `skipped` 状态**: 哈希校验不再有超时跳过的场景，状态只保留 `matched` / `mismatched` / `pending`
+- **`getHashVerifyStatus` 增加长度校验**: `clientFileHashCode` 需长度为64才视为有效，与老代码 `clientFileHashCode.length === 64` 一致
+- **自动提交逻辑适配**: 去掉 `skipped` 判断，只有 `matched` 才视为校验通过
+
+#### 重复上传拦截优化
+
+- **提示文案优化**: 从"以下文件已上传，已跳过"改为"XX文件在服务器上已存在，请勿重复上传"
+- **比对逻辑增强**: 同时检查 `clientFileHashCode` 和 `hashCode`，任一有效且匹配即视为已存在
+- 涉及文件: `StepTwoUploadFile.vue`, `TransUploadView.vue`
+
+#### 重复上传拦截增加文件名校验
+
+- **同hash不同文件名放行**: hash 相同但文件名不同的文件不再被拦截，只有 hash + 文件名都匹配才视为重复
+- 涉及文件: `StepTwoUploadFile.vue`, `TransUploadView.vue`
+
+#### 已上传文件 hashCode 为 null 时延迟刷新
+
+- **问题**: 上传完成后立即 `loadFileList` 刷新已上传列表，此时后端 `hashCode` 还没算完，FileListHandler 返回 null，导致显示"未校验"
+- **修复**: 新增 `refreshFileListWithRetry` 函数，上传完成后延迟刷新文件列表（最多3次/3秒间隔），直到 `hashCode` 有值
+- 涉及文件: `StepTwoUploadFile.vue`, `TransUploadView.vue`
 
 #### 上传组件 Bug 修复
 

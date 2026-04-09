@@ -10,6 +10,7 @@ import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
 import { formatFileSize } from '@/utils/format'
+import { validateFileNames } from '@/utils/upload-validator'
 
 interface Props {
   params:string
@@ -42,6 +43,7 @@ const {
   batchResume,
   batchCancel,
   removeFiles,
+  checkStorageSpace,
 } = useTransUpload()
 
 const isDragging = ref(false)
@@ -64,7 +66,7 @@ watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
 
   // 检查所有已完成文件的哈希校验是否通过
   const allHashMatched = completedFiles.every((f: TransUploadFileItem) =>
-    !f.hashState || f.hashState.status === 'matched' || f.hashState.status === 'skipped',
+    !f.hashState || f.hashState.status === 'matched',
   )
 
   if (allHashMatched) {
@@ -115,16 +117,44 @@ async function handleFiles(files: File[]) {
       return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
 
-  // 重复上传拦截：通过 SHA256 比对已上传且校验通过的文件
+  // P0-3: 对齐老代码 onSubmit，校验文件名/路径合法性
+  const blackList = initData.value?.blackList || ''
+  const maxLength4Name = initData.value?.maxLength4Name || 256
+  const maxLength4Path = initData.value?.maxLength4Path || 512
+  const invalidFiles = validateFileNames(files, blackList, maxLength4Name, maxLength4Path, '')
+  if (invalidFiles.length > 0) {
+    const errorMessages = invalidFiles.map(f => `${f.file.name}: ${f.error}`).join('\n')
+    Message.error(`文件名校验不通过：${errorMessages}`)
+    // 过滤掉非法文件，仅上传合法文件
+    const invalidFileNames = new Set(invalidFiles.map(f => f.file.name))
+    files = files.filter(f => !invalidFileNames.has(f.name))
+    if (files.length === 0) return
+  }
+
+  // P1-5: 对齐老代码 onValidate，检查存储空间
+  const totalFileSize = files.reduce((sum, f) => sum + f.size, 0)
+  const hasSpace = await checkStorageSpace(props.params, totalFileSize)
+  if (!hasSpace) return
+
+  // 重复上传拦截：逐文件计算 SHA256，与已上传且校验通过的文件比对
+  // 条件：hash 相同且文件名相同才视为重复，hash 相同但文件名不同则放行
   const uploadedFiles = fileListData.value?.fileList ?? []
   const duplicateFiles: string[] = []
   const uniqueFiles: File[] = []
 
   for (const file of files) {
+    // 计算当前文件 hash
     const fileHash = await calculateSHA256(file)
-    const duplicate = uploadedFiles.find((f: FileEntity) =>
-      f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode === fileHash,
-    )
+    // 比对已上传列表：hash 匹配 + 文件名相同 才视为重复
+    const duplicate = uploadedFiles.find((f: FileEntity) => {
+      // 文件名不同，即使 hash 相同也放行
+      if (f.fileName !== file.name) return false
+      const validClientHash = f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode !== ''
+      const validServerHash = f.hashCode && f.hashCode !== 'null' && f.hashCode !== ''
+      if (validClientHash && f.clientFileHashCode === fileHash) return true
+      if (validServerHash && f.hashCode.toUpperCase() === fileHash.toUpperCase()) return true
+      return false
+    })
     if (duplicate) {
       duplicateFiles.push(file.name)
     } else {
@@ -133,7 +163,7 @@ async function handleFiles(files: File[]) {
   }
 
   if (duplicateFiles.length > 0) {
-    Message.warning(`以下文件已上传，已跳过：${duplicateFiles.join('、')}`)
+    Message.warning(`${duplicateFiles.join('、')} 在服务器上已存在，请勿重复上传`)
   }
 
   if (uniqueFiles.length === 0) return
@@ -142,11 +172,34 @@ async function handleFiles(files: File[]) {
   await uploadFiles(uniqueFiles, props.params, '', updateUploadProgress)
 }
 
+/**
+ * 刷新已上传文件列表（带重试）
+ * 上传完成后后端 hashCode 可能还没算完，FileListHandler 返回 null
+ * 对齐老代码逻辑：如果 hashCode 为 null，延迟再刷新一次
+ */
+async function refreshFileListWithRetry(relativeDir: string, params: string, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    // 延迟刷新：给后端计算哈希的时间
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    }
+    await loadFileList(relativeDir, params)
+    // 检查新上传的文件是否已有 hashCode
+    const hasNullHash = fileListData.value?.fileList.some(
+      (f: FileEntity) => f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode !== '' && (!f.hashCode || f.hashCode === 'null'),
+    )
+    if (!hasNullHash) break
+    console.log(`[文件列表刷新] 第 ${i + 1} 次刷新后仍有 hashCode 为 null 的文件，将重试...`)
+  }
+}
+
 function updateUploadProgress(item: TransUploadFileItem) {
   if (item.status === 'completed') {
     const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
     if (idx >= 0) uploadFileList.value.splice(idx, 1)
-    loadFileList('', props.params)
+    // 延迟刷新已上传列表：给后端时间计算 hashCode
+    // 对齐老代码：老代码在校验完成后才从任务列表移除，此时 hashCode 已有值
+    refreshFileListWithRetry('', props.params)
     return
   }
   const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
@@ -155,7 +208,7 @@ function updateUploadProgress(item: TransUploadFileItem) {
 
 const handlePause = (id: string) => pauseUpload(id, props.params)
 const handleResume = (id: string) => resumeUpload(id, props.params, updateUploadProgress)
-const handleDelete = (id: string) => cancelUpload(id)
+const handleDelete = (id: string) => cancelUpload(id, props.params)
 const handleRetry = (id: string) => retryUpload(id, props.params, updateUploadProgress)
 
 function handleToggleSelect(id: string) {
@@ -165,7 +218,7 @@ function handleToggleSelect(id: string) {
 
 function handleBatchPause() { batchPause(props.params) }
 function handleBatchResume() { batchResume(props.params, updateUploadProgress) }
-function handleBatchDelete() { batchCancel() }
+function handleBatchDelete() { batchCancel(props.params) }
 
 async function handleRefresh() {
   await loadFileList('', props.params)

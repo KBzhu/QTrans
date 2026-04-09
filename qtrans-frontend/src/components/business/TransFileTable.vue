@@ -229,19 +229,20 @@ function truncateHash(hash: string | undefined): string {
   return `${hash.substring(0, 8)}...${hash.substring(hash.length - 4)}`
 }
 
-/** 判断哈希校验是否通过 */
+/** 判断哈希校验是否通过（对齐老代码 validHashTimer 逻辑） */
 function getHashVerifyStatus(file: FileEntity): 'matched' | 'mismatched' | 'pending' {
   const clientHash = file.clientFileHashCode
   const serverHash = file.hashCode
 
   // 后端 FileListHandler 返回的 hashCode 可能为字符串 "null"，视为无效
-  const validClientHash = clientHash && clientHash !== 'null' && clientHash !== ''
+  const validClientHash = clientHash && clientHash !== 'null' && clientHash !== '' && clientHash.length === 64
   const validServerHash = serverHash && serverHash !== 'null' && serverHash !== ''
 
+  // 对齐老代码：双端哈希都有效才进行比对
   if (validClientHash && validServerHash) {
     return clientHash.toUpperCase() === serverHash.toUpperCase() ? 'matched' : 'mismatched'
   }
-  // 仅客户端哈希有效时无法确认校验结果，返回 pending
+  // 任一端哈希无效，无法确认校验结果
   return 'pending'
 }
 
@@ -370,9 +371,15 @@ function isUploadedFileSelected(file: FileEntity): boolean {
               </span>
               <span v-else-if="item.hashState.status === 'verifying'">
                 正在校验文件完整性...
+                <span v-if="item.hashState.timeLeft" class="hash-time-info">
+                  （预计剩余 {{ item.hashState.timeLeft }}s）
+                </span>
               </span>
               <span v-else-if="item.hashState.status === 'matched'" class="hash-success">
                 ✓ 文件校验通过
+                <span v-if="item.hashState.elapsedTime" class="hash-time-info">
+                  （耗时 {{ item.hashState.elapsedTime }}s）
+                </span>
               </span>
               <span v-else-if="item.hashState.status === 'mismatched'" class="hash-error">
                 ✗ 文件校验失败，请重新上传
