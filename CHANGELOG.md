@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - 2026-04-09
 
+#### 上传进度条三项修复
+
+- **上传阶段隐藏哈希校验区域**: `TransFileTable.vue` 的哈希校验状态区域增加状态判断，上传中（uploading/pending）不展示 hash 校验进度，仅 hashing/verifying/matched/mismatched 状态才展示
+- **上传速度始终为0修复**: `useTransUpload.ts` 新增 `estimateSpeed` 函数，优先用服务端返回的 `timeLeft`（`remainingBytes / timeLeft`）估算实时速度，回退用 `uploadedBytes / elapsedTime`，替代原有累计平均速度计算（分片过小导致 onProgress 几乎不触发）
+- **进度条瞬间到头修复**: `useTransUpload.ts` 新增 `calcProgressFromServerTime` 函数，对齐老代码逻辑 `progress = elapsedTime / (elapsedTime + timeLeft) * 100`，优先使用服务端返回的时间信息计算进度百分比，回退用字节进度；`TransUploadFileItem` 新增 `lastElapsedTime`/`lastTimeLeft` 字段缓存服务端最新返回值
+- **blackList base64 解码**: `upload-validator.ts` 新增 `decodeBlackList` 函数，后端返回的 blackList 为 base64 编码，需先 `atob()` 解码后再做字符匹配
+
 #### 进度条修复
 
 - **修复进度条立即打满**: `useTransUpload.ts` 分片上传完成后不再用 `uploadedCount / totalChunks * 100` 暴力赋值进度，改为基于精确字节数计算；上传阶段进度上限99%，完成校验后才到100%

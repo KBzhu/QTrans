@@ -3,7 +3,7 @@
  * 对齐老代码 FineUploader onSubmit 中的校验逻辑
  *
  * 老代码校验规则：
- * 1. blackList: 初始化时后端返回的黑名单字符（如 / \ : * ? " < > |）
+ * 1. blackList: 初始化时后端返回的黑名单字符（base64 编码，解码后如 / \ : * ? " < > |）
  * 2. maxLength4Name: 文件名最大长度
  * 3. maxLength4Path: 文件路径最大长度
  */
@@ -15,9 +15,25 @@ export interface FileNameValidationResult {
 }
 
 /**
+ * 解码后端返回的 base64 编码黑名单
+ * @param encodedBlackList 后端返回的 base64 编码黑名单字符串
+ * @returns 解码后的黑名单字符字符串
+ */
+function decodeBlackList(encodedBlackList: string): string {
+  if (!encodedBlackList) return ''
+  try {
+    return atob(encodedBlackList)
+  }
+  catch {
+    // 如果不是合法 base64，直接返回原值（兼容非编码场景）
+    return encodedBlackList
+  }
+}
+
+/**
  * 校验文件名合法性
  * @param fileName 文件名（不含路径）
- * @param blackList 后端返回的黑名单字符（如 "/\\:*?\"<>|"）
+ * @param blackList 后端返回的黑名单字符（base64 编码，如 atob 后为 "/\\:*?\"<>|"）
  * @param maxLength4Name 文件名最大长度（来自 initData.maxLength4Name）
  */
 export function validateFileName(
@@ -29,9 +45,10 @@ export function validateFileName(
     return { valid: false, error: '文件名不能为空' }
   }
 
-  // 检查黑名单字符
-  if (blackList) {
-    const forbiddenChars = blackList.split('').filter(ch => fileName.includes(ch))
+  // 检查黑名单字符（后端返回的 blackList 为 base64 编码，需先解码）
+  const decodedBlackList = decodeBlackList(blackList)
+  if (decodedBlackList) {
+    const forbiddenChars = decodedBlackList.split('').filter(ch => fileName.includes(ch))
     if (forbiddenChars.length > 0) {
       return {
         valid: false,
@@ -86,7 +103,7 @@ export function validateFilePath(
 /**
  * 批量校验文件名/路径
  * @param files 待校验的文件列表
- * @param blackList 黑名单字符
+ * @param blackList 黑名单字符（base64 编码）
  * @param maxLength4Name 文件名最大长度
  * @param maxLength4Path 路径最大长度
  * @param relativeDir 相对目录

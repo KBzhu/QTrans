@@ -364,8 +364,8 @@ function isUploadedFileSelected(file: FileEntity): boolean {
               </div>
             </div>
 
-            <!-- 哈希校验状态 -->
-            <div v-if="showHashStatus && item.hashState" class="upload-item__hash">
+            <!-- 哈希校验状态（上传阶段不展示，仅hashing/verifying/matched/mismatched状态展示） -->
+            <div v-if="showHashStatus && item.hashState && item.status !== 'uploading' && item.status !== 'pending'" class="upload-item__hash">
               <span v-if="item.hashState.status === 'calculating'">
                 正在计算文件哈希...
               </span>

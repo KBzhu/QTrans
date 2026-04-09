@@ -83,6 +83,10 @@ export interface TransUploadFileItem {
   uploadedChunks?: number[]     // 已上传分片索引
   selected?: boolean            // 是否被选中（用于批量操作）
   retryCount?: number           // 自动重试次数（对齐老代码 retry.enableAuto）
+  /** 服务端返回的最新已耗时（秒），用于计算进度百分比 */
+  lastElapsedTime?: number
+  /** 服务端返回的最新预估剩余时间（秒），用于计算进度百分比 */
+  lastTimeLeft?: number
 }
 
 /** 分片上传状态 */
@@ -98,6 +102,33 @@ interface ChunkUploadState {
  */
 function generateFileUUID(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}-${Date.now()}`
+}
+
+/**
+ * 基于服务端 elapsedTime/timeLeft 计算上传进度百分比（对齐老代码逻辑）
+ * 老代码：progress = elapsedTime / (elapsedTime + timeLeft) * 100
+ * @returns 0-99 的进度值（上传阶段最多99%）
+ */
+function calcProgressFromServerTime(elapsedTime: number | undefined, timeLeft: number | undefined, fallbackBytesProgress: number): number {
+  if (elapsedTime !== undefined && timeLeft !== undefined && (elapsedTime + timeLeft) > 0) {
+    const percent = Math.floor((elapsedTime / (elapsedTime + timeLeft)) * 99)
+    return Math.min(percent, 99)
+  }
+  return Math.min(fallbackBytesProgress, 99)
+}
+
+/**
+ * 基于服务端时间信息估算上传速度
+ */
+function estimateSpeed(uploadedBytes: number, elapsedTime: number | undefined, timeLeft: number | undefined, fileTotalSize: number): number {
+  if (timeLeft !== undefined && timeLeft > 0 && fileTotalSize > uploadedBytes) {
+    const remainingBytes = fileTotalSize - uploadedBytes
+    return remainingBytes / timeLeft
+  }
+  if (elapsedTime !== undefined && elapsedTime > 0) {
+    return uploadedBytes / elapsedTime
+  }
+  return 0
 }
 
 /**
@@ -414,7 +445,10 @@ export function useTransUpload() {
         const chunkEnd = Math.min((idx + 1) * CHUNK_SIZE, file.size)
         return sum + chunkEnd - idx * CHUNK_SIZE
       }, 0)
-      uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
+      const initBytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
+      uploadItem.progress = calcProgressFromServerTime(
+        uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, initBytesProgress,
+      )
       onProgress?.(uploadItem)
 
       // 等待并发队列有空位
@@ -454,10 +488,15 @@ export function useTransUpload() {
             const chunkUploadedBytes = Math.floor(chunkSize * chunkPercent / 100)
             const totalUploadedBytes = Math.min(baseUploadedBytes + chunkUploadedBytes, file.size)
             uploadItem.uploadedBytes = totalUploadedBytes
-            // 上传阶段最多到 99%，留 1% 给哈希校验
-            uploadItem.progress = Math.min(Math.floor((totalUploadedBytes / file.size) * 99), 99)
-            const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
-            uploadItem.speed = elapsed > 0 ? totalUploadedBytes / elapsed : 0
+            // 字节进度作为回退
+            const bytesProgress = Math.floor((totalUploadedBytes / file.size) * 99)
+            // 优先使用服务端时间估算进度
+            uploadItem.progress = calcProgressFromServerTime(
+              uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
+            )
+            uploadItem.speed = estimateSpeed(
+              totalUploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
+            )
             onProgress?.(uploadItem)
           },
         )
@@ -465,6 +504,10 @@ export function useTransUpload() {
 
         // P2-9: 对齐老代码 onUploadChunkSuccess，从响应获取 elapsedTime/timeLeft
         if (result.elapsedTime || result.timeLeft) {
+          const elapsed = result.elapsedTime ? parseFloat(result.elapsedTime) : undefined
+          const left = result.timeLeft ? parseFloat(result.timeLeft) : undefined
+          uploadItem.lastElapsedTime = elapsed
+          uploadItem.lastTimeLeft = left
           if (!uploadItem.hashState) {
             uploadItem.hashState = {
               clientHash: '',
@@ -480,9 +523,15 @@ export function useTransUpload() {
         }
 
         uploadedCount++
-        // 分片完成后更新精确字节进度（而非暴力百分比）
+        // 分片完成后更新精确字节进度
         uploadItem.uploadedBytes = Math.min(baseUploadedBytes + chunkSize, file.size)
-        uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
+        const bytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
+        uploadItem.progress = calcProgressFromServerTime(
+          uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
+        )
+        uploadItem.speed = estimateSpeed(
+          uploadItem.uploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
+        )
         uploadItem.uploadedChunks!.push(chunkIndex)
 
         onProgress?.(uploadItem)
@@ -626,18 +675,29 @@ export function useTransUpload() {
                 const chunkUploadedBytes = Math.floor(retryChunkSize * chunkPercent / 100)
                 const totalUploadedBytes = Math.min(retryBaseBytes + chunkUploadedBytes, file.size)
                 uploadItem.uploadedBytes = totalUploadedBytes
-                uploadItem.progress = Math.min(Math.floor((totalUploadedBytes / file.size) * 99), 99)
-                const elapsed = (Date.now() - (uploadItem.startTime || Date.now())) / 1000
-                uploadItem.speed = elapsed > 0 ? totalUploadedBytes / elapsed : 0
+                const bytesProgress = Math.floor((totalUploadedBytes / file.size) * 99)
+                uploadItem.progress = calcProgressFromServerTime(
+                  uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
+                )
+                uploadItem.speed = estimateSpeed(
+                  totalUploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
+                )
                 onProgress?.(uploadItem)
               },
             )
 
             uploadItem.uploadedBytes = Math.min(retryBaseBytes + retryChunkSize, file.size)
-            uploadItem.progress = Math.min(Math.floor((uploadItem.uploadedBytes / file.size) * 99), 99)
+            const retryBytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
+            uploadItem.progress = calcProgressFromServerTime(
+              uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, retryBytesProgress,
+            )
             uploadItem.uploadedChunks!.push(retryChunkIndex)
 
             if (retryResult.elapsedTime || retryResult.timeLeft) {
+              const elapsed = retryResult.elapsedTime ? parseFloat(retryResult.elapsedTime) : undefined
+              const left = retryResult.timeLeft ? parseFloat(retryResult.timeLeft) : undefined
+              uploadItem.lastElapsedTime = elapsed
+              uploadItem.lastTimeLeft = left
               if (!uploadItem.hashState) {
                 uploadItem.hashState = { clientHash: '', serverHash: '', status: 'pending', elapsedTime: retryResult.elapsedTime, timeLeft: retryResult.timeLeft }
               } else {
