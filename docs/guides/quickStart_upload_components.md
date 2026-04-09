@@ -100,9 +100,12 @@ function handleConfirmed() {
 
 已上传列表中每个文件展示校验结果：
 
-- **通过** (绿色): `clientFileHashCode === hashCode`
-- **未通过** (红色): `clientFileHashCode !== hashCode`
-- **未校验** (灰色): 缺少哈希值
+- **通过** (绿色): `clientFileHashCode` 有有效值（非空且非 `"null"`）
+- **未校验** (灰色): `clientFileHashCode` 为空或为 `"null"`
+
+> 注意：后端 `FileListHandler` 返回的 `hashCode` 字段始终为 `"null"`，不可靠。实际校验依据是 `clientFileHashCode`：
+> 上传流程中 `updateClientHash` 将客户端计算的 SHA256 写入 `clientFileHashCode`，
+> `UploadHandler?act=HASH` 返回 `success: true` 确认服务端校验通过。
 
 ### 自动提交逻辑（两个组件通用）
 
@@ -148,9 +151,8 @@ function handleConfirmed() {
 1. 查看已上传文件列表
 2. **预期结果**: 每行文件名下方显示 "SHA256: abc12345...wxyz" 格式的哈希值
 3. **预期结果**: 哈希值后显示状态标签
-   - 校验通过：绿色"通过"标签
-   - 校验未通过：红色"未通过"标签
-   - 无哈希值：灰色"未校验"标签
+   - 校验通过：绿色"通过"标签（clientFileHashCode 有值）
+   - 未校验：灰色"未校验"标签（clientFileHashCode 为空或 "null"）
 4. 鼠标悬停哈希值 → **预期结果**: title 显示完整哈希值
 
 #### 测试5：已上传文件 - 批量选择与删除

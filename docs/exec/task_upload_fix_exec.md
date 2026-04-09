@@ -71,6 +71,44 @@ task_upload_fix
 - **提示**: 重复文件弹出警告"以下文件已上传且校验通过，已跳过：xxx"，仅上传未重复文件
 - **新增 import**: `calculateSHA256` from `@/api/transWebService`
 
+## 第三轮：TransUploadView 功能对齐
+
+### 1. 自动提交
+
+- **问题**: `TransUploadView` 无自动提交功能，仅有手动"确认上传完成"按钮
+- **修复**: 新增 `autoSubmitAfterUpload` ref + 勾选框 + `watchDeep` 监听，与 `StepTwoUploadFile` 逻辑一致
+- **改动**: 拖拽上传区下方新增 `<a-checkbox v-model="autoSubmitAfterUpload">上传完毕后自动提交</a-checkbox>`
+
+### 2. 重复上传拦截（SHA256）
+
+- **问题**: `TransUploadView` 的 `handleFiles` 直接 `uploadFiles(files, ...)`，无重复检测
+- **修复**: 与 `StepTwoUploadFile` 一致，增加 SHA256 双重比对逻辑
+- **新增 import**: `calculateSHA256` from `@/api/transWebService`，`watchDeep` from `@vueuse/core`
+
+### 3. 已上传文件单个删除
+
+- **问题**: `TransUploadView` 的已上传列表仅支持批量删除，无单文件删除
+- **修复**: 新增 `handleDeleteUploadedFile` 方法 + 模板绑定 `@delete-uploaded-file`
+
+### 4. 已上传列表 show-hash-status
+
+- **问题**: 已上传文件列表的 `TransFileTable` 未传 `:show-hash-status="true"`
+- **修复**: 添加 `:show-hash-status="true"` prop
+
+### 5. 清理调试日志
+
+- **问题**: `updateUploadProgress` 中遗留 `console.log`
+- **修复**: 移除
+
+### 修改文件
+
+| 文件 | 修改类型 | 说明 |
+|------|----------|------|
+| `src/views/trans/TransUploadView.vue` | 修改 | 自动提交 + 重复拦截 + 单文件删除 + show-hash-status + 移除 console.log |
+| `src/views/trans/trans-upload.scss` | 修改 | 新增 `.dropzone-toolbar` 样式 |
+| `docs/guides/quickStart_upload_components.md` | 修改 | 组件概览增加 TransUploadView、功能对齐说明 |
+| `CHANGELOG.md` | 修改 | 新增 TransUploadView 功能对齐记录 |
+
 ## 验收结果
 
 - [√] 进度条按实际字节进度平滑更新
@@ -82,3 +120,36 @@ task_upload_fix
 - [√] @vueuse/core 依赖已安装到 node_modules
 - [√] 无新增 lint 错误（ts-plugin 环境问题除外）
 - [√] 无未使用变量/import
+
+### 第三轮验收
+
+- [√] TransUploadView 勾选"上传完毕后自动提交"后自动触发 confirmUpload
+- [√] TransUploadView 重复上传已校验通过的文件被拦截并给出提示
+- [√] TransUploadView 已上传文件列表支持单个删除
+- [√] TransUploadView 已上传文件列表展示 SHA256 校验状态
+- [√] TransUploadView 无 console.log 遗留
+- [√] quickStart 文档已更新，包含两个组件的功能对齐说明
+- [√] CHANGELOG 已更新
+
+## 第四轮：哈希校验判断逻辑修复
+
+### 问题
+
+1. 后端 `FileListHandler` 返回的 `hashCode` 字段始终为字符串 `"null"`，导致：
+   - `getHashVerifyStatus` 中 `hashCode === clientFileHashCode` 比对永远为 `mismatched`
+   - 重复上传拦截中 `hashCode === fileHash` 条件永远不成立，拦截功能失效
+2. `updateClientHash` 在 HASH 校验之前调用，`clientFileHashCode` 有值仅代表"客户端算过"，不代表"校验通过"
+
+### 修复
+
+1. **useTransUpload.ts**: 将 `updateClientHash` 调用移到 `UploadHandler?act=HASH` 返回 `success:true` 之后，确保 `clientFileHashCode` 有值 = 后端确认校验通过
+2. **TransFileTable.vue** - `getHashVerifyStatus`: 改为仅判断 `clientFileHashCode` 是否有有效值（非空且非 `"null"`），不再依赖 `hashCode`
+3. **StepTwoUploadFile.vue** - 重复拦截: 从双重比对改为仅 `clientFileHashCode === fileHash`
+4. **TransUploadView.vue** - 重复拦截: 同上
+
+### 验收结果
+
+- [√] 已上传列表中 clientFileHashCode 有值的文件显示"通过"标签
+- [√] 已上传列表中 clientFileHashCode 为空的文件显示"未校验"标签
+- [√] 不再出现"未通过"的误判
+- [√] 重复上传拦截功能正常工作

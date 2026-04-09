@@ -46,6 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **已上传列表 show-hash-status**: 已上传文件列表新增 `:show-hash-status="true"` prop
 - **移除调试日志**: 删除 `updateUploadProgress` 中的 `console.log`
 
+### Fixed - 2026-04-09
+
+#### 哈希校验判断逻辑修复
+
+- **问题**: 后端 `FileListHandler` 返回的 `hashCode` 始终为字符串 `"null"`，导致 `getHashVerifyStatus` 比对 `hashCode === clientFileHashCode` 永远为 `mismatched`
+- **问题**: `updateClientHash` 在 HASH 校验之前调用，导致 `clientFileHashCode` 有值仅代表"客户端算过"，不代表"校验通过"
+- **修复**: `useTransUpload.ts` 将 `updateClientHash` 调用移到 `UploadHandler?act=HASH` 返回 `success:true` 之后，确保 `clientFileHashCode` 有值 = 后端确认校验通过
+- **修复**: `TransFileTable.vue` 的 `getHashVerifyStatus` 改为仅判断 `clientFileHashCode` 是否有有效值（非空且非 `"null"`），不再依赖 `hashCode`
+- **修复**: `StepTwoUploadFile.vue` 和 `TransUploadView.vue` 的重复上传拦截逻辑，改为仅比对 `clientFileHashCode === fileHash`
+
 ### Added - 2026-04-03
 
 #### 申请单管理（管理员）功能

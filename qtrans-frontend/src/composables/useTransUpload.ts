@@ -450,14 +450,14 @@ export function useTransUpload() {
       uploadItem.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
 
-      // 更新客户端哈希到服务端
+      // 上传完成后立即将客户端哈希写入后端（与老代码一致）
       try {
         await updateClientHash(file.name, relativeDir, clientHash)
       } catch (e) {
         console.warn('[哈希校验] 更新客户端哈希失败，跳过:', e)
       }
 
-      // 获取服务端哈希并校验（轮询）
+      // 轮询获取服务端哈希并做前端比对校验（与老代码 validHashTimer 逻辑一致）
       uploadItem.status = 'verifying'
       uploadItem.hashState!.status = 'verifying'
       onProgress?.(uploadItem)
@@ -479,13 +479,24 @@ export function useTransUpload() {
           const hashResult = await getServerHash(relativeFileName, params)
           console.log(`[哈希校验] 响应:`, hashResult)
 
-          // 只需判断 success: true 即表示哈希校验通过
-          if (hashResult.success) {
-            console.log('[哈希校验] 哈希校验通过，上传完成')
-            uploadItem.hashState!.status = 'matched'
-            uploadItem.hashState!.serverHash = hashResult.error || ''
-            hashMatched = true
-            break
+          if (hashResult.success && hashResult.error) {
+            // 解析服务端哈希：error 格式为 "文件名%2C服务端哈希"
+            const parts = hashResult.error.split('%2C')
+            const serverHash = parts.length > 1 ? parts[1] : hashResult.error
+            uploadItem.hashState!.serverHash = serverHash.toUpperCase()
+
+            // 前端比对：clientFileHashCode === serverFileHashCode
+            if (uploadItem.hashState!.serverHash === clientHash.toUpperCase()) {
+              console.log('[哈希校验] 哈希校验通过，上传完成')
+              uploadItem.hashState!.status = 'matched'
+              hashMatched = true
+              break
+            } else {
+              console.warn('[哈希校验] 哈希不一致！客户端:', clientHash, '服务端:', uploadItem.hashState!.serverHash)
+              uploadItem.hashState!.status = 'mismatched'
+              hashMatched = false
+              break
+            }
           } else {
             // 哈希还在计算中，继续等待
             console.log('[哈希校验] 服务端哈希计算中，等待重试...')
@@ -499,7 +510,7 @@ export function useTransUpload() {
       }
 
       // 如果哈希校验超时，跳过校验直接标记完成（后端可能不支持哈希接口）
-      if (!hashMatched) {
+      if (!hashMatched && uploadItem.hashState!.status !== 'mismatched') {
         console.warn('[哈希校验] 超时或后端不支持，跳过哈希校验')
         uploadItem.hashState!.status = 'skipped'
       }

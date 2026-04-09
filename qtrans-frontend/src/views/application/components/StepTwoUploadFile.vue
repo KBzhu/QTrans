@@ -123,8 +123,7 @@ async function handleFiles(files: File[]) {
   for (const file of files) {
     const fileHash = await calculateSHA256(file)
     const duplicate = uploadedFiles.find((f: FileEntity) =>
-      f.clientFileHashCode && f.clientFileHashCode === fileHash
-      && f.hashCode && f.hashCode === fileHash, // 确保服务端校验也通过
+      f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode === fileHash,
     )
     if (duplicate) {
       duplicateFiles.push(file.name)
@@ -134,7 +133,7 @@ async function handleFiles(files: File[]) {
   }
 
   if (duplicateFiles.length > 0) {
-    Message.warning(`以下文件已上传且校验通过，已跳过：${duplicateFiles.join('、')}`)
+    Message.warning(`以下文件已上传，已跳过：${duplicateFiles.join('、')}`)
   }
 
   if (uniqueFiles.length === 0) return

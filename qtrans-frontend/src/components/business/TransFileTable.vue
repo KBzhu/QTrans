@@ -231,10 +231,17 @@ function truncateHash(hash: string | undefined): string {
 
 /** 判断哈希校验是否通过 */
 function getHashVerifyStatus(file: FileEntity): 'matched' | 'mismatched' | 'pending' {
-  if (!file.hashCode && !file.clientFileHashCode) return 'pending'
-  if (file.hashCode && file.clientFileHashCode) {
-    return file.hashCode === file.clientFileHashCode ? 'matched' : 'mismatched'
+  const clientHash = file.clientFileHashCode
+  const serverHash = file.hashCode
+
+  // 后端 FileListHandler 返回的 hashCode 可能为字符串 "null"，视为无效
+  const validClientHash = clientHash && clientHash !== 'null' && clientHash !== ''
+  const validServerHash = serverHash && serverHash !== 'null' && serverHash !== ''
+
+  if (validClientHash && validServerHash) {
+    return clientHash.toUpperCase() === serverHash.toUpperCase() ? 'matched' : 'mismatched'
   }
+  // 仅客户端哈希有效时无法确认校验结果，返回 pending
   return 'pending'
 }
 
