@@ -6,9 +6,6 @@ import { parseAreaFromAttr } from '@/constants'
 import { uiConfigApi } from '@/api/uiConfig'
 import { getTransferIcons } from '@/config/icons'
 
-// 默认图标（使用新的图标配置）
-const DEFAULT_ICONS = getTransferIcons('green', 'green')
-
 /**
  * 获取图标配置
  */

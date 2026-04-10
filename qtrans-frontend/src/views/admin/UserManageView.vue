@@ -11,7 +11,6 @@ const {
   filters,
   modalVisible,
   editingUser,
-  modalTitle,
   roleOptions,
   statusOptions,
   fetchList,

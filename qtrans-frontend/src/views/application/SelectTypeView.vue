@@ -36,22 +36,24 @@ interface RoutineCard {
   toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
 }
 
-const routineCards: RoutineCard[] = [
-  {
-    key: 'routine-apply',
-    title: '例行申请',
-    desc: '定期传输任务',
-    fromZone: 'green',
-    toZone: 'green',
-  },
-  {
-    key: 'routine-channel',
-    title: '例行通道',
-    desc: '常规传输通道',
-    fromZone: 'cross',
-    toZone: 'cross',
-  },
-].map(card => {
+const routineCards: RoutineCard[] = (
+  [
+    {
+      key: 'routine-apply',
+      title: '例行申请',
+      desc: '定期传输任务',
+      fromZone: 'green' as const,
+      toZone: 'green' as const,
+    },
+    {
+      key: 'routine-channel',
+      title: '例行通道',
+      desc: '常规传输通道',
+      fromZone: 'cross' as const,
+      toZone: 'cross' as const,
+    },
+  ] satisfies Array<Pick<RoutineCard, 'key' | 'title' | 'desc' | 'fromZone' | 'toZone'>>
+).map(card => {
   const icons = getTransferIcons(card.fromZone, card.toZone)
   return {
     ...card,

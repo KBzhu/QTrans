@@ -389,7 +389,7 @@ export async function downloadFile(
 
   // 使用 ReadableStream 读取数据并计算进度
   const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
+  const chunks: Uint8Array<ArrayBuffer>[] = []
   let loaded = 0
 
   while (true) {

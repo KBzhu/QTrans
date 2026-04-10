@@ -5,7 +5,7 @@
  * 
  * 访问路径: /trans/demo
  */
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import TransFileTable, { type DownloadItem } from '@/components/business/TransFileTable.vue'
 import type { DirectoryEntity, FileEntity } from '@/api/transWebService'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
@@ -25,6 +25,7 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
     selected: false,
     totalChunks: 10,
     uploadedChunkCount: 5,
+    relativeDir: '/uploads/2024/',
   },
   {
     id: 'upload-2',
@@ -35,6 +36,7 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
     selected: true,
     totalChunks: 8,
     uploadedChunkCount: 3,
+    relativeDir: '/uploads/2024/',
   },
   {
     id: 'upload-3',
@@ -45,7 +47,8 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
     selected: false,
     totalChunks: 20,
     uploadedChunkCount: 20,
-    hashState: { status: 'matched', localHash: 'abc123', serverHash: 'abc123' },
+    relativeDir: '/uploads/2024/',
+    hashState: { status: 'matched', clientHash: 'abc123', serverHash: 'abc123' },
   },
   {
     id: 'upload-4',
@@ -57,6 +60,7 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
     error: '网络连接中断，请重试',
     totalChunks: 15,
     uploadedChunkCount: 10,
+    relativeDir: '/uploads/2024/',
   },
   {
     id: 'upload-5',
@@ -65,7 +69,8 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
     progress: 0,
     speed: 0,
     selected: false,
-    hashState: { status: 'calculating' },
+    relativeDir: '/uploads/2024/',
+    hashState: { status: 'calculating', clientHash: '', serverHash: '' },
     totalChunks: 5,
     uploadedChunkCount: 5,
   },
@@ -75,28 +80,37 @@ const mockUploadFiles = ref<TransUploadFileItem[]>([
 
 const mockUploadedFiles = ref<FileEntity[]>([
   {
-    fileId: 'file-001',
+    fileId: 1,
     fileName: '合同文档.docx',
     fileSize: 1024 * 1024 * 2.5, // 2.5 MB
     filePath: '/uploads/2024/合同文档.docx',
     relativeDir: '/uploads/2024/',
     lastModify: '2024-03-13 10:30:00',
+    extension: 'docx',
+    hashCode: '',
+    clientFileHashCode: '',
   },
   {
-    fileId: 'file-002',
+    fileId: 2,
     fileName: '财务报表.xlsx',
     fileSize: 1024 * 512, // 512 KB
     filePath: '/uploads/2024/财务报表.xlsx',
     relativeDir: '/uploads/2024/',
     lastModify: '2024-03-12 15:45:00',
+    extension: 'xlsx',
+    hashCode: '',
+    clientFileHashCode: '',
   },
   {
-    fileId: 'file-003',
+    fileId: 3,
     fileName: '项目归档.zip',
     fileSize: 1024 * 1024 * 50, // 50 MB
     filePath: '/uploads/2024/项目归档.zip',
     relativeDir: '/uploads/2024/',
     lastModify: '2024-03-11 09:20:00',
+    extension: 'zip',
+    hashCode: '',
+    clientFileHashCode: '',
   },
 ])
 
@@ -121,28 +135,37 @@ const mockDirectories = ref<DirectoryEntity[]>([
 
 const mockDownloadFiles = ref<FileEntity[]>([
   {
-    fileId: 'dl-001',
+    fileId: 101,
     fileName: '用户手册.pdf',
     fileSize: 1024 * 1024 * 5, // 5 MB
     filePath: '/downloads/用户手册.pdf',
     relativeDir: '/downloads/',
     lastModify: '2024-03-13 09:00:00',
+    extension: 'pdf',
+    hashCode: '',
+    clientFileHashCode: '',
   },
   {
-    fileId: 'dl-002',
+    fileId: 102,
     fileName: '安装包.exe',
     fileSize: 1024 * 1024 * 128, // 128 MB
     filePath: '/downloads/安装包.exe',
     relativeDir: '/downloads/',
     lastModify: '2024-03-12 16:30:00',
+    extension: 'exe',
+    hashCode: '',
+    clientFileHashCode: '',
   },
   {
-    fileId: 'dl-003',
+    fileId: 103,
     fileName: '配置文件.json',
     fileSize: 2048, // 2 KB
     filePath: '/downloads/配置文件.json',
     relativeDir: '/downloads/',
     lastModify: '2024-03-13 11:00:00',
+    extension: 'json',
+    hashCode: '',
+    clientFileHashCode: '',
   },
 ])
 
@@ -246,7 +269,7 @@ function simulateUpload(id: string) {
     if (file.progress >= 100) {
       file.status = 'completed'
       file.speed = 0
-      file.hashState = { status: 'matched', localHash: 'test-hash', serverHash: 'test-hash' }
+      file.hashState = { status: 'matched', clientHash: 'test-hash', serverHash: 'test-hash' }
       clearInterval(interval)
     }
   }, 500)
@@ -365,7 +388,7 @@ function simulateDownload(fileName: string) {
 function addTestFile() {
   const id = `upload-${Date.now()}`
   const names = ['新文档.docx', '测试文件.xlsx', '压缩包.zip', '图片.png', '代码文件.ts']
-  const name = names[Math.floor(Math.random() * names.length)]
+  const name = names[Math.floor(Math.random() * names.length)]!
   
   mockUploadFiles.value.push({
     id,
@@ -376,6 +399,7 @@ function addTestFile() {
     selected: false,
     totalChunks: 10,
     uploadedChunkCount: 0,
+    relativeDir: '/uploads/2024/',
   })
   
   simulateUpload(id)

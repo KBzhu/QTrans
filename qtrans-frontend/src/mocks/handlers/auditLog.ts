@@ -27,11 +27,13 @@ const resourcePool = {
 function createLogs(count = 56): AuditLogRecord[] {
   const now = dayjs()
   return Array.from({ length: count }).map((_, index) => {
-    const actionType = actionTypePool[index % actionTypePool.length]
-    const result = resultPool[index % resultPool.length]
-    const operator = operatorPool[index % operatorPool.length]
+    const actionType = actionTypePool[index % actionTypePool.length] as AuditActionType
+    const result = resultPool[index % resultPool.length] as AuditResult
+    const operator = operatorPool[index % operatorPool.length] as string
     const detailList = detailPool[actionType]
     const resourceList = resourcePool[actionType]
+    const detail: string = (detailList[index % detailList.length] as string) || ''
+    const resource: string = (resourceList[index % resourceList.length] as string) || ''
 
     return {
       id: `audit-${index + 1}`,
@@ -39,8 +41,8 @@ function createLogs(count = 56): AuditLogRecord[] {
       actionType,
       operator,
       ip: `10.10.${(index % 20) + 1}.${(index % 200) + 10}`,
-      detail: detailList[index % detailList.length],
-      resource: resourceList[index % resourceList.length],
+      detail,
+      resource,
       result,
     }
   })

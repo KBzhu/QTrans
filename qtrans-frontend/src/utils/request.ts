@@ -116,6 +116,9 @@ export const request = {
   delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     return requestClient.delete<unknown, T>(url, config)
   },
+  patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return requestClient.patch<unknown, T>(url, data, config)
+  },
   /**
    * 发送请求到真实后端（使用 rawClient 处理真实后端响应格式）
    * 用于调用真实后端接口，响应格式与 mock API 不同

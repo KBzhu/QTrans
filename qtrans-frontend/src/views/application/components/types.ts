@@ -1,5 +1,3 @@
-import type { ApplicationFormData } from '@/composables/useApplicationForm'
-
 export interface StepOneBasicInfoProps {
   formRules: Record<string, any[]>
   transferTypeLabel: string

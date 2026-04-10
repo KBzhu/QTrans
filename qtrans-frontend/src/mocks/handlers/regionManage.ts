@@ -202,7 +202,8 @@ export const regionManageHandlers = [
     const body = await request.json() as { status: DomainStatus }
     const index = domains.findIndex(d => d.id === id)
     if (index === -1) return failed('安全域不存在', 404)
-    domains[index].status = body.status
-    return success(domains[index], '状态更新成功')
+    const domain = domains[index]!
+    domain.status = body.status
+    return success(domain, '状态更新成功')
   }),
 ]

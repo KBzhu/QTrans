@@ -60,10 +60,10 @@ describe('DepartmentSelector.vue', () => {
     await wrapper.find('[data-testid="select-rd"]').trigger('click')
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
-    expect(wrapper.emitted('update:modelValue')![0]).toEqual(['dept-rd'])
+    expect(wrapper.emitted('update:modelValue')![0]!).toEqual(['dept-rd'])
     expect(wrapper.emitted('change')).toBeTruthy()
-    expect(wrapper.emitted('change')![0][0]).toBe('dept-rd')
-    expect(wrapper.emitted('change')![0][1]).toMatchObject({
+    expect(wrapper.emitted('change')![0]![0]).toBe('dept-rd')
+    expect(wrapper.emitted('change')![0]![1]).toMatchObject({
       id: 'dept-rd',
       name: '研发部',
     })
@@ -74,9 +74,9 @@ describe('DepartmentSelector.vue', () => {
 
     await wrapper.find('[data-testid="clear"]').trigger('click')
 
-    expect(wrapper.emitted('update:modelValue')![0]).toEqual([''])
-    expect(wrapper.emitted('change')![0][0]).toBe('')
-    expect(wrapper.emitted('change')![0][1]).toBeNull()
+    expect(wrapper.emitted('update:modelValue')![0]!).toEqual([''])
+    expect(wrapper.emitted('change')![0]![0]).toBe('')
+    expect(wrapper.emitted('change')![0]![1]).toBeNull()
   })
 
   it('selects nested department correctly', async () => {
@@ -84,8 +84,8 @@ describe('DepartmentSelector.vue', () => {
 
     await wrapper.find('[data-testid="select-tech-ops"]').trigger('click')
 
-    expect(wrapper.emitted('update:modelValue')![0]).toEqual(['dept-tech-ops'])
-    expect(wrapper.emitted('change')![0][1]).toMatchObject({
+    expect(wrapper.emitted('update:modelValue')![0]!).toEqual(['dept-tech-ops'])
+    expect(wrapper.emitted('change')![0]![1]).toMatchObject({
       id: 'dept-tech-ops',
       name: '技术运营组',
     })
@@ -96,7 +96,7 @@ describe('DepartmentSelector.vue', () => {
 
     await wrapper.setProps({ modelValue: 'dept-security' })
 
-    expect(wrapper.find('[data-testid="tree-select-input"]').element.value).toBe('dept-security')
+    expect((wrapper.find('[data-testid="tree-select-input"]').element as HTMLInputElement).value).toBe('dept-security')
   })
 
   it('passes disabled prop to tree-select', () => {

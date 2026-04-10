@@ -136,7 +136,7 @@ describe('useSystemConfig', () => {
     getConfigMock.mockResolvedValueOnce(mockApprovalConfig)
 
     const composable = useSystemConfig()
-    await composable.loadConfig('transfer')
+    await composable.fetchConfig('transfer')
 
     await composable.handleTabChange('approval')
 

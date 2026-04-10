@@ -380,6 +380,14 @@
     - 原因：`.env.admin` 中 `VITE_API_BASE_URL=/admin/api`，但 MSW handler 注册的路径是 `/api/notifications`，导致 mock 无法拦截，请求打到开发服务器返回 404
     - 修复：在 `.env.admin.development` 和 `.env.tenant.development` 中覆盖 `VITE_API_BASE_URL=/api`（开发环境保持 /api 让 MSW 正确拦截，生产环境才加 base 前缀）
 
+- 2026-04-10 构建类型错误（vue-tsc -b 失败，166 个错误）
+  - 错误1: TransFileTableDemo.vue mock 数据 `fileId` 使用 string（如 'dl-002'）而非 number，与 `FileEntity.fileId: number` 类型不匹配 (TS2322)
+  - 错误2: `hashState` 使用了 `localHash` 属性，但 `HashVerifyState` 类型只有 `clientHash` / `serverHash` (TS2353)
+  - 错误3: `TransUploadFileItem` 要求 `relativeDir: string` 必填，但 mock 数据和 `addTestFile()` 缺少该字段 (TS2345)
+  - 错误4: `addTestFile()` 中 `names[Math.floor(Math.random() * names.length)]` 返回类型为 `string | undefined`，不能赋给 `string` (TS2345)
+  - 错误5: TransferManageView.vue 导入了未使用的 `TransferType` 类型 (TS6133)
+  - 修复: 统一 mock 数据类型、补全缺失字段、修正属性名(localHash→clientHash)、添加非空断言、移除未使用导入，vue-tsc -b 通过
+
 
 
 

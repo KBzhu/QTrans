@@ -5,7 +5,7 @@ import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore, useFileStore } from '@/stores'
+import { useAuthStore } from '@/stores'
 import { approvalApi } from '@/api/approval'
 import { applicationApi } from '@/api/application'
 import { useFileList } from '@/composables/useFileList'
@@ -21,24 +21,6 @@ const REGION_ID_TO_NAME: Record<number, string> = {
 
 function formatTransWay(transWay: string): string {
   return transWay.split(',').map(s => s.trim()).join(' → ')
-}
-
-function parseNotification(notification: string): string {
-  if (!notification)
-    return '-'
-  try {
-    const arr = JSON.parse(notification)
-    if (!Array.isArray(arr) || arr.length === 0)
-      return '-'
-    const map: Record<number, string> = {
-      1: '邮件',
-      2: '短信',
-    }
-    return arr.map((id: number) => map[id] || id).join('、')
-  }
-  catch {
-    return notification
-  }
 }
 
 /**
@@ -57,19 +39,11 @@ function getStatusLabel(applicationStatus: number): string {
   return map[applicationStatus] || '未知'
 }
 
-/**
- * 判断当前状态是否为待审批
- */
-function isPendingApproval(applicationStatus: number): boolean {
-  return applicationStatus === 2
-}
-
 
 export function useApprovalDetail() {
   const route = useRoute()
   const router = useRouter()
   const authStore = useAuthStore()
-  const fileStore = useFileStore()
 
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)

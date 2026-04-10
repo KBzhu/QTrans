@@ -8,8 +8,11 @@ const approvalLevelMap: Record<TransferType, number> = {
   'green-to-green': 0,
   'green-to-yellow': 1,
   'green-to-red': 2,
+  'yellow-to-green': 1,
   'yellow-to-yellow': 1,
   'yellow-to-red': 2,
+  'red-to-green': 2,
+  'red-to-yellow': 1,
   'red-to-red': 2,
   'cross-country': 3,
 }

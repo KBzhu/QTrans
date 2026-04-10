@@ -86,7 +86,7 @@ function handleDrop(targetServerId: string) {
   if (sourceIndex < 0 || targetIndex < 0)
     return
 
-  const moved = selectedServerConfigs.value[sourceIndex]
+  const moved = selectedServerConfigs.value[sourceIndex]!
   const next = [...selectedServerConfigs.value]
   next.splice(sourceIndex, 1)
   next.splice(targetIndex, 0, moved)

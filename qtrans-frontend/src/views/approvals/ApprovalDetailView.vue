@@ -32,7 +32,6 @@ const {
   fetchDetail,
   handleApprove,
   handleReject,
-  handleExempt,
   handleDownloadFile,
   handleBatchDownload,
   onFilePageChange,
@@ -146,16 +145,6 @@ const transferStatusHint = computed<TransferState['status']>(() => {
   return 'pending'
 })
 
-/** 状态样式 class */
-const statusClass = computed(() => {
-  const appStatus = detailData.value?.appBaseInfo.applicationStatus
-  if (appStatus === 6) return 'completed'
-  if (appStatus === 5) return 'transferring'
-  if (appStatus === 3) return 'approved'
-  if (appStatus === 4) return 'rejected'
-  if (appStatus === 2) return 'pending_approval'
-  return 'draft'
-})
 
 function onApprove() {
   Modal.confirm({
@@ -182,15 +171,6 @@ function onReject() {
   })
 }
 
-function onExempt() {
-  Modal.confirm({
-    title: '确认免审该申请单？',
-    content: '将跳过所有审批流程并直接通过',
-    okText: '确认免审',
-    cancelText: '取消',
-    onOk: handleExempt,
-  })
-}
 
 onMounted(async () => {
   if (id)

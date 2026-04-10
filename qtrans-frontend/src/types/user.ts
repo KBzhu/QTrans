@@ -35,3 +35,32 @@ export interface LoginResponse {
   token: string
   user: User
 }
+
+export interface UserQueryParams {
+  keyword?: string
+  role?: UserRole
+  department?: string
+  status?: UserStatus | ''
+}
+
+export interface CreateUserRequest {
+  username: string
+  name: string
+  email: string
+  phone: string
+  department: string
+  departmentName: string
+  roles: UserRole[]
+  password?: string
+}
+
+export interface UpdateUserRequest {
+  name?: string
+  email?: string
+  phone?: string
+  department?: string
+  departmentName?: string
+  roles?: UserRole[]
+  status?: UserStatus
+}
+

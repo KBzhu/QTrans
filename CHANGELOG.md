@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-04-10 (构建修复第二轮)
+
+#### `pnpm run build:tenant` 零错误构建修复
+
+- **vue 组件未使用变量**：移除 `AdminApplicationDetailModal.vue`（`onMounted/ref/downloading/downloadingFile/canOperate`）、`SystemConfigView.vue`（`PageContainer`）、`UserManageView.vue`（`modalTitle`）、`ApplicationDetailView.vue`（`isNotUploaded/downloading/downloadingFile`）、`ApprovalDetailView.vue`（`statusClass/handleExempt`）、`DownloadListView.vue`（3个未用函数）、`TransDownloadView.vue`（`loading/formatFileSize`）、`TransFileTableDemo.vue`（`computed`）中未使用变量/导入
+- **UserManageModal.vue**：移除未使用的 `departmentTree` computed
+- **ChannelServerModal.vue**：`moved` 变量加非空断言 `!` 修复可能 undefined
+- **UIConfigView.vue**：3处 `[current]` 解构改为 `.splice()[0]!`；`@change` 回调参数 `val` 添加 `string` 类型注解
+- **SelectTypeView.vue**：`routineCards` 初始对象加 `as const`，保留字面量类型，修复 `fromZone` 类型不匹配
+- **stores/auth.ts**：`login()` 函数改为接受可选参数 `_username?`, `_password?`，修复 `login.vue` 和 `RoleSwitcher.vue` 传参报错
+- **composables/useUserManage.ts**：`fetchList` 中显式构造 `params` 对象，确保 `status` 不传空字符串，修复类型不兼容
+- **mocks/handlers/auditLog.ts**：预先声明 `detail: string` 和 `resource: string` 变量，修复对象字面量中可能 undefined 的类型错误
+- **测试文件修复**：
+  - 删除所有 spec.ts 中废弃的 `storageSize/uploadExpireTime/downloadExpireTime` 字段引用
+  - `useApplicationList.spec.ts`：`filteredList` → `listData`
+  - `useDownloadList.spec.ts`：`filteredList` → `listData`；注释掉不存在的 `markDownloaded` 调用
+  - `useApprovalList.spec.ts`：删除 `filters.applicant` 引用
+  - `useSystemConfig.spec.ts`：`loadConfig` → `fetchConfig`
+  - `stores/__tests__/approval.spec.ts`：完全重写，对齐新 store API
+  - `composables/__tests__/useApprovalDetail.spec.ts`：完全重写，对齐 `ApplicationDetailResponse` 接口
+  - `DepartmentSelector.spec.ts`：数组访问加 `!` 断言，`element.value` 加 `HTMLInputElement` 类型转换
+
+
+
+#### 构建类型错误修复
+
+- **TransFileTableDemo.vue**: 将 mock 数据中 `fileId` 从 `string` 改为 `number`，匹配 `FileEntity.fileId: number` 类型定义
+- **TransFileTableDemo.vue**: 补全 `FileEntity` mock 数据缺失的 `extension`、`hashCode`、`clientFileHashCode` 必填字段
+- **TransFileTableDemo.vue**: 将 `hashState.localHash` 改为 `hashState.clientHash`，匹配 `HashVerifyState` 类型定义
+- **TransFileTableDemo.vue**: 补全所有 `TransUploadFileItem` mock 数据缺失的 `relativeDir` 字段
+- **TransFileTableDemo.vue**: 修复 `addTestFile()` 中 `name` 可能为 `undefined` 的类型问题（添加 `!` 断言）
+- **TransferManageView.vue**: 移除未使用的 `TransferType` 类型导入
+
 ### Added - 2026-04-09
 
 #### 老代码遗漏逻辑补充（按 P 级优先级）

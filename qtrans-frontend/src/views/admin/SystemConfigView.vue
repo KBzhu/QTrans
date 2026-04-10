@@ -306,7 +306,6 @@
 
 <script setup lang="ts">
 import { useSystemConfig } from '@/composables/useSystemConfig'
-import PageContainer from '@/components/common/PageContainer.vue'
 
 const {
   activeTab,

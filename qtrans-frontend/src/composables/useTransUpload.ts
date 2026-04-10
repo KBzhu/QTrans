@@ -5,11 +5,9 @@
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
 import {
-  type FileEntity,
   type FileListData,
   type UploadInitResponse,
   type UploadResponse,
-  type ChunkStatusInfo,
   calculateSHA256,
   calculateChunkHash,
   cancelUploadApi,
@@ -27,13 +25,11 @@ import {
 } from '@/api/transWebService'
 import { classifyUploadError, UploadErrorType } from '@/types/upload-error'
 import {
-  type ChunkInfo,
   type UploadRecord,
   createUploadRecord,
   deleteChunksByFileUUID,
   deleteUploadRecord,
   getChunksByFileUUID,
-  getUploadRecord,
   saveChunk,
   updateUploadStatus,
   cleanCompletedRecords,
@@ -84,14 +80,6 @@ export interface TransUploadFileItem {
   retryCount?: number           // 自动重试次数（对齐老代码 retry.enableAuto）
   /** 服务端返回的最新预估剩余时间（秒），用于速率估算 */
   lastTimeLeft?: number
-}
-
-/** 分片上传状态 */
-interface ChunkUploadState {
-  fileUUID: string
-  chunkIndex: number
-  chunkHash: string
-  status: 'pending' | 'uploading' | 'completed' | 'failed'
 }
 
 /**
@@ -258,7 +246,7 @@ export function useTransUpload() {
   /**
    * 获取待恢复的上传记录（简化版，从 IndexedDB 获取）
    */
-  async function getPendingUploadRecords(params: string): Promise<UploadRecord[]> {
+  async function getPendingUploadRecords(_params: string): Promise<UploadRecord[]> {
     // 这里返回空数组，实际应该从 IndexedDB 查询
     return []
   }

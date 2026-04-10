@@ -15,7 +15,6 @@ const route = useRoute()
 const router = useRouter()
 
 const {
-  loading,
   initLoading,
   initData,
   fileListData,
@@ -33,7 +32,6 @@ const {
   downloadDirectory,
   downloadSelected,
   isRootDirectory,
-  formatFileSize,
 } = useTransDownload()
 
 // 获取路由参数

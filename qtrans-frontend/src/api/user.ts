@@ -1,34 +1,9 @@
-import type { User, UserStatus } from '@/types'
+import type { CreateUserRequest, UpdateUserRequest, User, UserQueryParams, UserStatus } from '@/types'
 import { request } from '@/utils'
 
-export interface UserQueryParams {
-  keyword?: string
-  role?: string
-  department?: string
-  status?: UserStatus
-  pageNum?: number
-  pageSize?: number
-}
+export type { CreateUserRequest, UpdateUserRequest, UserQueryParams }
 
-export interface CreateUserRequest {
-  username: string
-  name: string
-  email: string
-  phone: string
-  department: string
-  departmentName: string
-  roles: string[]
-  password?: string
-}
 
-export interface UpdateUserRequest {
-  name?: string
-  email?: string
-  phone?: string
-  department?: string
-  departmentName?: string
-  roles?: string[]
-}
 
 export const userApi = {
   getList(params?: UserQueryParams): Promise<User[]> {

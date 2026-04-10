@@ -150,9 +150,6 @@ export const useFileStore = defineStore('file', () => {
     if (totalByFiles > 0)
       return totalByFiles
 
-    if (application.storageSize > 0)
-      return Math.round(application.storageSize * 1024 * 1024)
-
     return 1024 * 1024
   }
 

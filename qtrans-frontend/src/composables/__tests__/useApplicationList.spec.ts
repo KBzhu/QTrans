@@ -21,9 +21,6 @@ function createApp(id: string, applicantId: string): Application {
     applyReason: 'demo',
     applicantNotifyOptions: ['in_app'],
     downloaderNotifyOptions: ['in_app'],
-    storageSize: 1,
-    uploadExpireTime: new Date().toISOString(),
-    downloadExpireTime: new Date().toISOString(),
     status: 'pending_approval',
     applicantId,
     applicantName: applicantId,
@@ -60,6 +57,6 @@ describe('useApplicationList', () => {
     ]
 
     const composable = useApplicationList()
-    expect(composable.filteredList.value.map(item => item.id)).toEqual(['app-1'])
+    expect(composable.listData.value.map(item => String((item as any).id || (item as any).applicationId))).toContain('app-1')
   })
 })

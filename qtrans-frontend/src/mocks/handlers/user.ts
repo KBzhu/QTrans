@@ -19,7 +19,7 @@ export const userHandlers = [
     const department = url.searchParams.get('department')
     const status = url.searchParams.get('status') as UserStatus | null
 
-    let list = state.users.filter((item) => {
+    const list = state.users.filter((item) => {
       if (keyword) {
         const match = [item.username, item.name, item.email, item.departmentName]
           .some(field => field.toLowerCase().includes(keyword))
@@ -39,8 +39,8 @@ export const userHandlers = [
       return true
     })
 
-    list = list.map(withoutPassword)
-    return success(list)
+    const safeList = list.map(withoutPassword)
+    return success(safeList)
   }),
 
   http.post('/api/users', async ({ request }) => {

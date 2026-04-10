@@ -533,7 +533,8 @@ export const uiConfigHandlers = [
     return success(true, '导入成功（Mock：已恢复为默认数据）')
   }),
 
-  http.get('/api/ui-config/export/:type', async ({ params }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (http.get as any)('/api/ui-config/export/:type', async ({ params }: { params: Record<string, string> }) => {
     await mockDelay(120)
     const { type } = params as { type: UIConfigTab }
     if (type === 'text') return success({ type, items: textItems })

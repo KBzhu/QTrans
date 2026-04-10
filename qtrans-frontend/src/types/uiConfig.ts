@@ -93,6 +93,8 @@ export interface UITransferTypeConfigItem {
   fromIcon: string
   toIcon: string
   arrowIcon: string
+  level?: string
+  levelText?: string
   tabGroup: string
   order: number
   status: StatusEnum

@@ -168,10 +168,10 @@ export async function cleanCompletedRecords(daysToKeep = 7): Promise<number> {
   cutoff.setDate(cutoff.getDate() - daysToKeep)
   
   const toDelete = await db.uploads
-    .filter(record => 
-      record.status === 'completed' && 
-      record.completedAt && 
-      new Date(record.completedAt) < cutoff
+    .filter(record =>
+      record.status === 'completed'
+      && !!record.completedAt
+      && new Date(record.completedAt) < cutoff,
     )
     .toArray()
   

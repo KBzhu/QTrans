@@ -37,8 +37,11 @@ const transferTypeLabelMap: Record<TransferType, string> = {
   'green-to-green': '绿区传到绿区',
   'green-to-yellow': '绿区传到黄区',
   'green-to-red': '绿区传到红区',
+  'yellow-to-green': '黄区传到绿区',
   'yellow-to-yellow': '黄区传到黄区',
   'yellow-to-red': '黄区传到红区',
+  'red-to-green': '红区传到绿区',
+  'red-to-yellow': '红区传到黄区',
   'red-to-red': '红区传到红区',
   'cross-country': '跨国传输',
 }
@@ -57,7 +60,7 @@ function getApplicationTotalBytes(application: Application, fileStore: ReturnTyp
   if (totalByFiles > 0)
     return totalByFiles
 
-  return Math.max(1024 * 1024, Math.round((application.storageSize || 0) * 1024 * 1024))
+  return 1024 * 1024
 }
 
 function resolveStatus(application: Application, transferState: TransferState | null): TransferManageStatus | null {
@@ -98,7 +101,7 @@ export function useTransferManage() {
 
   const allRecords = computed<TransferManageRecord[]>(() => {
     return applicationStore.applications
-      .map((application) => {
+      .map((application): TransferManageRecord | null => {
         const transferState = fileStore.getTransferStateByApplicationId(application.id)
         const status = resolveStatus(application, transferState)
         if (!status)
@@ -122,7 +125,7 @@ export function useTransferManage() {
           errorMessage: transferState?.errorMessage,
         }
       })
-      .filter((item): item is TransferManageRecord => Boolean(item))
+      .filter((item): item is TransferManageRecord => item !== null)
       .sort((a, b) => dayjs(b.transferTime).valueOf() - dayjs(a.transferTime).valueOf())
   })
 

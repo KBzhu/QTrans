@@ -49,13 +49,11 @@ describe('useApprovalList', () => {
 
     filters.keyword = 'QT123'
     filters.transferType = 'green-to-red'
-    filters.applicant = '张三'
 
     handleReset()
 
     expect(filters.keyword).toBe('')
     expect(filters.transferType).toBe('all')
-    expect(filters.applicant).toBe('')
     expect(pagination.current).toBe(1)
   })
 

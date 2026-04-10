@@ -455,7 +455,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     }
   }
 
-  async function handleNext(validateCurrentStep?: () => Promise<boolean>) {
+  async function handleNext(_validateCurrentStep?: () => Promise<boolean>) {
     // 第二步进入第三步
     if (currentStep.value === 1 && uploadedFiles.value.length === 0 && uploadingFiles.value.length === 0) {
       Message.error('请至少上传一个文件')

@@ -63,7 +63,9 @@ export function useUserManage() {
     loading.value = true
     try {
       const params: UserQueryParams = {
-        ...filters.value,
+        keyword: filters.value.keyword,
+        role: filters.value.role,
+        department: filters.value.department,
         status: filters.value.status || undefined,
       }
       listData.value = await userApi.getList(params)

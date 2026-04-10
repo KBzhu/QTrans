@@ -1,4 +1,4 @@
-import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse, KiaResultListRequest, KiaResultListResponse, SecretLevelItem } from '@/types/assetDetection'
+import type { KiaKeyFileItem, KiaResultCountResponse, KiaResultListRequest, KiaResultListResponse, SecretLevelItem } from '@/types/assetDetection'
 import { request } from '@/utils'
 
 export const assetDetectionApi = {

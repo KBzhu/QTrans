@@ -16,9 +16,9 @@ export const cityHandlers = [
     const url = new URL(request.url)
     const keyword = (url.searchParams.get('keyword') || '').trim().toLowerCase()
 
-    const list = state.cities.flatMap(country => country.cities.map(city => ({
-      country: country.country,
-      countryCode: country.countryCode,
+    const list = state.cities.flatMap(province => province.cities.map(city => ({
+      country: province.province,
+      countryCode: province.provinceCode,
       ...city,
     })))
 

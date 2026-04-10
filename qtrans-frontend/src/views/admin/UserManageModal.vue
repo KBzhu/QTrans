@@ -56,7 +56,6 @@ const formRules = {
   ],
 }
 
-const departmentTree = computed(() => departments)
 
 watch(
   () => props.visible,

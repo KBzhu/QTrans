@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TransferManageRecord, TransferManageStatus } from '@/composables/useTransferManage'
-import type { TransferType } from '@/types'
 import { Message } from '@arco-design/web-vue'
 import { IconEye, IconPause, IconPlayArrow, IconRefresh, IconSearch } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted } from 'vue'

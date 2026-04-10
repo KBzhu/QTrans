@@ -340,7 +340,7 @@ function moveApplication(item: UIApplicationConfigItem, direction: 'up' | 'down'
   const index = sameTypeItems.findIndex(c => c.id === item.id)
   const targetIndex = direction === 'up' ? index - 1 : index + 1
   if (index < 0 || targetIndex < 0 || targetIndex >= sameTypeItems.length) return
-  const [current] = sameTypeItems.splice(index, 1)
+  const current = sameTypeItems.splice(index, 1)[0]!
   sameTypeItems.splice(targetIndex, 0, current)
   handleApplicationSort(sameTypeItems.map(c => c.id))
 }
@@ -383,7 +383,7 @@ function moveTransferTab(item: UITransferTabConfigItem, direction: 'up' | 'down'
   const index = sortedItems.findIndex(c => c.id === item.id)
   const targetIndex = direction === 'up' ? index - 1 : index + 1
   if (index < 0 || targetIndex < 0 || targetIndex >= sortedItems.length) return
-  const [current] = sortedItems.splice(index, 1)
+  const current = sortedItems.splice(index, 1)[0]!
   sortedItems.splice(targetIndex, 0, current)
   handleTransferTabSort(sortedItems.map(c => c.id))
 }
@@ -441,7 +441,7 @@ function moveTransferType(item: UITransferTypeConfigItem, direction: 'up' | 'dow
   const index = sameGroupItems.findIndex(c => c.id === item.id)
   const targetIndex = direction === 'up' ? index - 1 : index + 1
   if (index < 0 || targetIndex < 0 || targetIndex >= sameGroupItems.length) return
-  const [current] = sameGroupItems.splice(index, 1)
+  const current = sameGroupItems.splice(index, 1)[0]!
   sameGroupItems.splice(targetIndex, 0, current)
   handleTransferTypeSort(sameGroupItems.map(c => c.id))
 }
@@ -860,7 +860,7 @@ syncTextForm()
           </a-col>
           <a-col :span="8">
             <a-form-item label="审批级别">
-              <a-select v-model="transferTypeForm.level" :options="levelOptions" @change="(val) => {
+              <a-select v-model="transferTypeForm.level" :options="levelOptions" @change="(val: string) => {
                 const opt = levelOptions.find(o => o.value === val)
                 transferTypeForm.levelText = opt?.label || ''
               }" />

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DetailFileItem } from '@/types/detail'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import DetailFileTable from '@/components/business/detail/DetailFileTable.vue'
 import DetailInfoSection from '@/components/business/detail/DetailInfoSection.vue'
 import ProcessTimeline from '@/components/business/ProcessTimeline.vue'
@@ -32,8 +32,6 @@ const {
   fileLoading,
   totalFiles,
   pagination,
-  downloading,
-  downloadingFile,
   fetchDetail,
   handleDownloadFile,
   handleBatchDownload,
@@ -53,7 +51,6 @@ const {
   hasDetectionResult,
   allFilesConfirmed,
   allKeyAssetsConfirmed,
-  canOperate,
   initAssetDetection,
   confirmFile,
   unconfirmFile,
