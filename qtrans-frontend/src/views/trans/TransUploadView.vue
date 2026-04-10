@@ -231,23 +231,16 @@ async function refreshFileListWithRetry(relativeDir: string, params: string, max
 
 /**
  * 更新上传进度
+ * composable 内部已通过响应式引用(ri)直接更新进度，此处仅需处理完成后的列表刷新
  */
 function updateUploadProgress(item: TransUploadFileItem) {
   const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
+  if (idx < 0) return
 
   // 上传完成：从上传列表移除，并刷新已上传列表
   if (item.status === 'completed' && params.value) {
-    if (idx >= 0) {
-      uploadFileList.value.splice(idx, 1)
-    }
-    // 延迟刷新：给后端时间计算 hashCode
+    uploadFileList.value.splice(idx, 1)
     refreshFileListWithRetry('', params.value)
-    return
-  }
-
-  // 其他状态：更新列表项
-  if (idx >= 0) {
-    uploadFileList.value[idx] = { ...item }
   }
 }
 

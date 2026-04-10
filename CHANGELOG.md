@@ -29,17 +29,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed - 2026-04-09
 
-#### 上传进度条三项修复
+#### 进度条宽度溢出修复（核心 bug）
 
-- **上传阶段隐藏哈希校验区域**: `TransFileTable.vue` 的哈希校验状态区域增加状态判断，上传中（uploading/pending）不展示 hash 校验进度，仅 hashing/verifying/matched/mismatched 状态才展示
-- **上传速度始终为0修复**: `useTransUpload.ts` 新增 `estimateSpeed` 函数，优先用服务端返回的 `timeLeft`（`remainingBytes / timeLeft`）估算实时速度，回退用 `uploadedBytes / elapsedTime`，替代原有累计平均速度计算（分片过小导致 onProgress 几乎不触发）
-- **进度条瞬间到头修复**: `useTransUpload.ts` 新增 `calcProgressFromServerTime` 函数，对齐老代码逻辑 `progress = elapsedTime / (elapsedTime + timeLeft) * 100`，优先使用服务端返回的时间信息计算进度百分比，回退用字节进度；`TransUploadFileItem` 新增 `lastElapsedTime`/`lastTimeLeft` 字段缓存服务端最新返回值
-- **blackList base64 解码**: `upload-validator.ts` 新增 `decodeBlackList` 函数，后端返回的 blackList 为 base64 编码，需先 `atob()` 解码后再做字符匹配
+- **Arco Design `a-progress` 的 `percent` 属性期望 0-1 小数**: 组件内部 `barStyle.width = percent * 100 + '%'`，传入整数（如 50）导致宽度变为 5000%，进度条溢出。`TransFileTable.vue` 中 `:percent="item.progress"` 改为 `:percent="item.progress / 100"`
+- **composable 内部改用响应式引用更新进度**: `useTransUpload.ts` 的 `uploadFile` 函数中，push 后获取 `ri = uploadFileList.value[last]`（Vue Proxy 引用），后续所有属性修改通过 `ri` 进行，直接触发 Proxy setter，不再依赖外部 `onProgress` 回调同步
+- **`StepTwoUploadFile.vue` 补充缺失的 `updateUploadProgress` 函数**: 该文件之前引用了 `updateUploadProgress` 但未定义，导致进度更新回调无法执行
+- **`TransUploadView.vue` 简化 `updateUploadProgress`**: composable 内部已通过响应式引用直接更新，外部回调仅处理完成后从上传列表移除并刷新已上传列表
 
-#### 进度条修复
+#### 上传进度条重构
 
-- **修复进度条立即打满**: `useTransUpload.ts` 分片上传完成后不再用 `uploadedCount / totalChunks * 100` 暴力赋值进度，改为基于精确字节数计算；上传阶段进度上限99%，完成校验后才到100%
-- **断点续传进度基准修正**: 恢复已上传分片时使用精确字节累加（考虑最后一个分片非整块），替代 `count * CHUNK_SIZE`
+- **进度计算改用分片计数法**: `useTransUpload.ts` 删除 `calcProgressFromServerTime`，改用 `calcChunkProgress(uploadedChunkCount, totalChunks)` 计算，`progress = 已上传分片数 / 总分片数 * 99`，上传阶段上限99%，校验通过后设100%
+- **速率估算仅依赖 timeLeft**: 删除 `estimateSpeed`，改用 `estimateSpeedFromFile(fileSize, uploadedChunkCount, chunkSize, timeLeftSec)`，`speed = 剩余字节数 / timeLeft(秒)`
+- **分片上传期间不更新进度/速率**: 去掉 `onUploadProgress` 回调中的进度和速率更新，仅在分片完成后统一更新
+- **elapsedTime/timeLeft 格式解析修复**: 服务端返回 `"HH:MM:SS"` 格式，新增 `parseServerTime` 函数转为秒数
+- **TransUploadFileItem 字段精简**: 删除 `uploadedBytes`/`uploadedChunks`/`lastElapsedTime`，新增 `uploadedChunkCount`（已上传分片数）、`lastTimeLeft`（服务端剩余时间秒数）
+- **上传阶段隐藏哈希校验区域**: `TransFileTable.vue` 的哈希校验状态区域增加状态判断，上传中（uploading/pending）不展示
+- **blackList base64 解码**: `upload-validator.ts` 新增 `decodeBlackList` 函数
 
 #### 哈希校验逻辑对齐老项目
 

@@ -73,19 +73,16 @@ export interface TransUploadFileItem {
   file: File                    // 原始文件对象
   status: 'pending' | 'uploading' | 'hashing' | 'verifying' | 'completed' | 'error' | 'paused'
   progress: number              // 上传进度 0-100
-  uploadedBytes: number         // 已上传字节数
   speed: number                 // 上传速度 (bytes/s)
   relativeDir: string           // 上传目录
   hashState?: HashVerifyState   // 哈希校验状态
   error?: string                // 错误信息
   startTime?: number            // 开始时间
   totalChunks?: number          // 总分片数
-  uploadedChunks?: number[]     // 已上传分片索引
+  uploadedChunkCount: number    // 已上传分片数（用于进度计算）
   selected?: boolean            // 是否被选中（用于批量操作）
   retryCount?: number           // 自动重试次数（对齐老代码 retry.enableAuto）
-  /** 服务端返回的最新已耗时（秒），用于计算进度百分比 */
-  lastElapsedTime?: number
-  /** 服务端返回的最新预估剩余时间（秒），用于计算进度百分比 */
+  /** 服务端返回的最新预估剩余时间（秒），用于速率估算 */
   lastTimeLeft?: number
 }
 
@@ -105,30 +102,45 @@ function generateFileUUID(file: File): string {
 }
 
 /**
- * 基于服务端 elapsedTime/timeLeft 计算上传进度百分比（对齐老代码逻辑）
- * 老代码：progress = elapsedTime / (elapsedTime + timeLeft) * 100
- * @returns 0-99 的进度值（上传阶段最多99%）
+ * 解析服务端返回的时间字符串为秒数
+ * 服务端格式为 "HH:MM:SS"，如 "00:00:08" 表示 8 秒
+ * @returns 秒数，解析失败返回 undefined
  */
-function calcProgressFromServerTime(elapsedTime: number | undefined, timeLeft: number | undefined, fallbackBytesProgress: number): number {
-  if (elapsedTime !== undefined && timeLeft !== undefined && (elapsedTime + timeLeft) > 0) {
-    const percent = Math.floor((elapsedTime / (elapsedTime + timeLeft)) * 99)
-    return Math.min(percent, 99)
+function parseServerTime(timeStr: string | undefined): number | undefined {
+  if (!timeStr) return undefined
+  const parts = timeStr.split(':')
+  if (parts.length !== 3) {
+    // 尝试直接作为数字解析（兼容纯数字格式）
+    const num = parseFloat(timeStr)
+    return isNaN(num) ? undefined : num
   }
-  return Math.min(fallbackBytesProgress, 99)
+  const hours = parseInt(parts[0]!, 10)
+  const minutes = parseInt(parts[1]!, 10)
+  const seconds = parseFloat(parts[2]!)
+  if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) return undefined
+  return hours * 3600 + minutes * 60 + seconds
 }
 
 /**
- * 基于服务端时间信息估算上传速度
+ * 基于分片计数计算上传进度百分比
+ * progress = uploadedChunkCount / totalChunks * 99
+ * 上传阶段上限 99%，校验完成后设 100%
  */
-function estimateSpeed(uploadedBytes: number, elapsedTime: number | undefined, timeLeft: number | undefined, fileTotalSize: number): number {
-  if (timeLeft !== undefined && timeLeft > 0 && fileTotalSize > uploadedBytes) {
-    const remainingBytes = fileTotalSize - uploadedBytes
-    return remainingBytes / timeLeft
-  }
-  if (elapsedTime !== undefined && elapsedTime > 0) {
-    return uploadedBytes / elapsedTime
-  }
-  return 0
+function calcChunkProgress(uploadedChunkCount: number, totalChunks: number): number {
+  if (totalChunks <= 0) return 0
+  return Math.min(Math.floor((uploadedChunkCount / totalChunks) * 99), 99)
+}
+
+/**
+ * 基于 timeLeft 估算上传速率
+ * speed = 剩余字节数 / timeLeft(秒)
+ */
+function estimateSpeedFromFile(fileSize: number, uploadedChunkCount: number, chunkSize: number, timeLeftSec: number | undefined): number {
+  if (!timeLeftSec || timeLeftSec <= 0) return 0
+  const uploadedBytes = uploadedChunkCount * chunkSize
+  const remainingBytes = fileSize - uploadedBytes
+  if (remainingBytes <= 0) return 0
+  return remainingBytes / timeLeftSec
 }
 
 /**
@@ -234,11 +246,10 @@ export function useTransUpload() {
         file: null as any, // 恢复的记录没有 File 对象
         status: 'paused',
         progress: 0,
-        uploadedBytes: 0,
         speed: 0,
         relativeDir: record.relativeDir,
         totalChunks: record.totalChunks,
-        uploadedChunks: [],
+        uploadedChunkCount: 0,
         selected: false,
       })
     }
@@ -397,16 +408,18 @@ export function useTransUpload() {
       file,
       status: 'uploading',
       progress: 0,
-      uploadedBytes: 0,
       speed: 0,
       relativeDir,
       totalChunks,
-      uploadedChunks: [],
+      uploadedChunkCount: 0,
       selected: false,
       startTime: Date.now(),
       retryCount: 0,
     }
     uploadFileList.value.push(uploadItem)
+    // 获取 Vue Proxy 响应式引用，后续所有属性修改通过此引用进行
+    // 这样可以直接触发 Proxy setter，确保 UI 响应式更新
+    const ri = uploadFileList.value[uploadFileList.value.length - 1]!
 
     // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
     // 老代码逻辑：小文件先算 hash 附到请求参数，上传完成后不需要再等后端算哈希
@@ -438,18 +451,11 @@ export function useTransUpload() {
     try {
       // 查询已上传分片（断点续传）
       const { skip, reupload } = await checkChunkStatus(fileUUID, file.name, relativeDir, params, totalChunks)
-      uploadItem.uploadedChunks = skip
 
       let uploadedCount = skip.length
-      uploadItem.uploadedBytes = skip.reduce((sum, idx) => {
-        const chunkEnd = Math.min((idx + 1) * CHUNK_SIZE, file.size)
-        return sum + chunkEnd - idx * CHUNK_SIZE
-      }, 0)
-      const initBytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
-      uploadItem.progress = calcProgressFromServerTime(
-        uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, initBytesProgress,
-      )
-      onProgress?.(uploadItem)
+      ri.uploadedChunkCount = uploadedCount
+      ri.progress = calcChunkProgress(uploadedCount, totalChunks)
+      onProgress?.(ri)
 
       // 等待并发队列有空位
       while (activeUploads.value >= MAX_CONCURRENT_UPLOADS) {
@@ -461,21 +467,14 @@ export function useTransUpload() {
       // 上传缺失的分片
       for (const chunkIndex of reupload) {
         if (controller.signal.aborted) {
-          uploadItem.status = 'paused'
-          uploadItem.speed = 0
+          ri.status = 'paused'
+          ri.speed = 0
           await updateUploadStatus(fileUUID, 'paused')
-          onProgress?.(uploadItem)
+          onProgress?.(ri)
           return false
         }
 
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 开始上传`)
-
-        // 计算当前分片在整个文件中的字节范围
-        const chunkStart = chunkIndex * CHUNK_SIZE
-        const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, file.size)
-        const chunkSize = chunkEnd - chunkStart
-        // 已上传分片的字节基线
-        const baseUploadedBytes = uploadItem.uploadedBytes
 
         const result = await uploadSingleChunk(
           file,
@@ -483,33 +482,27 @@ export function useTransUpload() {
           chunkIndex,
           totalChunks,
           params,
-          (chunkPercent: number) => {
-            // 将分片内字节进度映射到整体文件进度
-            const chunkUploadedBytes = Math.floor(chunkSize * chunkPercent / 100)
-            const totalUploadedBytes = Math.min(baseUploadedBytes + chunkUploadedBytes, file.size)
-            uploadItem.uploadedBytes = totalUploadedBytes
-            // 字节进度作为回退
-            const bytesProgress = Math.floor((totalUploadedBytes / file.size) * 99)
-            // 优先使用服务端时间估算进度
-            uploadItem.progress = calcProgressFromServerTime(
-              uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
-            )
-            uploadItem.speed = estimateSpeed(
-              totalUploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
-            )
-            onProgress?.(uploadItem)
-          },
+          // 分片上传中不更新进度/速率（等分片完成后统一更新）
+          undefined,
         )
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 完成:`, result)
 
-        // P2-9: 对齐老代码 onUploadChunkSuccess，从响应获取 elapsedTime/timeLeft
+        // P2-9: 从响应获取 timeLeft（用于速率估算）
+        if (result.timeLeft) {
+          ri.lastTimeLeft = parseServerTime(result.timeLeft)
+        }
+
+        uploadedCount++
+        ri.uploadedChunkCount = uploadedCount
+        ri.progress = calcChunkProgress(uploadedCount, totalChunks)
+        ri.speed = estimateSpeedFromFile(file.size, uploadedCount, CHUNK_SIZE, ri.lastTimeLeft)
+        // DEBUG: 打印进度更新详情
+        console.log(`[进度] 分片 ${chunkIndex + 1}/${totalChunks} 完成 → uploadedCount=${uploadedCount}, totalChunks=${totalChunks}, progress=${ri.progress}%, speed=${ri.speed.toFixed(0)} B/s, timeLeft=${ri.lastTimeLeft}s, fileSize=${file.size}`)
+
+        // 保存到 hashState 供 UI 展示
         if (result.elapsedTime || result.timeLeft) {
-          const elapsed = result.elapsedTime ? parseFloat(result.elapsedTime) : undefined
-          const left = result.timeLeft ? parseFloat(result.timeLeft) : undefined
-          uploadItem.lastElapsedTime = elapsed
-          uploadItem.lastTimeLeft = left
-          if (!uploadItem.hashState) {
-            uploadItem.hashState = {
+          if (!ri.hashState) {
+            ri.hashState = {
               clientHash: '',
               serverHash: '',
               status: 'pending',
@@ -517,43 +510,31 @@ export function useTransUpload() {
               timeLeft: result.timeLeft,
             }
           } else {
-            uploadItem.hashState.elapsedTime = result.elapsedTime
-            uploadItem.hashState.timeLeft = result.timeLeft
+            ri.hashState.elapsedTime = result.elapsedTime
+            ri.hashState.timeLeft = result.timeLeft
           }
         }
 
-        uploadedCount++
-        // 分片完成后更新精确字节进度
-        uploadItem.uploadedBytes = Math.min(baseUploadedBytes + chunkSize, file.size)
-        const bytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
-        uploadItem.progress = calcProgressFromServerTime(
-          uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
-        )
-        uploadItem.speed = estimateSpeed(
-          uploadItem.uploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
-        )
-        uploadItem.uploadedChunks!.push(chunkIndex)
-
-        onProgress?.(uploadItem)
+        onProgress?.(ri)
       }
 
       console.log('[上传] 所有分片上传完成，开始哈希校验')
 
       // 客户端哈希计算
-      uploadItem.status = 'hashing'
-      uploadItem.hashState = {
+      ri.status = 'hashing'
+      ri.hashState = {
         clientHash: '',
         serverHash: '',
         status: 'calculating',
         // 保留服务端耗时/剩余时间（分片上传阶段已获取）
-        elapsedTime: uploadItem.hashState?.elapsedTime,
-        timeLeft: uploadItem.hashState?.timeLeft,
+        elapsedTime: ri.hashState?.elapsedTime,
+        timeLeft: ri.hashState?.timeLeft,
       }
-      onProgress?.(uploadItem)
+      onProgress?.(ri)
 
       // P2-7: 小文件可能已预计算过哈希，直接复用
       const clientHash = preCalculatedHash || await calculateSHA256(file)
-      uploadItem.hashState!.clientHash = clientHash
+      ri.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
 
       // 上传完成后立即将客户端哈希写入后端（与老代码一致）
@@ -565,9 +546,9 @@ export function useTransUpload() {
 
       // 轮询获取服务端哈希并做前端比对校验（对齐老代码 validHashTimer + getServerHashTimer 逻辑）
       // 老代码逻辑：无限轮询，直到 clientFileHashCode 和 serverFileHashCode 都有值再比对
-      uploadItem.status = 'verifying'
-      uploadItem.hashState!.status = 'verifying'
-      onProgress?.(uploadItem)
+      ri.status = 'verifying'
+      ri.hashState!.status = 'verifying'
+      onProgress?.(ri)
 
       const relativeFileName = relativeDir ? `${relativeDir}/${file.name}` : file.name
       let serverHashValue = ''
@@ -575,7 +556,7 @@ export function useTransUpload() {
       // 对齐老代码：无限轮询直到拿到服务端哈希（服务端大文件算哈希可能很慢）
       while (true) {
         if (controller.signal.aborted) {
-          uploadItem.status = 'paused'
+          ri.status = 'paused'
           return false
         }
 
@@ -592,7 +573,7 @@ export function useTransUpload() {
             // 对齐老代码：serverFileHashCode.length === 64 才视为有效
             if (parsedHash && parsedHash.length === 64) {
               serverHashValue = parsedHash.toUpperCase()
-              uploadItem.hashState!.serverHash = serverHashValue
+              ri.hashState!.serverHash = serverHashValue
               console.log('[哈希校验] 服务端哈希获取成功:', serverHashValue.substring(0, 16) + '...')
               break
             }
@@ -610,18 +591,18 @@ export function useTransUpload() {
       // 对齐老代码 validHashTimer：双端哈希都有值后进行比对
       if (serverHashValue === clientHash.toUpperCase()) {
         console.log('[哈希校验] 哈希校验通过，上传完成')
-        uploadItem.hashState!.status = 'matched'
+        ri.hashState!.status = 'matched'
       } else {
         console.warn('[哈希校验] 哈希不一致！客户端:', clientHash.toUpperCase(), '服务端:', serverHashValue)
-        uploadItem.hashState!.status = 'mismatched'
+        ri.hashState!.status = 'mismatched'
       }
 
       // 完成（无论 matched 还是 mismatched，都标记 completed，mismatched 会在 UI 展示警示）
-      uploadItem.status = 'completed'
-      uploadItem.progress = 100
-      uploadItem.speed = 0
+      ri.status = 'completed'
+      ri.progress = 100
+      ri.speed = 0
       await updateUploadStatus(fileUUID, 'completed', { completedAt: new Date() })
-      onProgress?.(uploadItem)
+      onProgress?.(ri)
 
       return true
     }
@@ -629,8 +610,8 @@ export function useTransUpload() {
       // P0-1: 对齐老代码 onError，分类处理上传错误
       const errorInfo = classifyUploadError(error)
 
-      uploadItem.status = 'error'
-      uploadItem.error = errorInfo.message
+      ri.status = 'error'
+      ri.error = errorInfo.message
 
       // 登录过期：触发全局事件
       if (errorInfo.type === UploadErrorType.AUTH_EXPIRED) {
@@ -638,91 +619,72 @@ export function useTransUpload() {
       }
 
       // P1-6: 对齐老代码 retry.enableAuto，可重试错误自动重试
-      if (errorInfo.retryable && (uploadItem.retryCount ?? 0) < MAX_AUTO_RETRY) {
-        uploadItem.retryCount = (uploadItem.retryCount ?? 0) + 1
-        console.log(`[上传] 自动重试 ${uploadItem.retryCount}/${MAX_AUTO_RETRY}: ${file.name}`)
+      if (errorInfo.retryable && (ri.retryCount ?? 0) < MAX_AUTO_RETRY) {
+        ri.retryCount = (ri.retryCount ?? 0) + 1
+        console.log(`[上传] 自动重试 ${ri.retryCount}/${MAX_AUTO_RETRY}: ${file.name}`)
 
         // 重置上传状态，延迟后重试当前分片
-        uploadItem.status = 'uploading'
-        uploadItem.error = undefined
+        ri.status = 'uploading'
+        ri.error = undefined
         await updateUploadStatus(fileUUID, 'uploading')
 
         // 延迟后重新走断点续传逻辑（会自动跳过已上传分片）
         await new Promise(resolve => setTimeout(resolve, AUTO_RETRY_DELAY))
-        onProgress?.(uploadItem)
+        onProgress?.(ri)
 
         // 重新查询断点并继续上传缺失分片
         try {
           const { skip: retrySkip, reupload: retryReupload } = await checkChunkStatus(
             fileUUID, file.name, relativeDir, params, totalChunks,
           )
-          uploadItem.uploadedChunks = retrySkip
+          ri.uploadedChunkCount = retrySkip.length
 
           for (const retryChunkIndex of retryReupload) {
             if (controller.signal.aborted) {
-              uploadItem.status = 'paused'
+              ri.status = 'paused'
               return false
             }
 
-            const retryChunkStart = retryChunkIndex * CHUNK_SIZE
-            const retryChunkEnd = Math.min(retryChunkStart + CHUNK_SIZE, file.size)
-            const retryChunkSize = retryChunkEnd - retryChunkStart
-            const retryBaseBytes = uploadItem.uploadedBytes
-
             const retryResult = await uploadSingleChunk(
               file, fileUUID, retryChunkIndex, totalChunks, params,
-              (chunkPercent: number) => {
-                const chunkUploadedBytes = Math.floor(retryChunkSize * chunkPercent / 100)
-                const totalUploadedBytes = Math.min(retryBaseBytes + chunkUploadedBytes, file.size)
-                uploadItem.uploadedBytes = totalUploadedBytes
-                const bytesProgress = Math.floor((totalUploadedBytes / file.size) * 99)
-                uploadItem.progress = calcProgressFromServerTime(
-                  uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, bytesProgress,
-                )
-                uploadItem.speed = estimateSpeed(
-                  totalUploadedBytes, uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, file.size,
-                )
-                onProgress?.(uploadItem)
-              },
+              // 分片上传中不更新进度/速率
+              undefined,
             )
 
-            uploadItem.uploadedBytes = Math.min(retryBaseBytes + retryChunkSize, file.size)
-            const retryBytesProgress = Math.floor((uploadItem.uploadedBytes / file.size) * 99)
-            uploadItem.progress = calcProgressFromServerTime(
-              uploadItem.lastElapsedTime, uploadItem.lastTimeLeft, retryBytesProgress,
-            )
-            uploadItem.uploadedChunks!.push(retryChunkIndex)
+            ri.uploadedChunkCount++
+            ri.progress = calcChunkProgress(ri.uploadedChunkCount, totalChunks)
+
+            if (retryResult.timeLeft) {
+              ri.lastTimeLeft = parseServerTime(retryResult.timeLeft)
+            }
+            ri.speed = estimateSpeedFromFile(file.size, ri.uploadedChunkCount, CHUNK_SIZE, ri.lastTimeLeft)
 
             if (retryResult.elapsedTime || retryResult.timeLeft) {
-              const elapsed = retryResult.elapsedTime ? parseFloat(retryResult.elapsedTime) : undefined
-              const left = retryResult.timeLeft ? parseFloat(retryResult.timeLeft) : undefined
-              uploadItem.lastElapsedTime = elapsed
-              uploadItem.lastTimeLeft = left
-              if (!uploadItem.hashState) {
-                uploadItem.hashState = { clientHash: '', serverHash: '', status: 'pending', elapsedTime: retryResult.elapsedTime, timeLeft: retryResult.timeLeft }
+              if (!ri.hashState) {
+                ri.hashState = { clientHash: '', serverHash: '', status: 'pending', elapsedTime: retryResult.elapsedTime, timeLeft: retryResult.timeLeft }
               } else {
-                uploadItem.hashState.elapsedTime = retryResult.elapsedTime
-                uploadItem.hashState.timeLeft = retryResult.timeLeft
+                ri.hashState.elapsedTime = retryResult.elapsedTime
+                ri.hashState.timeLeft = retryResult.timeLeft
               }
             }
-            onProgress?.(uploadItem)
+            onProgress?.(ri)
           }
 
           // 重试成功，继续哈希校验流程
           console.log('[上传] 重试上传完成，继续哈希校验')
           // 重新走哈希校验流程（直接跳到 hashing 阶段）
-          uploadItem.status = 'hashing'
-          uploadItem.hashState = {
+          ri.status = 'hashing'
+          ri.hashState = {
             clientHash: '',
             serverHash: '',
             status: 'calculating',
-            elapsedTime: uploadItem.hashState?.elapsedTime,
-            timeLeft: uploadItem.hashState?.timeLeft,
+            elapsedTime: ri.hashState?.elapsedTime,
+            timeLeft: ri.hashState?.timeLeft,
           }
-          onProgress?.(uploadItem)
+          onProgress?.(ri)
 
           const retryClientHash = preCalculatedHash || await calculateSHA256(file)
-          uploadItem.hashState!.clientHash = retryClientHash
+          ri.hashState!.clientHash = retryClientHash
 
           try {
             await updateClientHash(file.name, relativeDir, retryClientHash)
@@ -730,16 +692,16 @@ export function useTransUpload() {
             console.warn('[哈希校验] 更新客户端哈希失败:', e)
           }
 
-          uploadItem.status = 'verifying'
-          uploadItem.hashState!.status = 'verifying'
-          onProgress?.(uploadItem)
+          ri.status = 'verifying'
+          ri.hashState!.status = 'verifying'
+          onProgress?.(ri)
 
           const retryRelativeFileName = relativeDir ? `${relativeDir}/${file.name}` : file.name
           let retryServerHash = ''
 
           while (true) {
             if (controller.signal.aborted) {
-              uploadItem.status = 'paused'
+              ri.status = 'paused'
               return false
             }
             try {
@@ -749,7 +711,7 @@ export function useTransUpload() {
                 const parsedHash = parts.length > 1 ? parts[1] : hashResult.error
                 if (parsedHash && parsedHash.length === 64) {
                   retryServerHash = parsedHash.toUpperCase()
-                  uploadItem.hashState!.serverHash = retryServerHash
+                  ri.hashState!.serverHash = retryServerHash
                   break
                 }
               }
@@ -760,29 +722,29 @@ export function useTransUpload() {
           }
 
           if (retryServerHash === retryClientHash.toUpperCase()) {
-            uploadItem.hashState!.status = 'matched'
+            ri.hashState!.status = 'matched'
           } else {
-            uploadItem.hashState!.status = 'mismatched'
+            ri.hashState!.status = 'mismatched'
           }
 
-          uploadItem.status = 'completed'
-          uploadItem.progress = 100
-          uploadItem.speed = 0
+          ri.status = 'completed'
+          ri.progress = 100
+          ri.speed = 0
           await updateUploadStatus(fileUUID, 'completed', { completedAt: new Date() })
-          onProgress?.(uploadItem)
+          onProgress?.(ri)
           return true
         } catch (retryError: any) {
           // 重试仍然失败
-          uploadItem.status = 'error'
-          uploadItem.error = retryError.message || '重试上传失败'
+          ri.status = 'error'
+          ri.error = retryError.message || '重试上传失败'
           await updateUploadStatus(fileUUID, 'failed')
-          onProgress?.(uploadItem)
+          onProgress?.(ri)
           return false
         }
       }
 
       await updateUploadStatus(fileUUID, 'failed')
-      onProgress?.(uploadItem)
+      onProgress?.(ri)
       return false
     }
     finally {
@@ -967,7 +929,7 @@ export function useTransUpload() {
     // 重置状态
     item.status = 'pending'
     item.progress = 0
-    item.uploadedBytes = 0
+    item.uploadedChunkCount = 0
     item.speed = 0
     item.error = undefined
     item.hashState = undefined

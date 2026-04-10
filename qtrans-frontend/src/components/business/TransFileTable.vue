@@ -352,7 +352,7 @@ function isUploadedFileSelected(file: FileEntity): boolean {
             <!-- 进度条 -->
             <div class="upload-item__progress">
               <a-progress
-                :percent="item.progress"
+                :percent="item.progress / 100"
                 :status="item.status === 'error' ? 'danger' : item.status === 'completed' ? 'success' : 'normal'"
                 :show-text="false"
               />

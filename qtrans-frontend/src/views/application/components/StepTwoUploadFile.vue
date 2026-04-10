@@ -193,17 +193,20 @@ async function refreshFileListWithRetry(relativeDir: string, params: string, max
   }
 }
 
+
+
+/**
+ * 更新上传进度
+ * composable 内部已通过响应式引用(ri)直接更新进度，此处仅需处理完成后的列表刷新
+ */
 function updateUploadProgress(item: TransUploadFileItem) {
-  if (item.status === 'completed') {
+  if (item.status === 'completed' && props.params) {
     const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
-    if (idx >= 0) uploadFileList.value.splice(idx, 1)
-    // 延迟刷新已上传列表：给后端时间计算 hashCode
-    // 对齐老代码：老代码在校验完成后才从任务列表移除，此时 hashCode 已有值
-    refreshFileListWithRetry('', props.params)
-    return
+    if (idx >= 0) {
+      uploadFileList.value.splice(idx, 1)
+      refreshFileListWithRetry('', props.params)
+    }
   }
-  const idx = uploadFileList.value.findIndex((f: TransUploadFileItem) => f.id === item.id)
-  if (idx >= 0) uploadFileList.value[idx] = { ...item }
 }
 
 const handlePause = (id: string) => pauseUpload(id, props.params)

@@ -357,6 +357,19 @@
   - 处理：为 `updateFormData` 增加变更比对，未变化时不再回写；将 3 个 composable 的 watch 改为 getter 数组源；为 `clearApprovers()` 增加空值保护，阻断递归链路。
 
 - 2026-04-01 用户面/管理面拆分后启动报错（3 个问题）
+
+- 2026-04-09 上传进度条宽度溢出（根因：Arco Design `a-progress` percent 值域 0-1）
+  - 错误现象：进度条 class="arco-progress-line-bar" 的 width 从 100% 直接翻倍增长到 5100%，视觉上进度条瞬间打满
+  - 根因：Arco Design 的 `<a-progress>` 组件内部 `barStyle.width = percent * 100 + '%'`，`percent` 期望 0-1 小数（0.5=50%），但代码传入 0-100 整数（50→5000%）
+  - 修复1：`TransFileTable.vue` 中 `:percent="item.progress"` 改为 `:percent="item.progress / 100"`
+  - 修复2：`useTransUpload.ts` 的 `uploadFile` 函数中，push 后获取 `ri = uploadFileList.value[last]`（Vue Proxy 响应式引用），后续所有属性修改通过 `ri` 进行，直接触发 Proxy setter，不再依赖外部 `onProgress` 回调同步
+  - 修复3：`StepTwoUploadFile.vue` 补充缺失的 `updateUploadProgress` 函数定义
+  - 影响文件：`TransFileTable.vue`、`useTransUpload.ts`、`TransUploadView.vue`、`StepTwoUploadFile.vue`
+
+- 2026-04-09 上传进度条 elapsedTime/timeLeft 解析错误
+  - 错误信息：`parseFloat("00:00:08")` 返回 0，导致 `calcProgressFromServerTime` 条件 `(elapsedTime + timeLeft) > 0` 永远不成立，回退到字节进度，进度条瞬间到头
+  - 原因：服务端返回的 elapsedTime/timeLeft 格式为 "HH:MM:SS"（如 "00:00:08"），不是纯数字字符串，`parseFloat` 只解析到第一个非数字字符就停止
+  - 修复：新增 `parseServerTime` 函数，将 "HH:MM:SS" 格式解析为秒数（hours*3600 + minutes*60 + seconds），同时兼容纯数字格式
   - 问题1：`AppHeader.vue:70 TypeError: Cannot read properties of undefined (reading 'BASE_URL')`
     - 原因：第 70 行残留 `$env.BASE_URL`（Vue 模板中不存在的全局变量），此前批量修改时漏改
     - 修复：改为 `assetPath('/figma/3830_3/4.svg')`
