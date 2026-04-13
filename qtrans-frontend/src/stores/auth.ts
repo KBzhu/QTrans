@@ -83,8 +83,8 @@ export const useAuthStore = defineStore('auth', () => {
    * 登录 - 调用真实后端接口
    * TODO: 当前参数在 API 层写死，后续改为动态传入
    */
-  async function login(_username?: string, _password?: string) {
-    const result = await authApi.login()
+  async function login(params) {
+    const result = await authApi.login(params)
     token.value = result.token
     currentUser.value = result.user
     // pinia 插件自动持久化

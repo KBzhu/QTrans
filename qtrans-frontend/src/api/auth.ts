@@ -34,35 +34,34 @@ interface RealLoginRequest {
   }
 }
 
+/** 真实后端登录响应格式 */
+interface RealLoginResponse {
+  data: {
+    token: string
+  }
+}
+
 export const authApi = {
   /**
    * 登录 - 调用真实后端接口
    * TODO: 参数暂写死，后续改为动态传入
    */
-  async login(): Promise<LoginResponse> {
-    const payload: RealLoginRequest = {
-      model: {
-        account: 'ywx1420846',
-        password: 'Fjtgyxa_006^',
-        loginType: '2',
-      },
-    }
-    // request.raw 返回的是响应拦截器处理后的 data 字段（即 token 字符串）
-    const token = await request.raw<string>(
+  async login(params: RealLoginRequest): Promise<LoginResponse> {
+    const res = await request.raw<RealLoginResponse>(
       '/service/v1/userCenter/authentication/login',
-      payload,
+      params,
     )
     return {
-      token: token || '',
+      token: res.data.token || '',
       user: {
         id: '1',
-        username: 'ywx1420846',
+        username: params.model.account,
         name: '测试用户',
         email: 'test@example.com',
         phone: '',
         department: '',
         departmentName: '',
-        roles: ['submitter'],
+        roles: ['admin'],
         status: 'enabled',
       },
     }

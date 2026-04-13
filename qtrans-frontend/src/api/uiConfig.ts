@@ -113,6 +113,24 @@ export const uiConfigApi = {
     request.rawGet<Record<string, TransmissionScenarioChildItem[]>>(
       '/commonService/services/jalor/lookup/itemquery/listbycodes/transmission_scenario_child_item/zh_CN',
     ),
+
+  /**
+   * 获取帮助文档列表
+   * GET /commonService/services/jalor/lookup/itemquery/listbycodes/help_doc_link/zh_CN
+   */
+  getHelpDocs: () =>
+    request.rawGet<Record<string, HelpDocItem[]>>(
+      '/commonService/services/jalor/lookup/itemquery/listbycodes/help_doc_link/zh_CN',
+    ),
+
+  /**
+   * 获取重要公告列表
+   * GET /commonService/services/jalor/lookup/itemquery/listbycodes/top_affiche/zh_CN
+   */
+  getTopAffiches: () =>
+    request.rawGet<Record<string, TopAfficheItem[]>>(
+      '/commonService/services/jalor/lookup/itemquery/listbycodes/top_affiche/zh_CN',
+    ),
 }
 
 /** 传输场景 TAB 项 */
@@ -142,4 +160,34 @@ export interface TransmissionScenarioChildItem {
   parentItem: TransmissionScenarioParentItem
   itemAttr1: string | null
   itemAttr2: string | null
+}
+
+/** 帮助文档项 */
+export interface HelpDocItem {
+  itemId: number
+  itemCode: string
+  itemName: string
+  itemDesc: string
+  itemIndex: number
+  status: number
+  itemAttr1: string | null
+  itemAttr2: string | null
+  itemAttr3: string | null
+  creationDate: string
+  lastUpdateDate: string
+}
+
+/** 重要公告项 */
+export interface TopAfficheItem {
+  itemId: number
+  itemCode: string
+  itemName: string
+  itemDesc: string
+  itemIndex: number
+  status: number
+  itemAttr1: string | null  // 标题
+  itemAttr2: string | null  // 图标
+  itemAttr3: string | null
+  creationDate: string
+  lastUpdateDate: string
 }

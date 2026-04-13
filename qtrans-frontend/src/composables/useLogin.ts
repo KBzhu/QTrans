@@ -75,8 +75,15 @@ export function useLogin() {
     errorMessage.value = ''
 
     try {
+      const params = {
+        model: {
+          account: loginForm.username,
+          password: loginForm.password,
+          loginType: '2',
+        },
+      }
       // 调用真实后端登录接口（参数在 API 层写死）
-      const user = await authStore.login()
+      const user = await authStore.login(params)
       handleRememberMe()
 
       const redirect = route.query.redirect as string | undefined

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-04-13
+
+#### 首页帮助文档 & 重要公告对接真实后端接口
+
+- **新增 API**: `uiConfigApi.getHelpDocs()`、`uiConfigApi.getTopAffiches()` - 获取帮助文档和公告列表
+- **新增类型**: `HelpDocItem`、`TopAfficheItem` 接口定义
+- **新增 Composable**: `useHelpDocs`、`useTopAffiches` - 业务逻辑封装
+
+##### 帮助文档功能
+- 使用中文链接（itemAttr1）作为跳转目标
+- 使用 lastUpdateDate 并格式化为 `YYYY-MM-DD HH:mm`
+- 不做数据筛选，显示所有记录
+- 无数据时显示"暂无帮助文档"
+- 点击文档在新窗口打开链接
+
+##### 重要公告功能
+- 标题使用 itemAttr1（为空时用固定标题"系统公告"）
+- 正文直接使用 itemDesc，链接从 itemAttr3 获取
+- 图标使用 itemAttr2 字段
+- 时间和内容同一行显示在最右侧
+- 无数据时显示"暂无公告"
+
+### Docs - 2026-04-13
+
+- 新增 `docs/guides/Dashboard_Notices_HelpDocs_quickStart.md` - 首页公告与帮助文档功能开发&测试指南
+
 ### Fixed - 2026-04-10 (构建修复第二轮)
 
 #### `pnpm run build:tenant` 零错误构建修复

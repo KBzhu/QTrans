@@ -1,34 +1,14 @@
 <script setup lang="ts">
 import SelectTypeView from '@/views/application/SelectTypeView.vue'
 import { assetPath } from '@/utils/path'
+import { useHelpDocs } from '@/composables/useHelpDocs'
+import { useTopAffiches } from '@/composables/useTopAffiches'
 
-const notices = [
+// 帮助文档 - 真实后端数据
+const { helpDocs, openDocLink } = useHelpDocs()
 
-  {
-    title: '2024年一季度系统维护通告 (进行中)',
-    content: '维护时间：18:00-24:00。传输Trans产品正在进行数据迁移与业务平稳性能测试。详情咨询用户支撑团队。',
-    icon: '/figma/3830_3/23.svg',
-  },
-  {
-    title: '尊敬的Trans用户，新推出的Trans平台版已经测试完毕',
-    content: '欢迎大家测试！在测试期间如遇Bug请向运维人员反馈并修复。',
-    icon: '/figma/3830_3/24.svg',
-  },
-  {
-    title: '新版插件安全提醒',
-    content: '请升级到最新插件版本并及时完成终端安全扫描。',
-    icon: '/figma/3830_3/25.svg',
-  },
-]
-
-const helpDocs = [
-  '新Trans平台功能介绍及说明',
-  '审批主要基于账号授权及权限管理控制流程',
-  '新版本插件安全提醒',
-  '网络域间数据传输风险说明',
-  '异常问题与常见修复手册',
-  '审批驳回原因排查说明',
-]
+// 重要公告 - 真实后端数据
+const { affiches, openAfficheLink } = useTopAffiches()
 </script>
 
 <template>
@@ -42,14 +22,28 @@ const helpDocs = [
           <h3>重要公告</h3>
         </header>
         <ul>
-          <li v-for="notice in notices" :key="notice.title">
-            <div class="notice-title">
-              <img :src="assetPath(notice.icon)" :alt="notice.title" />
-
-              <span>{{ notice.title }}</span>
-            </div>
-            <p>{{ notice.content }}</p>
-          </li>
+          <template v-if="affiches.length > 0">
+            <li v-for="affiche in affiches" :key="affiche.id">
+              <div class="notice-title">
+                <img v-if="affiche.icon" :src="affiche.icon" :alt="affiche.title" />
+                <span class="title-text">{{ affiche.title }}</span>
+              </div>
+              <p class="notice-content">
+                <span class="content-text">{{ affiche.content }}</span>
+                <span class="affiche-time">{{ affiche.updateTime }}</span>
+              </p>
+              <a
+                v-if="affiche.link"
+                :href="affiche.link"
+                target="_blank"
+                class="affiche-link"
+                @click.stop
+              >
+                查看详情
+              </a>
+            </li>
+          </template>
+          <li v-else class="notices-empty-tip">暂无公告</li>
         </ul>
       </section>
 
@@ -63,11 +57,14 @@ const helpDocs = [
           <span class="hotline">IT 热线</span>
         </header>
         <ol>
-          <li v-for="(doc, idx) in helpDocs" :key="doc">
-            <span class="index">{{ idx + 1 }}.</span>
-            <span class="text">{{ doc }}</span>
-            <span class="time">2024-03-2{{ idx }} 10:11:42</span>
-          </li>
+          <template v-if="helpDocs.length > 0">
+            <li v-for="(doc, idx) in helpDocs" :key="doc.id" @click="openDocLink(doc.link)">
+              <span class="index">{{ idx + 1 }}.</span>
+              <span class="text" :title="doc.title">{{ doc.title }}</span>
+              <span class="time">{{ doc.updateTime }}</span>
+            </li>
+          </template>
+          <li v-else class="empty-tip">暂无帮助文档</li>
         </ol>
       </section>
     </div>
@@ -130,12 +127,56 @@ const helpDocs = [
   gap: 8px;
   color: #1e293b;
   font-weight: 600;
+  flex: 1;
 }
 
-.notices p {
+.notice-title .title-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-content {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   margin: 6px 0 0 22px;
+}
+
+.notice-content .content-text {
+  flex: 1;
   color: #64748b;
   font-size: 14px;
+  word-break: break-all;
+}
+
+.affiche-time {
+  color: #94a3b8;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.notices .affiche-link {
+  display: block;
+  margin: 6px 0 0 22px;
+  color: #165dff;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.notices .affiche-link:hover {
+  text-decoration: underline;
+}
+
+.notices .notices-empty-tip {
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+  cursor: default;
 }
 
 .help-title {
@@ -184,6 +225,16 @@ const helpDocs = [
 .helps .time {
   color: #94a3b8;
   font-size: 11px;
+}
+
+.helps .empty-tip {
+  display: block !important;
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+  cursor: default;
+  height: auto;
 }
 
 @media (max-width: 1024px) {
