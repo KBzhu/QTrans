@@ -91,6 +91,7 @@ function transformTypes(data: TransmissionScenarioChildItem[]): UITransferTypeCo
         tabGroup: item.parentItem?.itemCode || '',
         order: item.itemIndex,
         status: 'enabled' as const,
+        itemAttr5: item.itemAttr5 || '', // 原始区域元数据（用于 URL 和 store）
       }
     })
     .sort((a, b) => a.order - b.order)

@@ -151,6 +151,9 @@ export interface TransmissionScenarioParentItem {
 
 /** 传输场景子项（卡片） */
 export interface TransmissionScenarioChildItem {
+  itemAttr5: string
+  itemAttr3: any
+  itemAttr4: string
   itemId: number
   itemCode: string
   itemName: string

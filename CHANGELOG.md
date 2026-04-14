@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed - 2026-04-14
 
+#### useCitySelection & useApprovalRoute 区域配置化重构
+
+**核心改动**：完成申请单流程最后两个 composable 的区域硬编码清理。
+
+##### 修改
+
+- **useCitySelection.ts**: 移除未使用的 `sourceArea/targetArea` 函数参数，简化签名为 `useCitySelection(onUpdateFormData)`
+- **useApprovalRoute.ts**: 移除 `isHighToLow` 计算属性（硬编码 `highAreas/lowAreas` 列表），改由 `useSecurityLevel.displaySecretLevel` 控制 UI；移除 `sourceArea/targetArea` 函数参数
+- **StepOneBasicInfo.vue**: 用 `displaySecretLevel`（后端 `isDisplaySecretLevelControl` 驱动）替代 `isHighToLow` 控制密级和审批人区域显示；更新 composable 调用签名
+- **useSecurityLevel.ts**: 移除未使用的 `computed` 导入
+- **components/constants.ts**: 恢复 `AREA_OPTIONS` 导出（区域下拉框仍需使用，待后端提供动态接口后移除）
+
+##### 附带修复（预先存在的构建错误）
+
+- **useApplicationForm.ts**: 移除未使用的 `useFileStore` 导入
+- **dashboard/index.vue**: 移除未使用的 `openAfficheLink` 解构
+- **auth.ts**: 修复 `login` 函数 `params` 参数隐式 `any` 类型
+- **RoleSwitcher.vue / login/index.vue / auth.spec.ts**: 修复 `login` 调用参数（从两参数改为对象形式）
+- **mocks/handlers/uiConfig.ts**: 为 mock 数据添加 `fromStyle/toStyle` 字段
+- **UIConfigView.vue**: 为 `transferTypeForm` 添加 `fromStyle/toStyle` 字段
+
+### Changed - 2026-04-14
+
 #### 区域配置化重构 - 去除前端硬编码映射
 
 **核心改动**：前端不再维护任何区域映射硬编码，所有区域信息从后端接口获取。
@@ -22,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ##### 修改
 
 - **useTransferConfig.ts**: 解析 `itemAttr4`（from/to 各自样式，用 `|` 分隔）和 `itemAttr5`（区域元数据）
-- **SelectTypeView.vue**: 两个子卡片分别应用 `itemAttr4` 中的 fromStyle 和 toStyle
+- **SelectTypeView.vue**: 两个子卡片分别应用 `itemAttr4` 中的 fromStyle 和 toStyle，URL 带上 `fromId`/`toId` 数字 ID
 - **useSecurityLevel.ts**: 从 store 读取区域 ID，移除 `HIGH_TO_LOW_PAIRS` 预判逻辑，改用 `isDisplaySecretLevelControl` 控制 UI
 - **useCitySelection.ts**: 从 store 读取区域 ID
 - **useApprovalRoute.ts**: 从 store 读取区域 ID

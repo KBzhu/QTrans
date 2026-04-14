@@ -8,7 +8,7 @@ import { useTopAffiches } from '@/composables/useTopAffiches'
 const { helpDocs, openDocLink } = useHelpDocs()
 
 // 重要公告 - 真实后端数据
-const { affiches, openAfficheLink } = useTopAffiches()
+const { affiches } = useTopAffiches()
 </script>
 
 <template>

@@ -2,7 +2,7 @@ import type { Application, NotifyChannel, TransferType } from '@/types'
 import type { SecurityArea } from '@/constants'
 import { Message } from '@arco-design/web-vue'
 
-import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
+import { useApplicationStore, useAuthStore } from '@/stores'
 import { MAX_FILE_SIZE } from '@/utils/constants'
 import { ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
@@ -213,7 +213,6 @@ function cloneFormData(data: ApplicationFormData): ApplicationFormData {
 export function useApplicationForm(initialTransferType?: string, fromZone?: string, toZone?: string) {
   const applicationStore = useApplicationStore()
   const authStore = useAuthStore()
-  const fileStore = useFileStore()
 
   const formData = ref<ApplicationFormData>(defaultFormData(initialTransferType, fromZone, toZone))
   const currentStep = ref(0)

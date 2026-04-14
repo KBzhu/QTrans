@@ -17,7 +17,7 @@ async function handleLogin() {
   errorText.value = ''
 
   try {
-    await authStore.login(username.value, password.value)
+    await authStore.login({ model: { account: username.value, password: password.value, loginType: '2' } })
     const redirect = String(route.query.redirect || '/dashboard')
     await router.push(redirect)
   }

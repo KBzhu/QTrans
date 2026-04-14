@@ -3,7 +3,7 @@ import { Message, Modal } from '@arco-design/web-vue'
 import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useApplicationForm } from '@/composables/useApplicationForm'
-import { useAuthStore } from '@/stores'
+import { useAuthStore, useRegionMetadataStore } from '@/stores'
 import { assetPath } from '@/utils/path'
 import StepOneBasicInfo from './components/StepOneBasicInfo.vue'
 import StepTwoUploadFile from './components/StepTwoUploadFile.vue'
@@ -14,6 +14,7 @@ import './create-application.scss'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const regionMetadataStore = useRegionMetadataStore()
 
 const stepOneRef = ref<InstanceType<typeof StepOneBasicInfo> | null>(null)
 const uploadInputRef = ref<HTMLInputElement | null>(null)
@@ -22,6 +23,25 @@ const uploadInputRef = ref<HTMLInputElement | null>(null)
 const typeFromQuery = String(route.query.type || 'green-to-green')
 const fromZone = route.query.from as string | undefined
 const toZone = route.query.to as string | undefined
+const fromId = Number(route.query.fromId) ?? 1
+const toId = Number(route.query.toId) ?? 1
+
+// 从 URL 读取数字 ID 并更新 store
+if (fromId && toId && fromZone && toZone) {
+  console.log('[DEBUG CreateApplicationView] URL fromId:', fromId, 'toId:', toId)
+  regionMetadataStore.setMetadata({
+    fromRegion: {
+      code: fromZone,
+      name: fromZone,
+      id: fromId,
+    },
+    toRegion: {
+      code: toZone,
+      name: toZone,
+      id: toId,
+    },
+  })
+}
 
 const {
   formData,

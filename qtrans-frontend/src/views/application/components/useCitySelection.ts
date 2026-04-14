@@ -1,11 +1,14 @@
-import type { SecurityArea } from '@/composables/useApplicationForm'
 import type { CitySelectionState } from './types'
 import { ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
 import { useAuthStore, useRegionMetadataStore } from '@/stores'
 
+/**
+ * 城市选择 composable
+ *
+ * 从 regionMetadataStore 获取区域 ID，不再依赖硬编码映射
+ */
 export function useCitySelection(
-  getFormData: () => { sourceArea: SecurityArea, targetArea: SecurityArea },
   onUpdateFormData: (updates: Partial<any>) => void,
 ) {
   const authStore = useAuthStore()
@@ -117,9 +120,7 @@ export function useCitySelection(
 
   // 监听区域元数据变化
   watch(
-    [
-      () => regionMetadataStore.metadata,
-    ],
+    () => regionMetadataStore.metadata,
     () => {
       state.value.uploadCityOptions = []
       state.value.downloadCityOptions = []

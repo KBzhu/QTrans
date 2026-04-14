@@ -45,7 +45,7 @@ async function switchRole(username: string) {
 
   switching.value = true
   try {
-    await authStore.login(username, '123456')
+    await authStore.login({ model: { account: username, password: '123456', loginType: '2' } })
     await router.push('/')
   }
   finally {

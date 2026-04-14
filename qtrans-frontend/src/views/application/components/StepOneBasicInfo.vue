@@ -67,7 +67,7 @@ function updateFormData(updates: Partial<ApplicationFormData>) {
 const {
   options: securityLevelOptions,
   loading: securityLevelLoading,
-  isHighToLow,
+  displaySecretLevel,
 } = useSecurityLevel(
   () => ({
     sourceArea: formData.value.sourceArea,
@@ -83,8 +83,6 @@ const {
   approverOptions,
 } = useApprovalRoute(
   () => ({
-    sourceArea: formData.value.sourceArea,
-    targetArea: formData.value.targetArea,
     securityLevel: formData.value.securityLevel,
     departmentId: formData.value.departmentId,
     containsCustomerData: formData.value.containsCustomerData,
@@ -101,7 +99,6 @@ const {
   onSourceCityChange,
   onTargetCityChange,
 } = useCitySelection(
-  () => ({ sourceArea: formData.value.sourceArea, targetArea: formData.value.targetArea }),
   updateFormData,
 )
 
@@ -361,8 +358,8 @@ defineExpose({ validate })
             </a-form-item>
           </template>
 
-          <!-- 文件最高密级 -->
-          <a-form-item v-if="isHighToLow" field="securityLevel" label="文件最高密级" required>
+          <!-- 文件最高密级（后端通过 isDisplaySecretLevelControl 控制） -->
+          <a-form-item v-if="displaySecretLevel" field="securityLevel" label="文件最高密级" required>
             <a-select
               :model-value="formData.securityLevel"
               :options="securityLevelOptions"
@@ -374,7 +371,8 @@ defineExpose({ validate })
           </a-form-item>
 
           <!-- 审批人字段 -->
-          <template v-if="isHighToLow && formData.securityLevel">
+          <!-- 审批人字段（后端通过 isDisplaySecretLevelControl 控制） -->
+          <template v-if="displaySecretLevel && formData.securityLevel">
             <a-form-item
               v-if="approvalRouteConfig.showDirectSupervisor"
               field="directSupervisor"

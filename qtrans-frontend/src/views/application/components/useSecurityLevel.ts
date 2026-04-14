@@ -1,5 +1,5 @@
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
 import { useRegionMetadataStore } from '@/stores'
 

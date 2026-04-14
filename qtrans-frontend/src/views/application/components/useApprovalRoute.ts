@@ -1,6 +1,6 @@
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import type { ApprovalRouteConfig } from './types'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
 import { useRegionMetadataStore } from '@/stores'
 
@@ -21,8 +21,6 @@ export interface ApproverOptions {
 
 type ApprovalRouteFormState = Pick<
   ApplicationFormData,
-  | 'sourceArea'
-  | 'targetArea'
   | 'securityLevel'
   | 'departmentId'
   | 'containsCustomerData'
@@ -101,6 +99,12 @@ function transformToOptions(approvers: Array<{ userAccount: string | null, userC
   return options
 }
 
+/**
+ * 审批路由 composable
+ *
+ * 从 regionMetadataStore 获取区域 ID，不再依赖硬编码映射
+ * 移除了 isHighToLow 硬编码区域列表判断，改由 useSecurityLevel 的 displaySecretLevel 控制 UI
+ */
 export function useApprovalRoute(
   getFormData: () => ApprovalRouteFormState,
   onUpdateFormData: (updates: Partial<ApplicationFormData>) => void,
@@ -112,14 +116,6 @@ export function useApprovalRoute(
   /** 审批人选项（二/三/四层） */
   const approverOptions = ref<ApproverOptions>(createEmptyApproverOptions())
   let fetchVersion = 0
-
-  const isHighToLow = computed(() => {
-    // 根据 sourceArea 和 targetArea 判断是否是高密传低密
-    const { sourceArea, targetArea } = getFormData()
-    const highAreas = ['yellow', 'red']
-    const lowAreas = ['green', 'external']
-    return highAreas.includes(sourceArea) && lowAreas.includes(targetArea)
-  })
 
   function syncApproverSelections(nextConfig: ApprovalRouteConfig, nextOptions: ApproverOptions) {
     const formData = getFormData()
@@ -270,7 +266,6 @@ export function useApprovalRoute(
     loading,
     config,
     approverOptions,
-    isHighToLow,
     fetch,
     resetConfig,
     resetApproverOptions,

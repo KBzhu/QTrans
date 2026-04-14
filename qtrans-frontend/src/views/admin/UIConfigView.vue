@@ -103,6 +103,8 @@ const transferTypeForm = reactive<Omit<UITransferTypeConfigItem, 'id'>>({
   fromIcon: '',
   toIcon: '',
   arrowIcon: '',
+  fromStyle: '',
+  toStyle: '',
   level: 'free',
   levelText: '免审批',
   tabGroup: 'green',

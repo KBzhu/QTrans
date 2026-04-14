@@ -41,7 +41,7 @@ describe('useAuthStore', () => {
     })
 
     const store = useAuthStore()
-    await store.login('submitter', '123456')
+    await store.login({ model: { account: 'submitter', password: '123456', loginType: '2' } })
 
     expect(store.token).toBe('token-123')
     expect(store.currentUser?.username).toBe('submitter')
