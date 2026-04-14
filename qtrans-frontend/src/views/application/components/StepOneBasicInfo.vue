@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { NotifyChannel } from '@/types/application'
-import type { ApplicationFormData, SecurityArea } from '@/composables/useApplicationForm'
+import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { computed, ref } from 'vue'
-import { useAuthStore } from '@/stores'
+import { useAuthStore, useRegionMetadataStore } from '@/stores'
 import { useApplicationConfig } from '@/composables/useApplicationConfig'
 import DepartmentSelector from '@/components/business/DepartmentSelector.vue'
 import CitySelector from '@/components/business/CitySelector.vue'
 import UserSuggestSelect from '@/components/business/UserSuggestSelect.vue'
-import { AREA_OPTIONS } from './constants'
 import { useApprovalRoute } from './useApprovalRoute'
 import { useCitySelection } from './useCitySelection'
 import { useSecurityLevel } from './useSecurityLevel'
@@ -31,6 +30,7 @@ const emit = defineEmits<{
 
 /* ===== Stores & Refs ===== */
 const authStore = useAuthStore()
+const regionMetadataStore = useRegionMetadataStore()
 const formRef = ref<{
   validate: () => Promise<undefined | Record<string, any>>
   clearValidate?: (field?: string | string[]) => void
@@ -123,6 +123,11 @@ const basicInfoRows = computed(() => {
   ]
 })
 
+/* ===== 区域只读显示 ===== */
+const fromRegionName = computed(() => regionMetadataStore.getFromName() || formData.value.sourceArea)
+const toRegionName = computed(() => regionMetadataStore.getToName() || formData.value.targetArea)
+const isTargetExternal = computed(() => regionMetadataStore.getToCode() === 'external' || formData.value.targetArea === 'external')
+
 /* ===== Event Handlers ===== */
 function onDepartmentChange(value: { deptId: string, deptName: string, deptCode: string }) {
   updateFormData({
@@ -130,20 +135,6 @@ function onDepartmentChange(value: { deptId: string, deptName: string, deptCode:
     departmentId: value.deptCode || value.deptId,
   })
   formRef.value?.clearValidate?.('department')
-}
-
-function onSourceAreaChange(val: SecurityArea) {
-  updateFormData({ sourceArea: val })
-  formRef.value?.clearValidate?.('sourceArea')
-}
-
-function onTargetAreaChange(val: SecurityArea) {
-  updateFormData({ targetArea: val })
-  formRef.value?.clearValidate?.('targetArea')
-  // 切换区域时清除外网字段的验证
-  if (val !== 'external') {
-    formRef.value?.clearValidate?.(['vendorName', 'downloadEmail'])
-  }
 }
 
 function onDownloaderAccountsChange(val: string | string[] | undefined) {
@@ -250,23 +241,13 @@ defineExpose({ validate })
             />
           </a-form-item>
 
-          <!-- 区域选择 -->
+          <!-- 区域选择（只读回显，从首页传输场景确定） -->
           <div class="form-grid">
-            <a-form-item field="sourceArea" label="上传区域" required>
-              <a-select
-                :model-value="formData.sourceArea"
-                :options="AREA_OPTIONS"
-                :disabled="readonly"
-                @change="onSourceAreaChange"
-              />
+            <a-form-item field="sourceArea" label="上传区域">
+              <a-input :model-value="fromRegionName" readonly />
             </a-form-item>
-            <a-form-item field="targetArea" label="下载区域" required>
-              <a-select
-                :model-value="formData.targetArea"
-                :options="AREA_OPTIONS"
-                :disabled="readonly"
-                @change="onTargetAreaChange"
-              />
+            <a-form-item field="targetArea" label="下载区域">
+              <a-input :model-value="toRegionName" readonly />
             </a-form-item>
 
             <!-- 城市选择 -->
@@ -290,8 +271,8 @@ defineExpose({ validate })
             </a-form-item>
           </div>
 
-          <!-- 外网下载字段（绿区/黄区到外网场景） -->
-          <template v-if="formData.targetArea === 'external'">
+          <!-- 外网下载字段（目标区域为外网时显示） -->
+          <template v-if="isTargetExternal">
             <a-form-item field="vendorName" label="下载方名称（单位）" required>
               <a-input
                 :model-value="formData.vendorName"

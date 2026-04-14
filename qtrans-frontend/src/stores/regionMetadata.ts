@@ -7,6 +7,7 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { AREA_LABEL_MAP, ID_TO_AREA } from '@/constants/region'
 
 /** 区域配置 */
 export interface RegionConfig {
@@ -30,6 +31,31 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
    */
   function setMetadata(data: RegionMetadata) {
     metadata.value = data
+  }
+
+  /**
+   * 从区域数字 ID 设置元数据
+   * 用于 loadApplicationById 等场景：后端返回 fromRegionTypeId/toRegionTypeId，
+   * 通过 ID_TO_AREA + AREA_LABEL_MAP 映射为完整 RegionConfig
+   *
+   * 映射逻辑集中在此处，其他模块无需直接引用 ID_TO_AREA
+   */
+  function setMetadataFromIds(fromId: number, toId: number) {
+    const fromCode = ID_TO_AREA[fromId] || 'green'
+    const toCode = ID_TO_AREA[toId] || 'green'
+
+    metadata.value = {
+      fromRegion: {
+        code: fromCode,
+        name: AREA_LABEL_MAP[fromCode] || fromCode,
+        id: fromId,
+      },
+      toRegion: {
+        code: toCode,
+        name: AREA_LABEL_MAP[toCode] || toCode,
+        id: toId,
+      },
+    }
   }
 
   /**
@@ -61,6 +87,32 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
   }
 
   /**
+   * 获取源区域中文名
+   */
+  function getFromName(): string | null {
+    return metadata.value?.fromRegion.name ?? null
+  }
+
+  /**
+   * 获取目标区域中文名
+   */
+  function getToName(): string | null {
+    return metadata.value?.toRegion.name ?? null
+  }
+
+  /**
+   * 动态生成传输类型标签："{源区域}传到{目标区域}"
+   * 替代硬编码的 TRANSFER_TYPE_LABEL_MAP，区域名称来自后端配置
+   */
+  function getTransferTypeLabel(): string {
+    const fromName = metadata.value?.fromRegion.name
+    const toName = metadata.value?.toRegion.name
+    if (fromName && toName)
+      return `${fromName}传到${toName}`
+    return '传输申请'
+  }
+
+  /**
    * 清空区域元数据
    */
   function clearMetadata() {
@@ -70,10 +122,14 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
   return {
     metadata,
     setMetadata,
+    setMetadataFromIds,
     getFromId,
     getToId,
     getFromCode,
     getToCode,
+    getFromName,
+    getToName,
+    getTransferTypeLabel,
     clearMetadata,
   }
 })

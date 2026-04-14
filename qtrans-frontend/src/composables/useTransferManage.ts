@@ -2,6 +2,7 @@ import type { Application, TransferState, TransferType } from '@/types'
 import dayjs from 'dayjs'
 import { computed, reactive, ref, watch } from 'vue'
 import { useApplicationStore, useFileStore } from '@/stores'
+import { formatTransferTypeKeyLabel } from '@/constants'
 
 export type TransferManageTab = 'transferring' | 'completed' | 'all'
 export type TransferManageStatus = Exclude<TransferState['status'], 'pending'>
@@ -31,19 +32,6 @@ export interface TransferManageRecord {
   status: TransferManageStatus
   transferTime: string
   errorMessage?: string
-}
-
-const transferTypeLabelMap: Record<TransferType, string> = {
-  'green-to-green': '绿区传到绿区',
-  'green-to-yellow': '绿区传到黄区',
-  'green-to-red': '绿区传到红区',
-  'yellow-to-green': '黄区传到绿区',
-  'yellow-to-yellow': '黄区传到黄区',
-  'yellow-to-red': '黄区传到红区',
-  'red-to-green': '红区传到绿区',
-  'red-to-yellow': '红区传到黄区',
-  'red-to-red': '红区传到红区',
-  'cross-country': '跨国传输',
 }
 
 const transferStatusLabelMap: Record<TransferManageStatus, string> = {
@@ -254,7 +242,7 @@ export function useTransferManage() {
   }
 
   function getTransferTypeLabel(type: TransferType) {
-    return transferTypeLabelMap[type]
+    return formatTransferTypeKeyLabel(type)
   }
 
   function getStatusLabel(status: TransferManageStatus) {

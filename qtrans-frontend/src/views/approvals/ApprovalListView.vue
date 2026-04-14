@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import type { ApprovalListItem } from '@/composables/useApprovalList'
-import type { TransferType } from '@/constants'
 import { IconEye, IconRight } from '@arco-design/web-vue/es/icon'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { TRANSFER_TYPE_LABEL_MAP, TRANSFER_TYPE_OPTIONS_WITH_ALL } from '@/constants'
+import { formatTransferTypeKeyLabel, TRANSFER_TYPE_OPTIONS_WITH_ALL } from '@/constants'
 import { formatDateTime } from '@/utils'
 import type { ApprovalTabType } from '@/composables/useApprovalList'
 import { useApprovalList } from '@/composables/useApprovalList'
@@ -28,7 +27,6 @@ const {
 
 // 使用统一常量
 const transferTypeOptions = TRANSFER_TYPE_OPTIONS_WITH_ALL
-const transferTypeLabelMap = TRANSFER_TYPE_LABEL_MAP
 
 function onViewDetail(record: ApprovalListItem) {
   const query: Record<string, string | undefined> = {
@@ -124,7 +122,7 @@ onMounted(async () => {
 
             <a-table-column title="传输类型" :width="150">
               <template #cell="{ record }">
-                {{ transferTypeLabelMap[record.transferType as TransferType] }}
+                {{ formatTransferTypeKeyLabel(record.transferType) }}
               </template>
             </a-table-column>
 

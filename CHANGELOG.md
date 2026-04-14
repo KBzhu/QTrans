@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed - 2026-04-14
 
+#### 传输类型 label 硬编码移除：枚举映射改为动态生成
+
+**核心改动**：将 `TRANSFER_TYPE_LABEL_MAP`、`transferTypeLabelMap` 等硬编码枚举映射统一替换为动态生成，消除前端对传输类型枚举的硬编码依赖。
+
+##### 修改
+
+- **constants/transferType.ts**: `TransferType` 类型从 10 个字面量联合放宽为 `string`；移除 `TRANSFER_TYPE_LABEL_MAP`、`getTransferTypeLabel()`、`isValidTransferType()`；保留 `TRANSFER_TYPE_OPTIONS`/`TRANSFER_TYPE_OPTIONS_WITH_ALL`（待后端提供动态接口后移除）
+- **constants/region.ts**: 新增 `formatTransWayLabel(transWay)` 将后端 transWay 格式化为中文显示；新增 `formatTransferTypeKeyLabel(typeKey)` 从传输类型 key（如 `green-to-red`）动态生成中文标签
+- **stores/regionMetadata.ts**: 新增 `getTransferTypeLabel()` 方法，基于 store 中区域元数据动态拼接 `"{源区域}传到{目标区域}"` 标签
+- **composables/useApplicationForm.ts**: `transferTypeLabel` 改为 `regionMetadataStore.getTransferTypeLabel()` 动态生成；`transWayToTransferType()`/`normalizeTransferType()` 移除硬编码 `validTypes` 集合，改为格式校验；移除 `TRANSFER_TYPE_LABEL_MAP` 导入
+- **composables/useTransferManage.ts**: 移除硬编码 `transferTypeLabelMap`，`getTransferTypeLabel()` 改用 `formatTransferTypeKeyLabel()`
+- **views/approvals/ApprovalListView.vue**: 移除 `TRANSFER_TYPE_LABEL_MAP` 引用，表格列改用 `formatTransferTypeKeyLabel()`
+
+### Changed - 2026-04-14
+
+#### 申请单页面区域硬编码统一重构
+
+**核心改动**：`/application/create` 路径下的区域相关硬编码统一迁移到 `regionMetadataStore`，与首页/dashboard 已完成的重构保持一致。
+
+##### 修改
+
+- **regionMetadataStore.ts**: 新增 `setMetadataFromIds(fromId, toId)` 方法（ID→code/name 反查集中到 store）、`getFromName()`/`getToName()`/`getFromCode()`/`getToCode()` getter
+- **StepOneBasicInfo.vue**: 区域字段从可编辑下拉框改为只读回显（`<a-input readonly>`），从 `regionMetadataStore` 读取中文名显示；移除 `AREA_OPTIONS` 导入、`onSourceAreaChange`/`onTargetAreaChange` 处理函数、`SecurityArea` 类型导入；外网判断改为 `isTargetExternal` 计算属性
+- **useApplicationForm.ts**: 移除 `inferAreas()` 硬编码推断函数，回退逻辑改为从 `transferType` 字符串 `split('-to-')` 解析；`loadApplicationById` 中用 `regionMetadataStore.setMetadataFromIds()` 替代直接 `ID_TO_AREA` 引用；移除 `sourceArea`/`targetArea` 表单校验规则（只读字段无需校验）
+- **components/constants.ts**: 移除 `AREA_OPTIONS` 重新导出
+
+##### 不影响提交参数
+
+`payloadConverter.ts` 已通过 `regionMetadataStore.getFromId()/getToId()` 获取区域 ID 构造提交参数，本次改动不影响最终提交。
+
+### Changed - 2026-04-14
+
 #### 部门自动初始化 - 进入页面自动查询回填
 
 ##### 修改
