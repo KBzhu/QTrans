@@ -4,7 +4,7 @@ import { deptApi } from '@/api/dept'
 import { LOGIN_USER_TYPE } from '@/api/auth'
 import { useAuthStore } from '@/stores'
 import { Message } from '@arco-design/web-vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 /** 层级标签 */
 const LEVEL_LABELS = ['公司', '一级部门', '二级部门', '三级部门', '四级部门'] as const
@@ -16,6 +16,8 @@ interface Props {
   displayValue?: string
   placeholder?: string
   disabled?: boolean
+  /** 是否在组件挂载时自动查询当前用户部门并回填（无需打开对话框） */
+  autoInit?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -23,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   displayValue: '',
   placeholder: '请选择部门',
   disabled: false,
+  autoInit: false,
 })
 
 interface Emits {
@@ -127,6 +130,44 @@ function buildLevelsFromPath(pathItems: DeptItem[]) {
   // 第1层已加载（公司固定），其他层标记为未加载
   levelLoaded.value = sorted.map((_, idx) => idx === 0)
   levelLoading.value = sorted.map(() => false)
+}
+
+/* ===== 自动初始化：挂载时查询用户部门并直接回填（无需打开弹窗） ===== */
+const autoInitLoading = ref(false)
+
+async function autoInitDepartment() {
+  const user = authStore.currentUser
+  if (!user?.username)
+    return
+
+  try {
+    autoInitLoading.value = true
+    const res = await deptApi.searchDeptByAccount(user.username, LOGIN_USER_TYPE)
+    if (res.code === 200 && res.data?.deptInfos?.length) {
+      const deptInfo = res.data.deptInfos[0]!
+      const parentDept = deptInfo.parentDept ?? []
+      if (parentDept.length > 0) {
+        // 排序后构建路径
+        const sorted = [...parentDept].sort((a, b) => Number(a.deptLevel) - Number(b.deptLevel))
+        confirmedPath.value = sorted
+        const last = sorted[sorted.length - 1]!
+        const deptName = sorted.map(d => d.deptName).join('/')
+        externalDisplayText.value = deptName
+        emit('update:modelValue', last.deptCode)
+        emit('change', {
+          deptId: String(last.deptCode),
+          deptName,
+          deptCode: last.deptCode,
+        })
+      }
+    }
+  }
+  catch {
+    // 自动初始化失败不提示，保持空状态让用户手动选
+  }
+  finally {
+    autoInitLoading.value = false
+  }
 }
 
 /* ===== 打开弹窗 ===== */
@@ -299,6 +340,14 @@ function onClear() {
 }
 
 /* ===== 外部 modelValue 变化时同步显示（初始化回显场景） ===== */
+
+/* ===== 挂载时自动初始化部门（如果 autoInit=true 且当前无值） ===== */
+onMounted(() => {
+  if (props.autoInit && !props.modelValue) {
+    autoInitDepartment()
+  }
+})
+
 watch(
   () => [props.modelValue, props.displayValue] as const,
   ([modelValue, displayValue]) => {
@@ -319,13 +368,19 @@ watch(
 
 <template>
   <div class="dept-selector-root">
-    <div class="dept-selector-trigger" :class="{ 'is-disabled': disabled }" @click="openModal">
-      <span v-if="currentDisplayText" class="dept-selector-trigger__text">{{ currentDisplayText }}</span>
-      <span v-else class="dept-selector-trigger__placeholder">{{ placeholder }}</span>
-      <span v-if="currentDisplayText && !disabled" class="dept-selector-trigger__clear" @click.stop="onClear">
-        <icon-close />
-      </span>
-      <icon-right v-else class="dept-selector-trigger__arrow" />
+    <div class="dept-selector-trigger" :class="{ 'is-disabled': disabled || autoInitLoading }" @click="openModal">
+      <template v-if="autoInitLoading">
+        <a-spin :size="14" />
+        <span class="dept-selector-trigger__loading-text">正在获取部门信息...</span>
+      </template>
+      <template v-else>
+        <span v-if="currentDisplayText" class="dept-selector-trigger__text">{{ currentDisplayText }}</span>
+        <span v-else class="dept-selector-trigger__placeholder">{{ placeholder }}</span>
+        <span v-if="currentDisplayText && !disabled" class="dept-selector-trigger__clear" @click.stop="onClear">
+          <icon-close />
+        </span>
+        <icon-right v-else class="dept-selector-trigger__arrow" />
+      </template>
     </div>
 
     <!-- 弹窗 -->

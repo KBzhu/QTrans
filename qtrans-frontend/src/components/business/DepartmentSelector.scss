@@ -60,6 +60,13 @@
     color: var(--color-text-3);
     font-size: 12px;
   }
+
+  &__loading-text {
+    flex: 1;
+    font-size: 14px;
+    color: var(--color-text-3);
+    margin-left: 4px;
+  }
 }
 
 // Modal 弹窗样式见 DepartmentSelectorModal.scss

@@ -245,6 +245,7 @@ defineExpose({ validate })
               :model-value="formData.departmentId"
               :display-value="formData.department"
               :disabled="readonly"
+              :auto-init="true"
               @change="onDepartmentChange"
             />
           </a-form-item>

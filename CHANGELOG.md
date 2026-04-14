@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed - 2026-04-14
 
+#### 部门自动初始化 - 进入页面自动查询回填
+
+##### 修改
+
+- **DepartmentSelector.vue**: 新增 `autoInit` prop（默认 false），当为 true 时组件挂载自动调用 `search-dept-by-account` 接口查询当前用户部门，回填到表单并触发 `change` 事件（联动后续审批人等字段），无需打开对话框；自动初始化期间显示 loading 状态（"正在获取部门信息..."）
+- **DepartmentSelector.scss**: 新增 `__loading-text` 样式
+- **StepOneBasicInfo.vue**: 传递 `:auto-init="true"` 给 DepartmentSelector
+
+### Changed - 2026-04-14
+
 #### useCitySelection & useApprovalRoute 区域配置化重构
 
 **核心改动**：完成申请单流程最后两个 composable 的区域硬编码清理。
