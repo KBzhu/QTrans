@@ -2,14 +2,14 @@ import type { SecurityArea } from '@/composables/useApplicationForm'
 import type { CitySelectionState } from './types'
 import { ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
-import { useAuthStore } from '@/stores'
-import { AREA_ID_MAP } from './constants'
+import { useAuthStore, useRegionMetadataStore } from '@/stores'
 
 export function useCitySelection(
   getFormData: () => { sourceArea: SecurityArea, targetArea: SecurityArea },
   onUpdateFormData: (updates: Partial<any>) => void,
 ) {
   const authStore = useAuthStore()
+  const regionMetadataStore = useRegionMetadataStore()
 
   const state = ref<CitySelectionState>({
     uploadCityOptions: [],
@@ -20,17 +20,16 @@ export function useCitySelection(
   })
 
   async function fetchUploadCities() {
-    const { sourceArea, targetArea } = getFormData()
-    const from = AREA_ID_MAP[sourceArea]
-    const to = AREA_ID_MAP[targetArea]
-    if (from === undefined || to === undefined)
+    const fromId = regionMetadataStore.getFromId()
+    const toId = regionMetadataStore.getToId()
+    if (fromId === null || toId === null)
       return
 
     state.value.uploadCityLoading = true
     try {
       const res = await applicationApi.findUploadCity({
-        fromRegionTypeId: from,
-        toRegionTypeId: to,
+        fromRegionTypeId: fromId,
+        toRegionTypeId: toId,
         isInternetFtpUpload: 0,
         w3Account: authStore.currentUser?.username || '',
       })
@@ -60,18 +59,17 @@ export function useCitySelection(
   }
 
   async function fetchDownloadCities(uploadRegionId: number) {
-    const { sourceArea, targetArea } = getFormData()
-    const from = AREA_ID_MAP[sourceArea]
-    const to = AREA_ID_MAP[targetArea]
-    if (from === undefined || to === undefined)
+    const fromId = regionMetadataStore.getFromId()
+    const toId = regionMetadataStore.getToId()
+    if (fromId === null || toId === null)
       return
 
     state.value.downloadCityLoading = true
     try {
       const res = await applicationApi.findDownloadCity({
         uploadRegionId,
-        fromRegionTypeId: from,
-        toRegionTypeId: to,
+        fromRegionTypeId: fromId,
+        toRegionTypeId: toId,
         isInternetFtpUpload: 0,
         w3Account: authStore.currentUser?.username || '',
       })
@@ -117,11 +115,10 @@ export function useCitySelection(
     })
   }
 
-  // 监听区域变化
+  // 监听区域元数据变化
   watch(
     [
-      () => getFormData().sourceArea,
-      () => getFormData().targetArea,
+      () => regionMetadataStore.metadata,
     ],
     () => {
       state.value.uploadCityOptions = []

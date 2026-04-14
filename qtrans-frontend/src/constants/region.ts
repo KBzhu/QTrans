@@ -1,14 +1,14 @@
 /**
- * 区域相关常量 - 统一维护
- * 
- * 所有区域 ID、名称、标签的映射关系都在此文件维护
- * 避免散落在各处的霰弹式定义
+ * 区域相关常量
+ *
+ * 注意：申请单流程中的区域元数据已迁移到 regionMetadataStore
+ * 此文件保留用于其他场景（申请单列表、审批列表等）的类型定义和兼容
  */
 
 // ===== 类型定义 =====
 export type SecurityArea = 'green' | 'yellow' | 'red' | 'external'
 
-// ===== ID 映射（双向）=====
+// ===== ID 映射 =====
 /** 区域英文名 → 后端区域ID */
 export const AREA_ID_MAP: Record<SecurityArea, number> = {
   green: 1,
@@ -43,7 +43,7 @@ export const LABEL_TO_AREA: Record<string, SecurityArea> = {
 }
 
 // ===== 下拉选项 =====
-/** 区域下拉选项（用于 a-select 等组件）*/
+/** 区域下拉选项 */
 export const AREA_OPTIONS: Array<{ label: string, value: SecurityArea }> = [
   { label: '绿区', value: 'green' },
   { label: '黄区', value: 'yellow' },
@@ -55,8 +55,6 @@ export const AREA_OPTIONS: Array<{ label: string, value: SecurityArea }> = [
 
 /**
  * 根据区域ID获取中文标签
- * @param id 后端区域ID
- * @returns 中文标签，如 "绿区"
  */
 export function areaIdToLabel(id: number): string {
   const area = ID_TO_AREA[id]
@@ -65,8 +63,6 @@ export function areaIdToLabel(id: number): string {
 
 /**
  * 根据区域英文名获取区域ID
- * @param area 区域英文名
- * @returns 后端区域ID，默认 1（绿区）
  */
 export function areaToId(area: SecurityArea): number {
   return AREA_ID_MAP[area] ?? 1
@@ -74,44 +70,14 @@ export function areaToId(area: SecurityArea): number {
 
 /**
  * 根据区域ID获取英文名
- * @param id 后端区域ID
- * @returns 区域英文名，默认 'green'
  */
 export function idToArea(id: number): SecurityArea {
   return ID_TO_AREA[id] ?? 'green'
 }
 
 /**
- * 从 itemAttr1 字符串中解析区域ID
- * 格式: "Create.aspx?action=create&hm=2&wfid=43&transType=0&fromAreaID=0&ToAreaID=15"
- * @param attr itemAttr1 字符串
- * @param key 'from' 或 'to'
- * @returns 区域ID 数字，解析失败返回 null
- */
-export function parseAreaIdFromAttr(attr: string | null, key: 'from' | 'to'): number | null {
-  if (!attr)
-    return null
-  // 匹配 fromAreaID 或 ToAreaID（注意大小写）
-  const pattern = key === 'from' ? /fromAreaID=(\d+)/i : /ToAreaID=(\d+)/i
-  const match = attr.match(pattern)
-  return match ? Number(match[1]) : null
-}
-
-/**
- * 从 itemAttr1 字符串中解析区域英文名
- * @param attr itemAttr1 字符串
- * @param key 'from' 或 'to'
- * @returns 区域英文名，默认 'green'
- */
-export function parseAreaFromAttr(attr: string | null, key: 'from' | 'to'): SecurityArea {
-  const id = parseAreaIdFromAttr(attr, key)
-  return id !== null ? ID_TO_AREA[id] ?? 'green' : 'green'
-}
-
-/**
  * 从中文区域名组合推断传输类型
- * @param transWay 格式如 "绿区,绿区" 或 "外网,绿区"
- * @returns 传输类型字符串
+ * @deprecated 请使用后端接口返回的传输类型
  */
 export function transWayToTransferType(transWay: string): string {
   const parts = transWay.split(',').map(s => s.trim())

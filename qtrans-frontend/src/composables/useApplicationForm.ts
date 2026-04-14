@@ -4,7 +4,7 @@ import { Message } from '@arco-design/web-vue'
 
 import { useApplicationStore, useAuthStore, useFileStore } from '@/stores'
 import { MAX_FILE_SIZE } from '@/utils/constants'
-import { APPROVAL_LEVEL_MAP, ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
+import { ID_TO_AREA, TRANSFER_TYPE_LABEL_MAP, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
@@ -417,43 +417,6 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     Message.success('已删除选中的文件')
   }
 
-  function refreshUploadedList() {
-    Message.success('已刷新文件列表')
-  }
-
-  function buildPayload(status: Application['status'] = 'draft'): Partial<Application> {
-    const user = authStore.currentUser
-
-    return {
-      id: currentDraftId.value || undefined,
-      transferType: formData.value.transferType,
-      department: formData.value.department,
-      departmentId: formData.value.departmentId,
-      sourceArea: formData.value.sourceArea,
-      targetArea: formData.value.targetArea,
-      sourceCountry: formData.value.sourceCity[0] || '',
-      sourceCity: formData.value.sourceCity,
-      sourceCityId: formData.value.sourceCityId,
-      targetCountry: formData.value.targetCity[0] || '',
-      targetCity: formData.value.targetCity,
-      targetCityId: formData.value.targetCityId,
-      downloaderAccounts: formData.value.downloaderAccounts,
-      ccAccounts: formData.value.ccAccounts,
-      containsCustomerData: formData.value.containsCustomerData === 'yes',
-
-      srNumber: formData.value.srNumber || undefined,
-      minDeptSupervisor: formData.value.minDeptSupervisor || undefined,
-      applyReason: formData.value.applyReason,
-      applicantNotifyOptions: formData.value.applicantNotifyOptions,
-      downloaderNotifyOptions: formData.value.downloaderNotifyOptions,
-      status,
-      applicantId: user?.id || 'u_submitter',
-      applicantName: user?.name || user?.username || '提交人',
-      currentApprovalLevel: status === 'pending_approval'
-        ? (APPROVAL_LEVEL_MAP[formData.value.transferType] > 0 ? 1 : 0)
-        : 0,
-    }
-  }
 
   async function handleNext(_validateCurrentStep?: () => Promise<boolean>) {
     // 第二步进入第三步
@@ -560,52 +523,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     currentStep.value = Math.max(0, currentStep.value - 1)
   }
 
-  async function handleSaveDraft(options?: { silent?: boolean }) {
-    const draft = await applicationStore.saveDraft(buildPayload('draft'))
-    currentDraftId.value = draft.id
-    updateSnapshot()
 
-    if (!options?.silent)
-      Message.success('草稿已保存')
-
-    return draft
-  }
-
-  function bindUploadedFilesToApplication(applicationId: string) {
-    uploadedFiles.value.forEach((file) => {
-      fileStore.addFile({
-        id: `${applicationId}-${file.uid}`,
-        applicationId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.fileType || 'application/octet-stream',
-        uploadStatus: 'completed',
-        uploadProgress: 100,
-        uploadedAt: file.lastModified || new Date().toISOString(),
-        fileBlob: file.raw,
-      })
-    })
-  }
-
-  async function handleSubmit() {
-    const created = await applicationStore.createApplication(buildPayload('pending_approval'))
-
-    bindUploadedFilesToApplication(created.id)
-
-    if (currentDraftId.value)
-      applicationStore.deleteDraft(currentDraftId.value)
-
-    submittedApplication.value = created
-    currentStep.value = 2
-    updateSnapshot()
-    Message.success('申请提交成功')
-
-    return created
-  }
-
-  /**
-   * 提交申请 - 调用真实后端接口
-   */
   async function handleSubmitReal() {
     try {
       submitting.value = true
@@ -794,8 +712,6 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     handleNext,
     handleNextWithSubmit,
     handlePrev,
-    handleSaveDraft,
-    handleSubmit,
     handleSubmitReal,
     loadDraft,
     loadApplicationById,
@@ -809,6 +725,5 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     batchResumeUploading,
     batchRemoveUploading,
     batchRemoveUploaded,
-    refreshUploadedList,
   }
 }

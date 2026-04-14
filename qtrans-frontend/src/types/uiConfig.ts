@@ -88,16 +88,20 @@ export interface UITransferTypeConfigItem {
   key: string
   title: string
   desc: string
-  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-  fromIcon: string
-  toIcon: string
-  arrowIcon: string
-  level?: string
-  levelText?: string
+  fromZone: string  // 区域 code，如 'green'
+  toZone: string    // 区域 code，如 'yellow'
+  fromIcon: string  // from 区域图标路径（从 itemAttr2 获取）
+  toIcon: string    // to 区域图标路径（从 itemAttr3 获取）
+  arrowIcon: string // 箭头图标（统一使用 /icons/arrow.svg）
+  fromStyle: string // from 区域样式（从 itemAttr4 获取，分号前部分）
+  toStyle: string   // to 区域样式（从 itemAttr4 获取，分号后部分）
   tabGroup: string
   order: number
   status: StatusEnum
+  // 以下字段暂时保留用于兼容
+  level?: string
+  levelText?: string
+  itemAttr5?: string // 原始区域元数据（fromCode,fromName,fromId,toCode,toName,toId）
 }
 
 export interface ImportUIConfigRequest {

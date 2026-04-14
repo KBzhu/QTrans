@@ -4,8 +4,7 @@
  */
 
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
-import { useAuthStore } from '@/stores'
-import { areaToId } from '@/constants'
+import { useAuthStore, useRegionMetadataStore } from '@/stores'
 
 // 通知渠道映射: 应用号/W3代办/邮件 → 1/2/3
 const NOTIFY_CHANNEL_MAP: Record<string, number> = {
@@ -32,14 +31,15 @@ function convertNotifyOptions(channels: string[]): string {
  */
 export function buildCreatePayload(formData: ApplicationFormData): Record<string, any> {
   const authStore = useAuthStore()
+  const regionMetadataStore = useRegionMetadataStore()
   const user = authStore.currentUser
 
   // 获取当前用户W3账号
   const currentW3Account = user?.username || ''
 
-  // 区域类型转换（使用统一常量）
-  const fromRegionTypeId = areaToId(formData.sourceArea)
-  const toRegionTypeId = areaToId(formData.targetArea)
+  // 从 store 获取区域 ID
+  const fromRegionTypeId = regionMetadataStore.getFromId() ?? 1
+  const toRegionTypeId = regionMetadataStore.getToId() ?? 1
 
   // 城市名称（中文）
   const fromCityName = formData.sourceCity[1] || formData.sourceCity[0] || ''

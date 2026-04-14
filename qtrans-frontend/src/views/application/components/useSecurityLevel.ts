@@ -1,7 +1,7 @@
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
-import { HIGH_TO_LOW_PAIRS, AREA_ID_MAP } from './constants'
+import { useRegionMetadataStore } from '@/stores'
 
 type SecurityLevelFormState = Pick<ApplicationFormData, 'sourceArea' | 'targetArea' | 'securityLevel'>
 
@@ -9,8 +9,10 @@ export function useSecurityLevel(
   getFormData: () => SecurityLevelFormState,
   onUpdateFormData: (updates: Partial<ApplicationFormData>) => void,
 ) {
+  const regionMetadataStore = useRegionMetadataStore()
   const options = ref<{ label: string, value: string }[]>([])
   const loading = ref(false)
+  const displaySecretLevel = ref(false) // 是否显示密级选择
   let fetchVersion = 0
 
   function resetOptions() {
@@ -25,18 +27,17 @@ export function useSecurityLevel(
   }
 
   async function fetch() {
-    const { sourceArea, targetArea, securityLevel } = getFormData()
-    const from = AREA_ID_MAP[sourceArea]
-    const to = AREA_ID_MAP[targetArea]
-    if (from === undefined || to === undefined)
+    const fromId = regionMetadataStore.getFromId()
+    const toId = regionMetadataStore.getToId()
+    if (fromId === null || toId === null)
       return
 
     const currentFetchVersion = ++fetchVersion
     loading.value = true
     try {
       const list = await applicationApi.findSecurityLevelList({
-        fromRegionTypeId: from,
-        toRegionTypeId: to,
+        fromRegionTypeId: fromId,
+        toRegionTypeId: toId,
         isUrgent: 0,
         isContainSourceCode: 0,
         procType: '0',
@@ -45,12 +46,23 @@ export function useSecurityLevel(
       if (currentFetchVersion !== fetchVersion)
         return
 
+      // 判断是否显示密级选择（根据后端返回的 isDisplaySecretLevelControl）
+      const shouldDisplay = (list || []).some((item: any) => item.isDisplaySecretLevelControl === 1)
+      displaySecretLevel.value = shouldDisplay
+
+      if (!shouldDisplay) {
+        resetOptions()
+        updateSecurityLevel(undefined)
+        return
+      }
+
       const nextOptions = (list || []).map((item: any) => ({
         value: item.securityLookupVO?.itemCode ?? '',
         label: item.securityLookupVO?.itemName ?? '',
       }))
       options.value = nextOptions
 
+      const { securityLevel } = getFormData()
       const hasCurrentValue = Boolean(
         securityLevel
         && nextOptions.some(item => item.value === securityLevel),
@@ -62,6 +74,7 @@ export function useSecurityLevel(
         return
 
       resetOptions()
+      displaySecretLevel.value = false
       updateSecurityLevel(undefined)
     }
     finally {
@@ -70,26 +83,12 @@ export function useSecurityLevel(
     }
   }
 
-  const isHighToLow = computed(() => {
-    const { sourceArea, targetArea } = getFormData()
-    const key = `${sourceArea}->${targetArea}`
-    return HIGH_TO_LOW_PAIRS.has(key)
-  })
-
+  // 监听区域变化，从 store 获取新的区域 ID
   watch(
     [
-      () => getFormData().sourceArea,
-      () => getFormData().targetArea,
+      () => regionMetadataStore.metadata,
     ],
-    ([sourceArea, targetArea]) => {
-      if (!HIGH_TO_LOW_PAIRS.has(`${sourceArea}->${targetArea}`)) {
-        fetchVersion += 1
-        loading.value = false
-        resetOptions()
-        updateSecurityLevel(undefined)
-        return
-      }
-
+    () => {
       void fetch()
     },
     { immediate: true },
@@ -98,8 +97,7 @@ export function useSecurityLevel(
   return {
     options,
     loading,
-    isHighToLow,
+    displaySecretLevel,
     fetch,
   }
 }
-

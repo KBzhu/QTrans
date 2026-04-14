@@ -2,8 +2,7 @@
 import type { UITransferTypeConfigItem } from '@/types'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTransferConfig } from '@/composables/useTransferConfig'
-import { getTransferIcons } from '@/config/icons'
+import { useTransferConfig, saveRegionMetadataToStore } from '@/composables/useTransferConfig'
 
 const router = useRouter()
 const { tabs, transferTypes } = useTransferConfig()
@@ -24,47 +23,11 @@ const filteredTypes = computed(() => {
 
 const isRoutineTab = computed(() => activeTab.value === 'routine')
 
-/* ===== 例行申请卡片（暂时保留硬编码） ===== */
-interface RoutineCard {
-  key: string
-  title: string
-  desc: string
-  fromIcon: string
-  toIcon: string
-  arrowIcon: string
-  fromZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-  toZone: 'green' | 'yellow' | 'red' | 'cross' | 'external' | 'hisilicon'
-}
-
-const routineCards: RoutineCard[] = (
-  [
-    {
-      key: 'routine-apply',
-      title: '例行申请',
-      desc: '定期传输任务',
-      fromZone: 'green' as const,
-      toZone: 'green' as const,
-    },
-    {
-      key: 'routine-channel',
-      title: '例行通道',
-      desc: '常规传输通道',
-      fromZone: 'cross' as const,
-      toZone: 'cross' as const,
-    },
-  ] satisfies Array<Pick<RoutineCard, 'key' | 'title' | 'desc' | 'fromZone' | 'toZone'>>
-).map(card => {
-  const icons = getTransferIcons(card.fromZone, card.toZone)
-  return {
-    ...card,
-    fromIcon: icons.fromIcon,
-    toIcon: icons.toIcon,
-    arrowIcon: icons.arrowIcon,
-  }
-})
-
 /* ===== 点击卡片 ===== */
-function handleCardClick(item: UITransferTypeConfigItem | RoutineCard) {
+function handleCardClick(item: UITransferTypeConfigItem) {
+  // 保存区域元数据到 Store
+  saveRegionMetadataToStore(item)
+
   router.push({
     path: '/application/create',
     query: {
@@ -96,7 +59,7 @@ function handleTabClick(tabKey: string) {
       </button>
     </div>
 
-    <!-- 首页--传输类型卡片网格--绿区传出开始 -->
+    <!-- 传输类型卡片网格 -->
     <div v-if="!isRoutineTab" class="select-type__grid">
       <article
         v-for="item in filteredTypes"
@@ -105,37 +68,13 @@ function handleTabClick(tabKey: string) {
         @click="handleCardClick(item)"
       >
         <div class="type-card__icons">
-          <div class="type-card__icon-box" :class="`zone-${item.fromZone}`">
+          <div class="type-card__icon-box" :style="item.fromStyle">
             <img :src="item.fromIcon" :alt="item.title" />
           </div>
           <div class="type-card__arrow">
             <img :src="item.arrowIcon" alt="arrow" />
           </div>
-          <div class="type-card__icon-box" :class="`zone-${item.toZone}`">
-            <img :src="item.toIcon" :alt="item.title" />
-          </div>
-        </div>
-        <div class="type-card__title">{{ item.title }}</div>
-        <div class="type-card__desc">{{ item.desc }}</div>
-      </article>
-    </div>
-
-    <!-- 例行申请卡片（大尺寸双列） -->
-    <div v-else class="select-type__grid select-type__grid--routine">
-      <article
-        v-for="item in routineCards"
-        :key="item.key"
-        class="type-card type-card--routine"
-        @click="handleCardClick(item)"
-      >
-        <div class="type-card__icons">
-          <div class="type-card__icon-box" :class="`zone-${item.fromZone}`">
-            <img :src="item.fromIcon" :alt="item.title" />
-          </div>
-          <div class="type-card__arrow">
-            <img :src="item.arrowIcon" alt="arrow" />
-          </div>
-          <div class="type-card__icon-box" :class="`zone-${item.toZone}`">
+          <div class="type-card__icon-box" :style="item.toStyle">
             <img :src="item.toIcon" :alt="item.title" />
           </div>
         </div>

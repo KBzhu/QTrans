@@ -2,7 +2,7 @@ import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import type { ApprovalRouteConfig } from './types'
 import { computed, ref, watch } from 'vue'
 import { applicationApi } from '@/api/application'
-import { HIGH_TO_LOW_PAIRS, AREA_ID_MAP } from './constants'
+import { useRegionMetadataStore } from '@/stores'
 
 export interface ApproverOption {
   label: string
@@ -105,6 +105,7 @@ export function useApprovalRoute(
   getFormData: () => ApprovalRouteFormState,
   onUpdateFormData: (updates: Partial<ApplicationFormData>) => void,
 ) {
+  const regionMetadataStore = useRegionMetadataStore()
   const loading = ref(false)
   const config = ref<ApprovalRouteConfig>(createEmptyConfig())
 
@@ -113,9 +114,11 @@ export function useApprovalRoute(
   let fetchVersion = 0
 
   const isHighToLow = computed(() => {
+    // 根据 sourceArea 和 targetArea 判断是否是高密传低密
     const { sourceArea, targetArea } = getFormData()
-    const key = `${sourceArea}->${targetArea}`
-    return HIGH_TO_LOW_PAIRS.has(key)
+    const highAreas = ['yellow', 'red']
+    const lowAreas = ['green', 'external']
+    return highAreas.includes(sourceArea) && lowAreas.includes(targetArea)
   })
 
   function syncApproverSelections(nextConfig: ApprovalRouteConfig, nextOptions: ApproverOptions) {
@@ -149,13 +152,13 @@ export function useApprovalRoute(
   }
 
   async function fetch() {
-    const { sourceArea, targetArea, securityLevel, departmentId, containsCustomerData } = getFormData()
+    const { securityLevel, departmentId, containsCustomerData } = getFormData()
     if (!securityLevel || !departmentId)
       return
 
-    const from = AREA_ID_MAP[sourceArea]
-    const to = AREA_ID_MAP[targetArea]
-    if (from === undefined || to === undefined)
+    const fromId = regionMetadataStore.getFromId()
+    const toId = regionMetadataStore.getToId()
+    if (fromId === null || toId === null)
       return
 
     const currentFetchVersion = ++fetchVersion
@@ -164,8 +167,8 @@ export function useApprovalRoute(
       const [routeRes, approversRes] = await Promise.all([
         applicationApi.findApprovalRoute({
           procTypeId: '0',
-          fromRegionTypeId: from,
-          toRegionTypeId: to,
+          fromRegionTypeId: fromId,
+          toRegionTypeId: toId,
           securityLevelId: securityLevel,
           isCustomerData: containsCustomerData === 'yes' ? 1 : 0,
           isUrgent: 0,
@@ -173,8 +176,8 @@ export function useApprovalRoute(
           isContainLargeModel: 0,
         }),
         applicationApi.getAllApprovers({
-          fromRegionTypeId: from,
-          toRegionTypeId: to,
+          fromRegionTypeId: fromId,
+          toRegionTypeId: toId,
           procTypeId: '0',
           securityLevelId: securityLevel,
           isCustomerData: containsCustomerData === 'yes' ? 1 : 0,
@@ -240,16 +243,16 @@ export function useApprovalRoute(
     })
   }
 
+  // 监听区域元数据和表单数据变化
   watch(
     [
-      () => getFormData().sourceArea,
-      () => getFormData().targetArea,
+      () => regionMetadataStore.metadata,
       () => getFormData().securityLevel || '',
       () => getFormData().departmentId || '',
       () => getFormData().containsCustomerData,
     ],
-    ([sourceArea, targetArea, securityLevel, departmentId]) => {
-      if (!HIGH_TO_LOW_PAIRS.has(`${sourceArea}->${targetArea}`) || !securityLevel || !departmentId) {
+    ([, securityLevel, departmentId]) => {
+      if (!securityLevel || !departmentId) {
         fetchVersion += 1
         loading.value = false
         resetConfig()
@@ -273,4 +276,3 @@ export function useApprovalRoute(
     resetApproverOptions,
   }
 }
-

@@ -98,31 +98,6 @@
   }
 }
 
-/* 安全域渐变色 */
-.zone-green {
-  background: linear-gradient(135deg, #00bba7 0%, #00c950 100%);
-}
-
-.zone-yellow {
-  background: linear-gradient(135deg, #f2b313 0%, #ee7214 100%);
-}
-
-.zone-red {
-  background: linear-gradient(135deg, #ff6900 0%, #fb2c36 100%);
-}
-
-.zone-external {
-  background: linear-gradient(135deg, #2b7fff 0%, #00bba7 100%);
-}
-
-.zone-hisilicon {
-  background: linear-gradient(135deg, #ad46ff 0%, #f6339a 100%);
-}
-
-.zone-cross {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-}
-
 /* ----- 卡片标题按钮（固定宽度，居中）----- */
 .type-card__title {
   /* 固定宽度，不随卡片宽度变化 */

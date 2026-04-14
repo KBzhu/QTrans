@@ -2,15 +2,37 @@ import type { UITransferTabConfigItem, UITransferTypeConfigItem } from '@/types'
 import type { TransmissionScenarioChildItem, TransmissionScenarioItem } from '@/api/uiConfig'
 import { ref } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { parseAreaFromAttr } from '@/constants'
 import { uiConfigApi } from '@/api/uiConfig'
-import { getTransferIcons } from '@/config/icons'
+import { useRegionMetadataStore } from '@/stores'
 
 /**
- * 获取图标配置
+ * 解析 itemAttr5 获取区域元数据
+ * 格式: "fromCode:green,fromName:绿区,fromId:1,toCode:yellow,toName:黄区,toId:0"
  */
-function getIcons(fromZone: string, toZone: string) {
-  return getTransferIcons(fromZone, toZone)
+function parseItemAttr5(attr5: string | null): { fromCode: string, fromName: string, fromId: number, toCode: string, toName: string, toId: number } | null {
+  if (!attr5)
+    return null
+
+  const result: Record<string, string> = {}
+  const pairs = attr5.split(',')
+
+  for (const pair of pairs) {
+    const [key, value] = pair.split(':')
+    if (key && value)
+      result[key.trim()] = value.trim()
+  }
+
+  if (!result.fromCode || !result.fromName || !result.fromId || !result.toCode || !result.toName || !result.toId)
+    return null
+
+  return {
+    fromCode: result.fromCode,
+    fromName: result.fromName,
+    fromId: parseInt(result.fromId, 10),
+    toCode: result.toCode,
+    toName: result.toName,
+    toId: parseInt(result.toId, 10),
+  }
 }
 
 /**
@@ -36,21 +58,36 @@ function transformTypes(data: TransmissionScenarioChildItem[]): UITransferTypeCo
   return data
     .filter(item => item.status === 1)
     .map((item) => {
-      // 使用统一常量解析区域
-      const fromZone = parseAreaFromAttr(item.itemAttr1, 'from')
-      const toZone = parseAreaFromAttr(item.itemAttr1, 'to')
-      const icons = getIcons(fromZone, toZone)
+      // 解析 itemAttr5 获取区域元数据
+      const attr5Data = parseItemAttr5(item.itemAttr5)
+
+      // 默认值（兼容旧数据）
+      const fromCode = attr5Data?.fromCode || 'green'
+      const toCode = attr5Data?.toCode || 'green'
+
+      // 图标路径直接从后端获取（itemAttr2 = from 图标，itemAttr3 = to 图标）
+      // 需要拼接成完整路径
+      const fromIcon = item.itemAttr2 ? `/icons/${item.itemAttr2}` : '/icons/green.svg'
+      const toIcon = item.itemAttr3 ? `/icons/${item.itemAttr3}` : '/icons/green.svg'
+
+      // 解析 itemAttr4 获取 from/to 各自的样式（用 | 分隔）
+      // 格式: "from样式CSS;|to样式CSS;"
+      const attr4Parts = (item.itemAttr4 || '').split('|')
+      const fromStyle = attr4Parts[0] || ''
+      const toStyle = attr4Parts[1] || ''
 
       return {
         id: String(item.itemId),
         key: item.itemCode,
         title: item.itemName,
         desc: item.itemDesc || '',
-        fromZone: fromZone as UITransferTypeConfigItem['fromZone'],
-        toZone: toZone as UITransferTypeConfigItem['toZone'],
-        fromIcon: icons.fromIcon,
-        toIcon: icons.toIcon,
-        arrowIcon: icons.arrowIcon,
+        fromZone: fromCode as UITransferTypeConfigItem['fromZone'],
+        toZone: toCode as UITransferTypeConfigItem['toZone'],
+        fromIcon,
+        toIcon,
+        arrowIcon: '/icons/arrow.svg', // 统一箭头
+        fromStyle,
+        toStyle,
         tabGroup: item.parentItem?.itemCode || '',
         order: item.itemIndex,
         status: 'enabled' as const,
@@ -95,5 +132,43 @@ export function useTransferConfig() {
     tabs,
     transferTypes,
     fetchConfig,
+  }
+}
+
+/**
+ * 点击卡片时保存区域元数据到 Store
+ */
+export function saveRegionMetadataToStore(item: UITransferTypeConfigItem) {
+  const regionMetadataStore = useRegionMetadataStore()
+  const attr5Data = parseItemAttr5(item.itemAttr5 || null)
+
+  if (attr5Data) {
+    regionMetadataStore.setMetadata({
+      fromRegion: {
+        code: attr5Data.fromCode,
+        name: attr5Data.fromName,
+        id: attr5Data.fromId,
+      },
+      toRegion: {
+        code: attr5Data.toCode,
+        name: attr5Data.toName,
+        id: attr5Data.toId,
+      },
+    })
+  }
+  else {
+    // 降级处理：使用卡片数据中的 fromZone/toZone
+    regionMetadataStore.setMetadata({
+      fromRegion: {
+        code: item.fromZone,
+        name: item.fromZone, // 暂时用 code 作为 name
+        id: 1, // 默认值
+      },
+      toRegion: {
+        code: item.toZone,
+        name: item.toZone,
+        id: 1,
+      },
+    })
   }
 }

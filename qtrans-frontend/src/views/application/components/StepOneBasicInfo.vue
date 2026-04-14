@@ -17,7 +17,6 @@ interface Props {
   formRules: Record<string, any[]>
   transferTypeLabel: string
   showCustomerDataFields: boolean
-  draftApplicationNo: string
   submittedApplication: any
   readonly?: boolean
 }
@@ -122,7 +121,7 @@ const basicInfoRows = computed(() => {
 
   return [
     { label: '申请人', value: applicant },
-    { label: '申请单号', value: props.submittedApplication?.applicationNo || props.draftApplicationNo },
+    { label: '申请单号', value: props.submittedApplication?.applicationNo || '待提交后生成' },
     { label: '当前处理人', value: handler },
   ]
 })

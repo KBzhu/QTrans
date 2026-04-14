@@ -2,7 +2,6 @@ export interface StepOneBasicInfoProps {
   formRules: Record<string, any[]>
   transferTypeLabel: string
   showCustomerDataFields: boolean
-  draftApplicationNo: string
   submittedApplication: any
   readonly?: boolean
 }

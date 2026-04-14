@@ -53,11 +53,9 @@ const {
   batchPauseUploading,
   batchResumeUploading,
   batchRemoveUploading,
-  batchRemoveUploaded,
-  refreshUploadedList,
+    batchRemoveUploaded,
 } = useApplicationForm(typeFromQuery, fromZone, toZone)
 
-const draftApplicationNo = ref(`MWEHR${Math.floor(10000 + Math.random() * 90000)}`)
 const pageLoading = ref(false)
 
 const fileCount = computed(() => uploadedFiles.value.length + uploadingFiles.value.length)
@@ -117,10 +115,6 @@ async function onCopyRecentTemplate(text: string) {
     formData.value.applyReason = text
     Message.warning('浏览器不支持剪贴板，已直接填入申请原因')
   }
-}
-
-function goBack() {
-  router.back()
 }
 
 function goHome() {
@@ -193,7 +187,7 @@ onBeforeRouteLeave(() => {
 <template>
   <section class="create-application-page">
     <div class="create-application-page__crumbs">
-      <button class="back-btn" @click="goBack">
+      <button class="back-btn" @click="onCancel">
         <img :src="assetPath('/figma/3960_2183/1.svg')" alt="返回" />
 
         <span>返回</span>
@@ -220,7 +214,6 @@ onBeforeRouteLeave(() => {
           :form-rules="formRules"
           :transfer-type-label="transferTypeLabel"
           :show-customer-data-fields="showCustomerDataFields"
-          :draft-application-no="draftApplicationNo"
           :submitted-application="submittedApplication"
           :readonly="isApplicationCreated"
           @copy-template="onCopyRecentTemplate"
@@ -247,9 +240,8 @@ onBeforeRouteLeave(() => {
           @batch-pause-uploading="batchPauseUploading"
           @batch-resume-uploading="batchResumeUploading"
           @batch-remove-uploading="batchRemoveUploading"
-          @batch-remove-uploaded="batchRemoveUploaded"
-          @refresh-uploaded-list="refreshUploadedList"
-        />
+        @batch-remove-uploaded="batchRemoveUploaded"
+      />
         <input ref="uploadInputRef" class="hidden-input" type="file" multiple @change="onUploadFilesChange" />
       </template>
 

@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - 2026-04-14
+
+#### 区域配置化重构 - 去除前端硬编码映射
+
+**核心改动**：前端不再维护任何区域映射硬编码，所有区域信息从后端接口获取。
+
+##### 新增
+
+- **regionMetadata Store**: `src/stores/regionMetadata.ts` - 存储首页卡片配置的区域元数据
+  - `useRegionMetadataStore` - 提供 `setMetadata`、`getFromId`、`getToId` 等方法
+  - 数据来源：`itemAttr5`（格式：`fromCode:green,fromName:绿区,fromId:1,toCode:yellow,toName:黄区,toId:0`）
+
+##### 修改
+
+- **useTransferConfig.ts**: 解析 `itemAttr4`（from/to 各自样式，用 `|` 分隔）和 `itemAttr5`（区域元数据）
+- **SelectTypeView.vue**: 两个子卡片分别应用 `itemAttr4` 中的 fromStyle 和 toStyle
+- **useSecurityLevel.ts**: 从 store 读取区域 ID，移除 `HIGH_TO_LOW_PAIRS` 预判逻辑，改用 `isDisplaySecretLevelControl` 控制 UI
+- **useCitySelection.ts**: 从 store 读取区域 ID
+- **useApprovalRoute.ts**: 从 store 读取区域 ID
+- **payloadConverter.ts**: 从 store 读取区域 ID
+- **types/uiConfig.ts**: `UITransferTypeConfigItem` 添加 `itemAttr5` 和 `cardStyle` 字段
+
+##### 删除
+
+- **src/config/icons.ts**: 删除整个文件（不再需要图标映射表）
+- **constants/transferType.ts**: 删除 `APPROVAL_LEVEL_MAP`
+- **components/constants.ts**: 删除 `HIGH_TO_LOW_PAIRS`
+- **select-type.scss**: 删除 `.zone-*` 渐变色样式（不再需要）
+
+##### 待后端配合
+
+- `itemAttr2`: from 区域图标路径
+- `itemAttr3`: to 区域图标路径
+- `itemAttr4`: 卡片 CSS 样式（可选）
+- `itemAttr5`: 区域元数据（`fromCode,fromName,fromId,toCode,toName,toId`）
+
+### Changed - 2026-04-14
+
+#### 清理模拟时期遗留代码
+
+- **SelectTypeView.vue**: 删除未使用的 `getTransferIcons` 导入、`RoutineCard` 接口定义
+- **useApplicationForm.ts**: 删除 `handleSubmit`（模拟时期创建申请）、`refreshUploadedList`（无实际功能）方法
+- **createApplicationView.vue / CreateApplicationView.vue**: 删除 `draftApplicationNo`、`goBack`（`onCancel` 已替代）
+- **StepOneBasicInfo.vue**: 同步删除 `draftApplicationNo` prop 及相关使用
+- **types.ts**: 同步删除 `StepOneBasicInfoProps.draftApplicationNo`
+
 ### Added - 2026-04-13
 
 #### 首页帮助文档 & 重要公告对接真实后端接口
