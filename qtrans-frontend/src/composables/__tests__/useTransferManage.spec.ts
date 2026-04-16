@@ -9,10 +9,10 @@ function createApplication(overrides: Partial<Application> = {}): Application {
   return {
     id: overrides.id || 'app-1',
     applicationNo: overrides.applicationNo || 'QT202603100001',
-    transferType: overrides.transferType || 'green-to-red',
+    transferType: overrides.transferType || 'green-to-external',
     department: overrides.department || '研发部',
     sourceArea: overrides.sourceArea || 'green',
-    targetArea: overrides.targetArea || 'red',
+    targetArea: overrides.targetArea || 'external',
     sourceCountry: overrides.sourceCountry || '中国',
     sourceCity: overrides.sourceCity || ['北京'],
     targetCountry: overrides.targetCountry || '中国',

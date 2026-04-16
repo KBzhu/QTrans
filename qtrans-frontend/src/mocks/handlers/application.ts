@@ -179,9 +179,9 @@ export const applicationHandlers = [
       department: payload.appBaseInfo?.department || '',
       departmentId: payload.appBaseInfo?.departmentId,
       sourceArea: payload.appBaseCountryCityRegionRelation?.sourceAreaType === 1 ? 'green'
-        : payload.appBaseCountryCityRegionRelation?.sourceAreaType === 2 ? 'yellow' : 'red',
+        : payload.appBaseCountryCityRegionRelation?.sourceAreaType === 2 ? 'yellow' : 'external',
       targetArea: payload.appBaseCountryCityRegionRelation?.targetAreaType === 1 ? 'green'
-        : payload.appBaseCountryCityRegionRelation?.targetAreaType === 2 ? 'yellow' : 'red',
+        : payload.appBaseCountryCityRegionRelation?.targetAreaType === 2 ? 'yellow' : 'external',
       sourceCountry: '中国',
       sourceCity: [payload.appBaseCountryCityRegionRelation?.sourceProvince || '', payload.appBaseCountryCityRegionRelation?.sourceCity || ''],
       sourceCityId: payload.appBaseCountryCityRegionRelation?.sourceCityId,

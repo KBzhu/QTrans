@@ -61,9 +61,9 @@ function createCity(overrides: Partial<CityDomainMapping> = {}): CityDomainMappi
     id: 'city-1',
     cityName: '北京',
     country: '中国',
-    domainCode: 'red',
-    domainName: '红区',
-    domainColor: '#f53f3f',
+    domainCode: 'external',
+    domainName: '外网',
+    domainColor: '#722ed1',
     status: 'enabled',
     createdAt: '2024-01-01T00:00:00.000Z',
     ...overrides,
@@ -133,9 +133,9 @@ describe('useRegionManage', () => {
     createCityMock.mockResolvedValueOnce(createCity())
 
     const composable = useRegionManage()
-    await composable.handleSaveCity({ cityName: '北京', country: '中国', domainCode: 'red' })
+    await composable.handleSaveCity({ cityName: '北京', country: '中国', domainCode: 'external' })
 
-    expect(createCityMock).toHaveBeenCalledWith({ cityName: '北京', country: '中国', domainCode: 'red' })
+    expect(createCityMock).toHaveBeenCalledWith({ cityName: '北京', country: '中国', domainCode: 'external' })
     expect(composable.modalVisible.value).toBe(false)
   })
 
@@ -167,7 +167,7 @@ describe('useRegionManage', () => {
 
     const composable = useRegionManage()
     composable.cityFilters.value.keyword = 'test'
-    composable.cityFilters.value.domainCode = 'red'
+    composable.cityFilters.value.domainCode = 'external'
     await composable.handleCityReset()
 
     expect(composable.cityFilters.value.keyword).toBe('')

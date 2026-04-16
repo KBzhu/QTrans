@@ -24,12 +24,14 @@ const uploadInputRef = ref<HTMLInputElement | null>(null)
 const typeFromQuery = String(route.query.type || DEFAULT_TRANSFER_TYPE)
 const fromZone = route.query.from as string | undefined
 const toZone = route.query.to as string | undefined
-const fromId = Number(route.query.fromId) ?? 1
-const toId = Number(route.query.toId) ?? 1
+// Number() 对 undefined 返回 NaN；对 "0" 返回 0（黄区 ID 是 0，是合法值）
+// 用 !isNaN 判断而非 truthy 判断，避免黄区 ID=0 被 && 过滤
+const fromId = Number(route.query.fromId)
+const toId = Number(route.query.toId)
 
 // 从 URL 读取数字 ID 并更新 store（用于刷新页面等无卡片上下文的场景）
 // 使用 setMetadataFromIds 以保证 name 字段通过映射表获取正确的中文标签（如"绿区"而非"green"）
-if (fromId && toId) {
+if (!isNaN(fromId) && !isNaN(toId)) {
   regionMetadataStore.setMetadataFromIds(fromId, toId)
 }
 

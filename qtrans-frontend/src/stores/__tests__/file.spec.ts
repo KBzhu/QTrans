@@ -46,10 +46,10 @@ vi.mock('@/api/application', () => ({
 const baseApplication: Application = {
   id: 'app-1',
   applicationNo: 'QT202603060001',
-  transferType: 'green-to-red',
+  transferType: 'green-to-external',
   department: '研发部',
   sourceArea: 'green',
-  targetArea: 'red',
+  targetArea: 'external',
   sourceCountry: '中国',
   sourceCity: ['北京'],
   targetCountry: '中国',

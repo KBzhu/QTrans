@@ -48,7 +48,7 @@ describe('useApprovalList', () => {
     const { filters, handleReset, pagination } = useApprovalList()
 
     filters.keyword = 'QT123'
-    filters.transferType = 'green-to-red'
+    filters.transferType = 'green-to-external'
 
     handleReset()
 

@@ -23,10 +23,10 @@ const defaultDomains: SecurityDomain[] = [
   },
   {
     id: 'domain-3',
-    name: '红区',
-    code: 'red',
-    color: '#f53f3f',
-    description: '高风险安全域，适用于机密数据传输',
+    name: '外网',
+    code: 'external',
+    color: '#722ed1',
+    description: '外网安全域，适用于跨域数据传输',
     status: 'enabled',
     createdAt: '2024-01-01T00:00:00.000Z',
   },
@@ -42,7 +42,7 @@ const defaultDomains: SecurityDomain[] = [
 ]
 
 const defaultCities: CityDomainMapping[] = [
-  { id: 'city-1', cityName: '北京', country: '中国', domainCode: 'red', domainName: '红区', domainColor: '#f53f3f', status: 'enabled', createdAt: '2024-01-01T00:00:00.000Z' },
+  { id: 'city-1', cityName: '北京', country: '中国', domainCode: 'external', domainName: '外网', domainColor: '#722ed1', status: 'enabled', createdAt: '2024-01-01T00:00:00.000Z' },
   { id: 'city-2', cityName: '上海', country: '中国', domainCode: 'yellow', domainName: '黄区', domainColor: '#ff7d00', status: 'enabled', createdAt: '2024-01-01T00:00:00.000Z' },
   { id: 'city-3', cityName: '深圳', country: '中国', domainCode: 'green', domainName: '绿区', domainColor: '#00b42a', status: 'enabled', createdAt: '2024-01-02T00:00:00.000Z' },
   { id: 'city-4', cityName: '广州', country: '中国', domainCode: 'yellow', domainName: '黄区', domainColor: '#ff7d00', status: 'enabled', createdAt: '2024-01-02T00:00:00.000Z' },
@@ -50,7 +50,7 @@ const defaultCities: CityDomainMapping[] = [
   { id: 'city-6', cityName: '武汉', country: '中国', domainCode: 'green', domainName: '绿区', domainColor: '#00b42a', status: 'disabled', createdAt: '2024-01-03T00:00:00.000Z' },
   { id: 'city-7', cityName: '东京', country: '日本', domainCode: 'yellow', domainName: '黄区', domainColor: '#ff7d00', status: 'enabled', createdAt: '2024-01-04T00:00:00.000Z' },
   { id: 'city-8', cityName: '大阪', country: '日本', domainCode: 'green', domainName: '绿区', domainColor: '#00b42a', status: 'enabled', createdAt: '2024-01-04T00:00:00.000Z' },
-  { id: 'city-9', cityName: '纽约', country: '美国', domainCode: 'red', domainName: '红区', domainColor: '#f53f3f', status: 'enabled', createdAt: '2024-01-05T00:00:00.000Z' },
+  { id: 'city-9', cityName: '纽约', country: '美国', domainCode: 'external', domainName: '外网', domainColor: '#722ed1', status: 'enabled', createdAt: '2024-01-05T00:00:00.000Z' },
   { id: 'city-10', cityName: '洛杉矶', country: '美国', domainCode: 'yellow', domainName: '黄区', domainColor: '#ff7d00', status: 'enabled', createdAt: '2024-01-05T00:00:00.000Z' },
   { id: 'city-11', cityName: '伦敦', country: '英国', domainCode: 'yellow', domainName: '黄区', domainColor: '#ff7d00', status: 'enabled', createdAt: '2024-01-06T00:00:00.000Z' },
   { id: 'city-12', cityName: '巴黎', country: '法国', domainCode: 'green', domainName: '绿区', domainColor: '#00b42a', status: 'enabled', createdAt: '2024-01-06T00:00:00.000Z' },

@@ -42,7 +42,7 @@ function createDefaultApprovalConfig(): ApprovalConfig {
     levelMapping: [
       { typeCode: 'green-to-green', typeName: '绿区传到绿区', level: 0, description: '免审' },
       { typeCode: 'green-to-yellow', typeName: '绿区传到黄区', level: 1, description: '一级审批' },
-      { typeCode: 'green-to-red', typeName: '绿区传到红区', level: 2, description: '二级审批' },
+      { typeCode: 'green-to-external', typeName: '绿区传到外网', level: 2, description: '二级审批' },
     ],
     timeout: 48,
     autoReject: false,
