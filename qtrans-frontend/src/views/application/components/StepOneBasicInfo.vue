@@ -7,6 +7,7 @@ import { useApplicationConfig } from '@/composables/useApplicationConfig'
 import DepartmentSelector from '@/components/business/DepartmentSelector.vue'
 import CitySelector from '@/components/business/CitySelector.vue'
 import UserSuggestSelect from '@/components/business/UserSuggestSelect.vue'
+import type { UserSuggestOption } from '@/composables/useUserSuggest'
 import { useApprovalRoute } from './useApprovalRoute'
 import { useCitySelection } from './useCitySelection'
 import { useSecurityLevel } from './useSecurityLevel'
@@ -137,8 +138,14 @@ function onDepartmentChange(value: { deptId: string, deptName: string, deptCode:
   formRef.value?.clearValidate?.('department')
 }
 
-function onDownloaderAccountsChange(val: string | string[] | undefined) {
-  updateFormData({ downloaderAccounts: Array.isArray(val) ? val : val ? [val] : [] })
+function onDownloaderAccountsChange(val: string | string[] | undefined, selectedItems: UserSuggestOption[] = []) {
+  const accounts = Array.isArray(val) ? val : val ? [val] : []
+  // 根据选中的 accounts 顺序收集对应的 email
+  const emails = accounts.map((account) => {
+    const item = selectedItems.find(opt => opt.value === account)
+    return item?.raw?.email || ''
+  })
+  updateFormData({ downloaderAccounts: accounts, downloaderEmails: emails })
   formRef.value?.clearValidate?.('downloaderAccounts')
 }
 

@@ -106,7 +106,8 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
       uploadMode: 0,    // 上传模式: 0=WEB, 1=FTP
       downloadMode: 0,  // 下载模式: 0=WEB, 1=FTP
       downloadW3Account: formData.downloaderAccounts.join(','),  // 多账号逗号拼接
-      downloadEmail: formData.downloadEmail || '',  // 下载方邮箱地址（外网场景）
+      downloadEmail: formData.downloaderEmails.filter(Boolean).join(';') || formData.downloadEmail || '',  // 下载人邮箱分号分隔，fallback 到手动输入
+      uploaderEmail: formData.uploaderEmail || '',  
     },
     appBpmWorkFlow: {
       currentHandler: currentW3Account,
@@ -114,7 +115,7 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
     appBaseExternalInfo: {
       applicationType: 0,
       abc: false,
-      vendorName: formData.vendorName || '',  // 下载方名称（外网场景）
+      vendorName: formData.vendorName || '',  // 下载方名称
     },
     appTransInfo: {
       transferMode: 0,

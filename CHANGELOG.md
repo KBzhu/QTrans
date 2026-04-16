@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-04-16
+
+#### 下载人邮箱自动填充
+
+- 选择下载人账号时，自动从 suggestUser 接口返回的 email 字段带出邮箱地址
+- 多个下载人的 email 用分号（;）分隔传给后端 `appBaseUploadDownloadInfo.downloadEmail`
+- 外网场景手动输入的 `downloadEmail` 作为 fallback
+
+##### 变更文件
+
+- **components/business/UserSuggestSelect.vue**: `change` 事件新增第二个参数 `selectedItems: UserSuggestOption[]`，传出选中项完整信息
+- **composables/useApplicationForm.ts**: `ApplicationFormData` 新增 `downloaderEmails: string[]` 字段，`defaultFormData`/`cloneFormData`/`loadDraft`/`loadApplicationById` 同步更新
+- **views/application/components/StepOneBasicInfo.vue**: `onDownloaderAccountsChange` 接收 `selectedItems`，按账号顺序收集 email
+- **utils/payloadConverter.ts**: `downloadEmail` 改为从 `downloaderEmails` 拼接（分号分隔），无邮箱时 fallback 到手动输入
+
+### Fixed - 2026-04-16
+
+#### 资产检测结果 BUG 修复：文件不显示 + 确认按钮无反应 + 审批输入框未出现
+
+**根因**：接口3 (`findKiaResultList`) 实际响应为 `{ pageVO, result }` 结构，但类型定义和解析逻辑期望 `{ list, total, pages }`，导致 `res.list` 为 `undefined`，文件列表始终为空。
+
+##### 修复
+
+- **types/assetDetection.ts**: `KiaResultListResponse` 适配后端实际结构 `pageVO + result`，新增 `KiaResultPageVO` 类型
+- **composables/useAssetDetection.ts**:
+  - `fetchKiaResultList`: 数据解析从 `res.list` → `res.result`，分页从 `res.total` → `res.pageVO.totalRows`
+  - `allFilesConfirmed`: 改为基于 `confirmedFiles.size >= pagination.total` 判断，覆盖分页场景
+- **AssetDetectionTab.vue**:
+  - 文件确认操作栏条件从 `!allFilesConfirmed` 改为 `!fileConfirmationCompleted`，修复"完成文件确认"按钮永远不显示的 BUG
+  - `keyAssetColumns` 浅拷贝改为 `map` 创建新对象，避免污染 `fileColumns` 缓存
+- **3个 View 页面** (ApplicationDetailView/ApprovalDetailView/AdminApplicationDetailModal): 补充解构 `fileConfirmationCompleted` 并传递 prop
+
 ### Changed - 2026-04-16
 
 #### 区域配置动态化：消除硬编码映射 + 移除红区

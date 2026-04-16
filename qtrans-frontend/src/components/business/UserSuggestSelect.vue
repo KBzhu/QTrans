@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useUserSuggest } from '@/composables/useUserSuggest'
+import { useUserSuggest, type UserSuggestOption } from '@/composables/useUserSuggest'
 
 interface Props {
   modelValue?: string | string[]
@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string | string[] | undefined): void
-  (e: 'change', value: string | string[] | undefined): void
+  (e: 'change', value: string | string[] | undefined, selectedItems: UserSuggestOption[]): void
 }>()
 
 const { loading, options, search, clear, MIN_KEYWORD_LENGTH } = useUserSuggest()
@@ -28,8 +28,9 @@ const searchValue = ref('')
 const selectedValue = computed({
   get: () => props.modelValue,
   set: (val) => {
+    const items = getSelectedItems(val)
     emit('update:modelValue', val)
-    emit('change', val)
+    emit('change', val, items)
   },
 })
 
@@ -45,6 +46,13 @@ const computedPlaceholder = computed(() => {
 function handleSearch(val: string) {
   searchValue.value = val
   search(val)
+}
+
+// 根据选中值获取完整的选项信息
+function getSelectedItems(val: string | string[] | undefined): UserSuggestOption[] {
+  if (!val) return []
+  const values = Array.isArray(val) ? val : [val]
+  return options.value.filter(opt => values.includes(opt.value))
 }
 
 // 处理选择变化

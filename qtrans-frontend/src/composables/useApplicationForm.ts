@@ -47,6 +47,7 @@ export interface ApplicationFormData {
   targetCityId?: number       // 目标城市ID
   targetRegionId?: number     // 目标区域通道ID（从城市选择接口获取）
   downloaderAccounts: string[]
+  downloaderEmails: string[]      // 下载人邮箱（与 downloaderAccounts 一一对应）
   ccAccounts: string[]
   containsCustomerData: 'yes' | 'no'
   srNumber: string
@@ -145,6 +146,7 @@ function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: s
     targetCityId: 0,
     targetRegionId: 0,
     downloaderAccounts: [],
+    downloaderEmails: [],
     ccAccounts: [],
     containsCustomerData: 'no',
 
@@ -170,6 +172,7 @@ function cloneFormData(data: ApplicationFormData): ApplicationFormData {
     sourceCity: [...data.sourceCity],
     targetCity: [...data.targetCity],
     downloaderAccounts: [...data.downloaderAccounts],
+    downloaderEmails: [...data.downloaderEmails],
     ccAccounts: [...data.ccAccounts],
     applicantNotifyOptions: [...data.applicantNotifyOptions],
     downloaderNotifyOptions: [...data.downloaderNotifyOptions],
@@ -546,6 +549,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       targetCity: draft.targetCity,
       targetCityId: draft.targetCityId,
       downloaderAccounts: draft.downloaderAccounts,
+      downloaderEmails: draft.downloaderEmails || [],
       ccAccounts: draft.ccAccounts || [],
       containsCustomerData: draft.containsCustomerData ? 'yes' : 'no',
 
@@ -613,6 +617,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         targetCity: [appBaseCountryCityRegionRelation.toCityName || ''],
         targetCityId: appBaseCountryCityRegionRelation.toCityId,
         downloaderAccounts: appBaseUploadDownloadInfo.downloadUser?.map(u => u.w3Account) || [],
+        downloaderEmails: appBaseUploadDownloadInfo.downloadUser?.map(u => u.email || '') || [],
         ccAccounts: appBaseApprovalRoute.managerCopyW3Account ? [appBaseApprovalRoute.managerCopyW3Account] : [],
         containsCustomerData: appBaseApprovalRoute.isCustomerData ? 'yes' : 'no',
         srNumber: '',
