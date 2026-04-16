@@ -59,6 +59,7 @@ const {
   confirmAllCurrentPageFiles,
   completeFileConfirmation,
   confirmAllKeyAssets,
+  fileConfirmationCompleted,
   updateFilters,
   changePage,
   changePageSize,
@@ -219,9 +220,10 @@ watch(
             :pagination="assetPagination"
             :require-confirmation="false"
             :all-files-confirmed="allFilesConfirmed"
-            :all-key-assets-confirmed="allKeyAssetsConfirmed"
-            :has-key-assets="hasKeyAssets"
-            @confirm-file="handleConfirmFile"
+          :all-key-assets-confirmed="allKeyAssetsConfirmed"
+          :has-key-assets="hasKeyAssets"
+          :file-confirmation-completed="fileConfirmationCompleted"
+          @confirm-file="handleConfirmFile"
             @confirm-key-asset="handleConfirmKeyAsset"
             @confirm-current-page="confirmAllCurrentPageFiles"
             @complete-file-confirmation="completeFileConfirmation"

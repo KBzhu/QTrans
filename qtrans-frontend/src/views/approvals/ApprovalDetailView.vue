@@ -60,6 +60,7 @@ const {
   confirmAllCurrentPageFiles,
   completeFileConfirmation,
   confirmAllKeyAssets,
+  fileConfirmationCompleted,
   updateFilters,
   changePage,
   changePageSize,
@@ -282,6 +283,7 @@ watch(
           :all-files-confirmed="allFilesConfirmed"
           :all-key-assets-confirmed="allKeyAssetsConfirmed"
           :has-key-assets="hasKeyAssets"
+          :file-confirmation-completed="fileConfirmationCompleted"
           @confirm-file="handleConfirmFile"
           @confirm-key-asset="handleConfirmKeyAsset"
           @confirm-current-page="confirmAllCurrentPageFiles"

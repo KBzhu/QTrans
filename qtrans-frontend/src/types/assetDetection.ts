@@ -80,12 +80,32 @@ export interface KiaResultListRequest {
   fileName?: string
 }
 
-/** 分页查询响应（新增） */
-export interface KiaResultListResponse {
-  /** 文件列表 */
-  list: KiaFileItem[]
-  /** 总数量 */
-  total: number
+/** 分页信息（后端 pageVO） */
+export interface KiaResultPageVO {
+  /** 总行数 */
+  totalRows: number
+  /** 当前页码 */
+  curPage: number
+  /** 每页数量 */
+  pageSize: number
+  /** 结果模式 */
+  resultMode: number
+  /** 起始索引 */
+  startIndex: number
+  /** 结束索引 */
+  endIndex: number
+  /** 排序字段 */
+  orderBy: string | null
+  /** 过滤字符串 */
+  filterStr: string | null
   /** 总页数 */
-  pages: number
+  totalPages: number
+}
+
+/** 分页查询响应（适配后端实际结构） */
+export interface KiaResultListResponse {
+  /** 分页信息 */
+  pageVO: KiaResultPageVO
+  /** 文件列表 */
+  result: KiaFileItem[]
 }

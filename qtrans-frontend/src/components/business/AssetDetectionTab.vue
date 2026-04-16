@@ -134,7 +134,8 @@ const fileColumns = computed<TableColumnData[]>(() => {
 
 // 关键资产表格列配置（与文件列表相同，但使用不同的插槽名）
 const keyAssetColumns = computed<TableColumnData[]>(() => {
-  const columns = [...fileColumns.value]
+  // 深拷贝避免污染 fileColumns 缓存
+  const columns = fileColumns.value.map(col => ({ ...col }))
   
   // 修改文件类型列使用不同的插槽
   const fileTypeCol = columns.find(col => col.slotName === 'fileType')
@@ -353,7 +354,7 @@ function getRowClassName(record: any) {
       </a-table>
 
       <!-- 文件确认操作栏 -->
-      <div v-if="requireConfirmation && !allFilesConfirmed" class="asset-detection-tab__actions">
+      <div v-if="requireConfirmation && !fileConfirmationCompleted" class="asset-detection-tab__actions">
         <a-button type="outline" @click="handleConfirmCurrentPage">
           确认当前页
         </a-button>

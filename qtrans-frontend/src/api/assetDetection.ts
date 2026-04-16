@@ -30,7 +30,7 @@ export const assetDetectionApi = {
    */
   getKiaResultList(params: KiaResultListRequest): Promise<KiaResultListResponse> {
     return request.raw<KiaResultListResponse>(
-      '/workflowService/services/frontendService/frontend/kiaResult/findKiaResultList',
+      `/workflowService/services/frontendService/frontend/kiaResult/page/${params.pageSize}/${params.pageNum}`,
       params,
     )
   },

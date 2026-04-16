@@ -59,11 +59,11 @@ export function useAssetDetection() {
   /** 是否有关键资产 */
   const hasKeyAssets = computed(() => keyFileList.value.length > 0)
 
-  /** 是否所有文件都已确认 */
+  /** 是否所有文件都已确认（基于已确认数量 vs 总数判断，覆盖分页场景） */
   const allFilesConfirmed = computed(() => {
-    if (fileList.value.length === 0)
+    if (pagination.total === 0)
       return false
-    return fileList.value.every(file => confirmedFiles.value.has(file.fileName))
+    return confirmedFiles.value.size >= pagination.total
   })
 
   /** 是否所有关键资产都已确认 */
@@ -190,8 +190,8 @@ export function useAssetDetection() {
         fileName: filters.fileName,
       })
 
-      fileList.value = res.list || []
-      pagination.total = res.total || 0
+      fileList.value = res.result || []
+      pagination.total = res.pageVO?.totalRows || 0
       pagination.current = currentPage
 
       return res
