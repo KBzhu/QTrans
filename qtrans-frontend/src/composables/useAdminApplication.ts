@@ -36,7 +36,7 @@ const areaOptions = [
   { label: '全部', value: '' },
   { label: '黄区', value: 0 },
   { label: '绿区', value: 1 },
-  { label: '红区', value: 2 },
+  { label: '外网', value: 2 },
 ]
 
 /** 状态颜色映射 */

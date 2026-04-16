@@ -2,24 +2,14 @@ import type { MyApplicationItem } from '@/api/application'
 import { applicationApi } from '@/api/application'
 import { Message } from '@arco-design/web-vue'
 import { reactive, ref } from 'vue'
+import { useRegionConfigStore } from '@/stores'
 
 // ─── 传输方式格式化 ─────────────────────────────────────────────────────────────
-// 真实字段: transWay = "外网,绿区" (英文/中文逗号分隔)
+// 使用 regionConfigStore 动态映射，替代硬编码
 function formatTransWay(transWay: string): string {
   if (!transWay) return '-'
-  const map: Record<string, string> = {
-    'Green Zone': '绿区',
-    'Yellow Zone': '黄区',
-    'Red Zone': '红区',
-    '外网': '外网',
-    '绿区': '绿区',
-    '黄区': '黄区',
-    '红区': '红区',
-  }
-  return transWay
-    .split(',')
-    .map(s => map[s.trim()] || s.trim())
-    .join(' → ')
+  const regionConfigStore = useRegionConfigStore()
+  return regionConfigStore.formatTransWayLabel(transWay)
 }
 
 export interface ApplicationListFilters {

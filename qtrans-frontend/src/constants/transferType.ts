@@ -1,15 +1,13 @@
 /**
  * 传输类型相关常量
  *
- * 注意：
- * - 传输类型标签已由 formatTransferTypeKeyLabel() 动态生成（基于 AREA_LABEL_MAP）
- * - 传输类型标签在申请单流程中由 regionMetadataStore.getTransferTypeLabel() 动态生成
- * - 审批级别已由后端接口动态配置
- * - 下拉选项 TRANSFER_TYPE_OPTIONS 由 AREA_OPTIONS 动态交叉生成
+ * ⚠️ 传输类型标签已由 regionConfigStore.formatTransferTypeLabel() 动态生成
+ * ⚠️ 下拉选项已由 regionConfigStore.areaOptions 动态生成
+ *
+ * 保留的常量仅作为静态 fallback 或默认值使用
  */
 
 import type { SecurityArea } from './region'
-import { AREA_LABEL_MAP, AREA_OPTIONS } from './region'
 
 // ===== 类型定义 =====
 /** 传输类型（放宽为 string，避免新增区域类型时需改前端） */
@@ -19,28 +17,30 @@ export type TransferType = string
 /** 默认传输类型 */
 export const DEFAULT_TRANSFER_TYPE = 'green-to-green'
 
-// ===== 传输类型下拉选项（动态生成） =====
+// ===== 向后兼容的静态选项（推荐使用 regionConfigStore 动态生成） =====
 
 /**
- * 传输类型筛选区域：用于下拉选项的区域列表
- * 排除 external（外网在传输类型中映射为 red）
+ * 区域筛选列表（静态 fallback，不含 external）
+ * external 在传输类型中按独立选项处理
+ * @deprecated 请使用 regionConfigStore.areaOptions 动态生成
  */
-const FILTER_AREAS: SecurityArea[] = AREA_OPTIONS
-  .filter(a => a.value !== 'external')
-  .map(a => a.value)
+const _FALLBACK_FILTER_AREAS: SecurityArea[] = ['green', 'yellow', 'external']
 
 /**
- * 动态生成传输类型下拉选项
- * 基于区域列表交叉组合（排除 external，生成如 green-to-green, green-to-yellow 等）
- * 附加 "跨国传输" 特殊选项
+ * 静态传输类型下拉选项（fallback）
+ * @deprecated 请从 regionConfigStore 动态交叉生成
  */
 export const TRANSFER_TYPE_OPTIONS: Array<{ label: string, value: TransferType }> = [
-  ...FILTER_AREAS.flatMap((fromArea) =>
-    FILTER_AREAS.map((toArea) => {
-      const key = `${fromArea}-to-${toArea}`
+  ..._FALLBACK_FILTER_AREAS.flatMap((fromArea) =>
+    _FALLBACK_FILTER_AREAS.map((toArea) => {
+      const labelMap: Record<SecurityArea, string> = {
+        green: '绿区',
+        yellow: '黄区',
+        external: '外网',
+      }
       return {
-        label: `${AREA_LABEL_MAP[fromArea]}传到${AREA_LABEL_MAP[toArea]}`,
-        value: key,
+        label: `${labelMap[fromArea]}传到${labelMap[toArea]}`,
+        value: `${fromArea}-to-${toArea}`,
       }
     }),
   ),

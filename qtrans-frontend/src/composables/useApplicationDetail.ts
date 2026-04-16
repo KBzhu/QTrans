@@ -7,14 +7,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFileList } from '@/composables/useFileList'
 import { useFileDownload } from '@/composables/useFileDownload'
-
-/** 区域类型ID到名称的反向映射 */
-const REGION_ID_TO_NAME: Record<number, string> = {
-  1: '绿区',
-  0: '黄区',
-  4: '红区',
-  2: '外网',
-}
+import { useRegionConfigStore } from '@/stores'
 
 function formatTransWay(transWay: string): string {
   // "外网,绿区" -> "外网 → 绿区"
@@ -93,8 +86,8 @@ export function useApplicationDetail() {
 
     const { appBaseInfo, appBaseApprovalRoute, appBaseCountryCityRegionRelation, appBaseUploadDownloadInfo } = detailData.value
 
-    const sourceAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.fromRegionTypeId] || '-'
-    const targetAreaName = REGION_ID_TO_NAME[appBaseCountryCityRegionRelation.toRegionTypeId] || '-'
+    const sourceAreaName = useRegionConfigStore().getNameById(appBaseCountryCityRegionRelation.fromRegionTypeId) || '-'
+    const targetAreaName = useRegionConfigStore().getNameById(appBaseCountryCityRegionRelation.toRegionTypeId) || '-'
 
     return [
       { label: '部门', value: appBaseApprovalRoute.selectedDeptName || '-' },

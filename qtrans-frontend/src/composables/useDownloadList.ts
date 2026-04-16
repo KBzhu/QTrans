@@ -42,7 +42,7 @@ function formatTransWay(transWay: string): string {
   const map: Record<string, string> = {
     'Green Zone': '绿区',
     'Yellow Zone': '黄区',
-    'Red Zone': '红区',
+    'Internet': '外网',
   }
   return transWay
     .split(',')

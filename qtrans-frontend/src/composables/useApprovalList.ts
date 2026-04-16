@@ -3,7 +3,8 @@ import type { TransferType } from '@/constants'
 import { reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { approvalApi } from '@/api/approval'
-import { AREA_ID_MAP, transWayToTransferType } from '@/constants'
+import { transWayToTransferType } from '@/constants'
+import { useRegionConfigStore } from '@/stores'
 
 export type ApprovalTabType = 'pending' | 'approved' | 'all'
 
@@ -82,14 +83,16 @@ export function useApprovalList() {
 
   /**
    * 将传输类型转换为区域 ID 参数
+   * 使用 regionConfigStore 的动态映射替代硬编码 AREA_ID_MAP
    */
   function getAreaIdsFromTransferType(transferType: TransferType | 'all'): { formAreaId?: number, toAreaId?: number } {
     if (transferType === 'all')
       return {}
 
+    const regionConfigStore = useRegionConfigStore()
     const [sourceArea, targetArea] = transferType.split('-to-') as [string, string]
-    const formAreaId = AREA_ID_MAP[sourceArea as keyof typeof AREA_ID_MAP]
-    const toAreaId = AREA_ID_MAP[targetArea as keyof typeof AREA_ID_MAP]
+    const formAreaId = regionConfigStore.getIdByCode(sourceArea)
+    const toAreaId = regionConfigStore.getIdByCode(targetArea)
 
     return { formAreaId, toAreaId }
   }

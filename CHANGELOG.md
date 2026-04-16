@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - 2026-04-16
+
+#### 区域配置动态化：消除硬编码映射 + 移除红区
+
+**核心改动**：新增 `regionConfig` Store 从后端动态获取区域元数据（`region_type` 接口），替代所有前端硬编码映射（`AREA_ID_MAP`、`ID_TO_AREA`、`AREA_LABEL_MAP` 等）。同时全面移除已废弃的"红区"(red)，区域只保留 `green`/`yellow`/`external` 三种。
+
+##### 新增
+
+- **stores/regionConfig.ts**: 新增全局 Store，请求后端 `region_type` 接口，构建动态映射（`idToCode`/`codeToId`/`codeToName`/`nameToCode`），提供工具方法（`getIdByCode()`/`getCodeById()`/`getNameById()`/`formatTransferTypeLabel()`/`formatTransWayLabel()`），含 fallback 降级
+- **App.vue**: 在 `onMounted` 中初始化 `regionConfigStore.fetchRegionConfig()`，确保全局可用
+
+##### 修改
+
+- **constants/region.ts**: 移除 `red` 类型；删除硬编码映射表（`AREA_ID_MAP`/`ID_TO_AREA`/`AREA_LABEL_MAP`/`LABEL_TO_AREA`/`AREA_OPTIONS`），保留 `SecurityArea` 类型和 `@deprecated` fallback 函数
+- **constants/transferType.ts**: 移除红区相关选项，`TRANSFER_TYPE_OPTIONS` 改为基于 `green`/`yellow`/`external` 三区域交叉生成
+- **stores/regionMetadata.ts**: `setMetadataFromIds()` 改用 `regionConfigStore` 动态映射，删除对 `ID_TO_AREA`/`AREA_LABEL_MAP` 的硬编码 import；`RegionConfig.code` 类型改为 `SecurityArea`
+- **composables/useApplicationForm.ts**: `transferTypeAlias` 移除 `external→red` 归一化，`green-to-hisilicon` 改为 `green-to-external`
+- **composables/useApplicationDetail.ts**: 删除本地 `REGION_ID_TO_NAME`，改用 `regionConfigStore.getNameById()`
+- **composables/useApprovalDetail.ts**: 同上
+- **composables/useApplicationList.ts**: 删除本地 `formatTransWay` 硬编码映射，改用 `regionConfigStore.formatTransWayLabel()`
+- **composables/useApprovalList.ts**: 删除 `AREA_ID_MAP` import，`getAreaIdsFromTransferType()` 改用 `regionConfigStore.getIdByCode()`
+- **composables/useSystemConfig.ts**: `green-to-red`/`green-to-hisilicon-red`/`yellow-to-red`/`red-to-red` 改为 `green-to-external`/`yellow-to-external`/`external-to-external`
+- **views/admin/UIConfigView.vue**: `zoneOptions` 移除红区和海思红区选项
+- **views/application/CreateApplicationView.vue**: URL 参数初始化改用 `setMetadataFromIds`，确保 `name` 字段通过映射获取中文标签
+
+##### Mock 数据清理
+
+- **mocks/handlers/uiConfig.ts**: 红区 tab 改为外网；`green-to-red`/`green-to-hisilicon`/`yellow-to-red`/`red-to-red` 改为 `green-to-external`/`yellow-to-external`/`external-to-external`
+- **mocks/handlers/systemConfig.ts**: 同步替换红区传输类型
+- **mocks/handlers/regionManage.ts**: 红区安全域改为外网
+- **mocks/handlers/approval.ts**: `approvalLevelMap` 红区 key 改为 external
+- **mocks/handlers/application.ts**: `sourceArea`/`targetArea` 默认值 `'red'` 改为 `'external'`
+- **mocks/data/applications.ts**: `targetArea: 'red'` 改为 `'external'`，`transferType: 'green-to-red'` 改为 `'green-to-external'`
+
 ### Changed - 2026-04-15
 
 #### 传输类型硬编码移除（续）：下拉选项动态生成 + 默认值常量化

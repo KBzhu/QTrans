@@ -72,15 +72,11 @@ export interface ApplicationFormData {
  *
  * 规则：
  * - 含 "-to-" 或为 "cross-country" → 标准格式，无需转换
- * - 含 "-to-external" → 替换 external 为 red（外网按红区处理）
- * - 含 "-to-hisilicon" 等特殊后缀 → 替换为 red
  * - 其他非标准格式 → 返回默认值
  */
 const transferTypeAlias: Record<string, string> = {
-  'green-to-external': 'green-to-red',
-  'green-to-hisilicon': 'green-to-red',
   'routine-apply': DEFAULT_TRANSFER_TYPE,
-  'routine-channel': 'yellow-to-red',
+  'green-to-hisilicon': 'green-to-external',
 }
 
 /** 从 transWay 字符串推断 transferType（使用统一常量）*/

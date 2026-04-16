@@ -27,21 +27,10 @@ const toZone = route.query.to as string | undefined
 const fromId = Number(route.query.fromId) ?? 1
 const toId = Number(route.query.toId) ?? 1
 
-// 从 URL 读取数字 ID 并更新 store
-if (fromId && toId && fromZone && toZone) {
-  console.log('[DEBUG CreateApplicationView] URL fromId:', fromId, 'toId:', toId)
-  regionMetadataStore.setMetadata({
-    fromRegion: {
-      code: fromZone,
-      name: fromZone,
-      id: fromId,
-    },
-    toRegion: {
-      code: toZone,
-      name: toZone,
-      id: toId,
-    },
-  })
+// 从 URL 读取数字 ID 并更新 store（用于刷新页面等无卡片上下文的场景）
+// 使用 setMetadataFromIds 以保证 name 字段通过映射表获取正确的中文标签（如"绿区"而非"green"）
+if (fromId && toId) {
+  regionMetadataStore.setMetadataFromIds(fromId, toId)
 }
 
 const {

@@ -103,14 +103,14 @@ export function useSystemConfig() {
         description: '一级审批'
       },
       {
-        typeCode: 'green-to-red',
-        typeName: '绿区传到红区',
+        typeCode: 'green-to-external',
+        typeName: '绿区传到外网',
         level: 2,
         description: '二级审批'
       },
       {
-        typeCode: 'green-to-hisilicon-red',
-        typeName: '绿区传到海思红区',
+        typeCode: 'yellow-to-external',
+        typeName: '黄区传到外网',
         level: 2,
         description: '二级审批'
       },
@@ -121,14 +121,8 @@ export function useSystemConfig() {
         description: '一级审批'
       },
       {
-        typeCode: 'yellow-to-red',
-        typeName: '黄区传到红区',
-        level: 2,
-        description: '二级审批'
-      },
-      {
-        typeCode: 'red-to-red',
-        typeName: '红区传到红区',
+        typeCode: 'external-to-external',
+        typeName: '外网传到外网',
         level: 2,
         description: '二级审批'
       },

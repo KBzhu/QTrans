@@ -196,10 +196,8 @@ const transferTypeColumns = [
 const zoneOptions = [
   { label: '绿区', value: 'green' },
   { label: '黄区', value: 'yellow' },
-  { label: '红区', value: 'red' },
-  { label: '跨域', value: 'cross' },
   { label: '外网', value: 'external' },
-  { label: '海思红区', value: 'hisilicon' },
+  { label: '跨域', value: 'cross' },
 ]
 
 const levelOptions = [

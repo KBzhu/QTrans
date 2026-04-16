@@ -3,17 +3,21 @@
  *
  * 从首页卡片配置（itemAttr5）解析并存储区域元数据
  * 整个申请单流程共享此数据，避免硬编码映射
+ *
+ * 映射逻辑已迁移到 regionConfig Store（动态从后端获取）
+ * 本 store 仅负责"当前选中传输方向的区域元数据"存储
  */
 
+import type { SecurityArea } from '@/constants/region'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { AREA_LABEL_MAP, ID_TO_AREA } from '@/constants/region'
+import { useRegionConfigStore } from './regionConfig'
 
 /** 区域配置 */
 export interface RegionConfig {
-  code: string        // 'green', 'yellow', 'red', 'external'
-  name: string        // '绿区', '黄区', '红区', '外网'
-  id: number          // 1, 0, 4, 2
+  code: SecurityArea  // 'green', 'yellow', 'external'
+  name: string        // '绿区', '黄区', '外网'
+  id: number          // 后端区域 ID
 }
 
 /** 区域元数据（包含源区域和目标区域）*/
@@ -36,23 +40,23 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
   /**
    * 从区域数字 ID 设置元数据
    * 用于 loadApplicationById 等场景：后端返回 fromRegionTypeId/toRegionTypeId，
-   * 通过 ID_TO_AREA + AREA_LABEL_MAP 映射为完整 RegionConfig
-   *
-   * 映射逻辑集中在此处，其他模块无需直接引用 ID_TO_AREA
+   * 通过 regionConfig Store 的动态映射转换为完整 RegionConfig
    */
   function setMetadataFromIds(fromId: number, toId: number) {
-    const fromCode = ID_TO_AREA[fromId] || 'green'
-    const toCode = ID_TO_AREA[toId] || 'green'
+    const regionConfigStore = useRegionConfigStore()
+
+    const fromCode = regionConfigStore.getCodeById(fromId) || 'green'
+    const toCode = regionConfigStore.getCodeById(toId) || 'green'
 
     metadata.value = {
       fromRegion: {
         code: fromCode,
-        name: AREA_LABEL_MAP[fromCode] || fromCode,
+        name: regionConfigStore.getNameByCode(fromCode) || fromCode,
         id: fromId,
       },
       toRegion: {
         code: toCode,
-        name: AREA_LABEL_MAP[toCode] || toCode,
+        name: regionConfigStore.getNameByCode(toCode) || toCode,
         id: toId,
       },
     }
@@ -75,14 +79,14 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
   /**
    * 获取源区域 code
    */
-  function getFromCode(): string | null {
+  function getFromCode(): SecurityArea | null {
     return metadata.value?.fromRegion.code ?? null
   }
 
   /**
    * 获取目标区域 code
    */
-  function getToCode(): string | null {
+  function getToCode(): SecurityArea | null {
     return metadata.value?.toRegion.code ?? null
   }
 
@@ -102,7 +106,7 @@ export const useRegionMetadataStore = defineStore('regionMetadata', () => {
 
   /**
    * 动态生成传输类型标签："{源区域}传到{目标区域}"
-   * 替代硬编码的 TRANSFER_TYPE_LABEL_MAP，区域名称来自后端配置
+   * 区域名称来自后端配置，不再硬编码
    */
   function getTransferTypeLabel(): string {
     const fromName = metadata.value?.fromRegion.name
