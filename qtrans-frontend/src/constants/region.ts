@@ -78,11 +78,12 @@ export function idToArea(id: number): SecurityArea {
 /**
  * 从中文区域名组合推断传输类型
  * @deprecated 请使用后端接口返回的传输类型
+ * 默认值 'green-to-green' 对应 DEFAULT_TRANSFER_TYPE（避免循环依赖，此处不导入）
  */
 export function transWayToTransferType(transWay: string): string {
   const parts = transWay.split(',').map(s => s.trim())
   if (parts.length !== 2)
-    return 'green-to-green'
+    return 'green-to-green' // DEFAULT_TRANSFER_TYPE
 
   const sourceArea = LABEL_TO_AREA[parts[0] || ''] || 'green'
   const targetArea = LABEL_TO_AREA[parts[1] || ''] || 'green'

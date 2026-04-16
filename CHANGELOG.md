@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - 2026-04-15
+
+#### 传输类型硬编码移除（续）：下拉选项动态生成 + 默认值常量化
+
+**核心改动**：继续移除上一轮遗留的硬编码，将 `TRANSFER_TYPE_OPTIONS` 改为基于 `AREA_OPTIONS` 动态交叉生成，`'green-to-green'` 等默认值统一为 `DEFAULT_TRANSFER_TYPE` 常量。
+
+##### 修改
+
+- **constants/transferType.ts**: 新增 `DEFAULT_TRANSFER_TYPE` 常量；`TRANSFER_TYPE_OPTIONS` 从硬编码 10 个选项改为基于 `AREA_OPTIONS` 交叉动态生成（排除 external，附加 "跨国传输"）；`TRANSFER_TYPE_OPTIONS_WITH_ALL` 同步改为动态
+- **composables/useApplicationForm.ts**: `transWayToTransferType()`/`normalizeTransferType()` 中 `'green-to-green'` 默认值改用 `DEFAULT_TRANSFER_TYPE`；`transferTypeAlias` 中 `'routine-apply'` 默认值改用 `DEFAULT_TRANSFER_TYPE`
+- **stores/application.ts**: `createDraft()` 默认值 `'green-to-green'` 改用 `DEFAULT_TRANSFER_TYPE`
+- **views/application/CreateApplicationView.vue**: URL query 默认值 `'green-to-green'` 改用 `DEFAULT_TRANSFER_TYPE`
+
 ### Changed - 2026-04-14
 
 #### 传输类型 label 硬编码移除：枚举映射改为动态生成

@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useApplicationForm } from '@/composables/useApplicationForm'
 import { useAuthStore, useRegionMetadataStore } from '@/stores'
+import { DEFAULT_TRANSFER_TYPE } from '@/constants'
 import { assetPath } from '@/utils/path'
 import StepOneBasicInfo from './components/StepOneBasicInfo.vue'
 import StepTwoUploadFile from './components/StepTwoUploadFile.vue'
@@ -20,7 +21,7 @@ const stepOneRef = ref<InstanceType<typeof StepOneBasicInfo> | null>(null)
 const uploadInputRef = ref<HTMLInputElement | null>(null)
 
 // 从 URL 获取参数
-const typeFromQuery = String(route.query.type || 'green-to-green')
+const typeFromQuery = String(route.query.type || DEFAULT_TRANSFER_TYPE)
 const fromZone = route.query.from as string | undefined
 const toZone = route.query.to as string | undefined
 const fromId = Number(route.query.fromId) ?? 1

@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { applicationApi, type ApplicationQuery } from '@/api/application'
 import { STORAGE_KEYS } from '@/utils/constants'
 import { getLocalStorage, setLocalStorage } from '@/utils/storage'
+import { DEFAULT_TRANSFER_TYPE } from '@/constants'
 
 interface FetchApplicationParams extends Partial<PageRequest> {
   status?: ApplicationStatus
@@ -16,7 +17,7 @@ function createDraft(data: Partial<Application>): Application {
   return {
     id: data.id || `draft-${Date.now()}`,
     applicationNo: data.applicationNo || `DRAFT-${Date.now()}`,
-    transferType: data.transferType || 'green-to-green',
+    transferType: data.transferType || DEFAULT_TRANSFER_TYPE,
     department: data.department || '',
     sourceArea: data.sourceArea || 'green',
     targetArea: data.targetArea || 'green',

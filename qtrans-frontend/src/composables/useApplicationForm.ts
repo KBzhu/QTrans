@@ -4,7 +4,7 @@ import { Message } from '@arco-design/web-vue'
 
 import { useApplicationStore, useAuthStore, useRegionMetadataStore } from '@/stores'
 import { MAX_FILE_SIZE } from '@/utils/constants'
-import { transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
+import { DEFAULT_TRANSFER_TYPE, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
 import { completeUpload } from '@/api/transWebService'
@@ -66,10 +66,20 @@ export interface ApplicationFormData {
   // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
 }
 
+/**
+ * 传输类型别名映射
+ * 将后端返回的非标准 key 归一化为标准 "xxx-to-yyy" 格式
+ *
+ * 规则：
+ * - 含 "-to-" 或为 "cross-country" → 标准格式，无需转换
+ * - 含 "-to-external" → 替换 external 为 red（外网按红区处理）
+ * - 含 "-to-hisilicon" 等特殊后缀 → 替换为 red
+ * - 其他非标准格式 → 返回默认值
+ */
 const transferTypeAlias: Record<string, string> = {
   'green-to-external': 'green-to-red',
   'green-to-hisilicon': 'green-to-red',
-  'routine-apply': 'green-to-green',
+  'routine-apply': DEFAULT_TRANSFER_TYPE,
   'routine-channel': 'yellow-to-red',
 }
 
@@ -79,7 +89,7 @@ function transWayToTransferType(transWay: string): TransferType {
   // 基本格式校验：必须为 "xxx-to-yyy" 格式
   if (typeStr.includes('-to-'))
     return typeStr as TransferType
-  return 'green-to-green'
+  return DEFAULT_TRANSFER_TYPE
 }
 
 /** 从 uploadUrl 中提取 params 参数 */
@@ -98,14 +108,14 @@ function extractParamsFromUrl(url: string): string {
 
 function normalizeTransferType(input?: string): TransferType {
   if (!input)
-    return 'green-to-green'
+    return DEFAULT_TRANSFER_TYPE
 
   const value = transferTypeAlias[input] || input
   // 基本格式校验：必须为 "xxx-to-yyy" 格式或 "cross-country"
   if (value.includes('-to-') || value === 'cross-country')
     return value as TransferType
 
-  return 'green-to-green'
+  return DEFAULT_TRANSFER_TYPE
 }
 
 function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: string): ApplicationFormData {
