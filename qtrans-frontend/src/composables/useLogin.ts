@@ -1,24 +1,11 @@
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores'
 import type { UserRole } from '@/types'
+import { SSO_TOKEN_PARAM, SSO_USER_PARAMS } from '@/api/auth'
 
-const REMEMBER_KEY = 'qtrans_remember_username'
-
-export interface DemoAccount {
-  username: string
-  password: string
-  role: string
-  name: string
-}
-
-export const demoAccounts: DemoAccount[] = [
-  { username: 'submitter', password: '123456', role: '提交人', name: '张提交' },
-  { username: 'approver1', password: '123456', role: '一级审批人', name: '王审批一' },
-  { username: 'approver2', password: '123456', role: '二级审批人', name: '李审批二' },
-  { username: 'approver3', password: '123456', role: '三级审批人', name: '赵审批三' },
-  { username: 'admin', password: '123456', role: '管理员', name: '系统管理员' },
-]
+/** 所有 SSO 回调需要清除的 URL 参数名 */
+const SSO_QUERY_PARAMS = [SSO_TOKEN_PARAM, ...Object.values(SSO_USER_PARAMS)]
 
 function getDefaultRouteByRole(roles?: UserRole[]): string {
   const appType = import.meta.env.VITE_APP_TYPE as string || 'tenant'
@@ -47,86 +34,65 @@ export function useLogin() {
   const route = useRoute()
   const authStore = useAuthStore()
 
-  const loginForm = reactive({
-    username: localStorage.getItem(REMEMBER_KEY) || '',
-    password: '',
-    remember: Boolean(localStorage.getItem(REMEMBER_KEY)),
-  })
-
-  const loginRules = {
-    username: [{ required: true, message: '请输入用户名' }],
-    password: [
-      { required: true, message: '请输入密码' },
-      { minLength: 6, message: '密码长度不少于6位' },
-    ],
-  }
-
   const loading = ref(false)
   const errorMessage = ref('')
 
-  async function handleLogin(formRef?: { validate: () => Promise<Record<string, unknown> | undefined> }) {
-    if (formRef) {
-      const errors = await formRef.validate()
-      if (errors)
-        return
+  /**
+   * 处理 SSO 回调
+   * 统一登录系统回调时 URL 上携带 token + 用户信息参数
+   * 直接从 URL 解析，无需额外接口调用
+   */
+  function handleSsoCallback() {
+    const ssoToken = (route.query[SSO_TOKEN_PARAM] as string) || ''
+
+    if (!ssoToken) {
+      // URL 上没有 token，说明不是 SSO 回调，跳转到统一登录系统
+      authStore.redirectToSso()
+      return
     }
 
     loading.value = true
     errorMessage.value = ''
 
     try {
-      const params = {
-        model: {
-          account: loginForm.username,
-          password: loginForm.password,
-          loginType: '2',
-        },
-      }
-      // 调用真实后端登录接口（参数在 API 层写死）
-      const user = await authStore.login(params)
-      handleRememberMe()
+      // 从 URL 参数直接解析 token + 用户信息
+      const query = route.query as Record<string, string | undefined>
+      const user = authStore.loginBySsoCallback(query)
 
-      const redirect = route.query.redirect as string | undefined
+      // 清除 URL 上的 SSO 参数，避免暴露在地址栏
+      const cleanQuery = { ...route.query }
+      for (const key of SSO_QUERY_PARAMS) {
+        delete cleanQuery[key]
+      }
+      router.replace({ path: route.path, query: cleanQuery })
+
+      // 跳转到目标页
+      const redirect = cleanQuery.redirect as string | undefined
       if (redirect) {
-        await router.push(redirect)
+        router.push(redirect)
       }
       else {
         const target = getDefaultRouteByRole(user.roles)
-        await router.push(target)
+        router.push(target)
       }
     }
     catch {
-      errorMessage.value = '登录失败，请确认账号密码'
-      loginForm.password = ''
+      errorMessage.value = '登录失败，请重新登录'
+      const cleanQuery = { ...route.query }
+      for (const key of SSO_QUERY_PARAMS) {
+        delete cleanQuery[key]
+      }
+      router.replace({ path: route.path, query: cleanQuery })
+      setTimeout(() => authStore.redirectToSso(), 1500)
     }
     finally {
       loading.value = false
     }
   }
 
-  async function handleQuickLogin(account: DemoAccount) {
-    loginForm.username = account.username
-    loginForm.password = account.password
-    await handleLogin()
-  }
-
-  function handleRememberMe() {
-    if (loginForm.remember) {
-      localStorage.setItem(REMEMBER_KEY, loginForm.username)
-    }
-    else {
-      localStorage.removeItem(REMEMBER_KEY)
-    }
-  }
-
   return {
-    loginForm,
-    loginRules,
     loading,
     errorMessage,
-    demoAccounts,
-    handleLogin,
-    handleQuickLogin,
-    handleRememberMe,
+    handleSsoCallback,
   }
 }

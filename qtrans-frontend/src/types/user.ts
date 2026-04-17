@@ -36,6 +36,33 @@ export interface LoginResponse {
   user: User
 }
 
+/** 统一登录系统响应中的 userDO 结构 */
+export interface SsoUserDO {
+  id: number
+  createdId?: number
+  updatedId?: number
+  createdDate?: string
+  updatedDate?: string
+  account: string
+  name: string
+  loginType: number
+  lastLoginDate?: string
+  lastLoginIp?: string
+  deptCode?: string
+  groupName?: string
+  isActive?: boolean
+  email?: string
+  expireTime?: string
+}
+
+/** 统一登录系统完整响应（rawClient 已解包 code/data 后） */
+export interface SsoLoginResponse {
+  token: string
+  targetUrl: string | null
+  uid: string | null
+  userDO: SsoUserDO
+}
+
 export interface UserQueryParams {
   keyword?: string
   role?: UserRole

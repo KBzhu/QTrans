@@ -128,6 +128,7 @@ const basicInfoRows = computed(() => {
 const fromRegionName = computed(() => regionMetadataStore.getFromName() || formData.value.sourceArea)
 const toRegionName = computed(() => regionMetadataStore.getToName() || formData.value.targetArea)
 const isTargetExternal = computed(() => regionMetadataStore.getToCode() === 'external' || formData.value.targetArea === 'external')
+const isSourceExternal = computed(() => regionMetadataStore.getFromCode() === 'external' || formData.value.sourceArea === 'external')
 
 /* ===== Event Handlers ===== */
 function onDepartmentChange(value: { deptId: string, deptName: string, deptCode: string }) {
@@ -189,6 +190,11 @@ function onApproverLevel4Change(val: string) {
 
 function onApplyReasonChange(val: string) {
   updateFormData({ applyReason: val })
+}
+
+function onUploaderEmailChange(val: string) {
+  updateFormData({ uploaderEmail: val })
+  formRef.value?.clearValidate?.('uploaderEmail')
 }
 
 function onApplicantNotifyChange(val: NotifyChannel[]) {
@@ -294,6 +300,26 @@ defineExpose({ validate })
                 :disabled="readonly"
                 placeholder="请输入下载方邮箱地址"
                 @input="(val: string) => updateFormData({ downloadEmail: val })"
+              />
+            </a-form-item>
+          </template>
+
+          <!-- 外网上传字段（源区域为外网时显示，与外网下载字段互斥） -->
+          <template v-if="isSourceExternal">
+            <a-form-item field="vendorName" label="上传方名称（单位/人）" required>
+              <a-input
+                :model-value="formData.vendorName"
+                :disabled="readonly"
+                placeholder="请输入上传方名称（单位/人）"
+                @input="(val: string) => updateFormData({ vendorName: val })"
+              />
+            </a-form-item>
+            <a-form-item field="uploaderEmail" label="上传方邮箱地址" required>
+              <a-input
+                :model-value="formData.uploaderEmail"
+                :disabled="readonly"
+                placeholder="请输入上传方邮箱地址"
+                @input="onUploaderEmailChange"
               />
             </a-form-item>
           </template>

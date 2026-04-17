@@ -22,16 +22,19 @@ export function setupRouterGuards(router: Router) {
     const meta = to.meta as AppRouteMeta
     const appType = import.meta.env.VITE_APP_TYPE as string || 'tenant'
 
+    // 已登录用户访问 /login 页面（SSO 回调中转页），放行由 LoginView 处理
     if (isLoggedIn && to.path === '/login')
       return { path: getDefaultHome() }
 
     if (requiresAuth && !isLoggedIn) {
-      return {
-        path: '/login',
-        query: {
-          redirect: to.fullPath,
-        },
-      }
+      // 未登录：重定向到统一登录系统
+      // redirectUrl 指向 QTrans 的 /login 页，并带 redirect 参数记录原始目标页
+      // 这样 SSO 回调链路：SSO → /login?token=xxx&redirect=/dashboard → handleSsoCallback 处理 token 后跳转
+      const loginUrl = new URL(window.location.origin)
+      loginUrl.pathname = (import.meta.env.BASE_URL || '/') + 'login'
+      loginUrl.searchParams.set('redirect', to.fullPath)
+      authStore.redirectToSso(loginUrl.toString())
+      return false // 阻止路由跳转，等待 SSO 重定向
     }
 
     // appType 兜底检查：确保不能访问其他面的路由

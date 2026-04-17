@@ -33,12 +33,10 @@ requestClient.interceptors.response.use(
     const status = error.response?.status
 
     if (status === 401) {
-      // 通过 store 清理认证状态
+      // 通过 store 清理认证状态，重定向到统一登录系统
       const authStore = useAuthStore()
       authStore.clearAuthState()
-      const basePath = import.meta.env.BASE_URL || '/'
-      if (!window.location.pathname.includes('/login'))
-        window.location.href = `${basePath}login`
+      authStore.redirectToSso()
     }
     else if (status === 403) {
       const basePath = import.meta.env.BASE_URL || '/'

@@ -2,7 +2,7 @@ import type { User, UserRole } from '@/types'
 import { useIntervalFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { authApi } from '@/api/auth'
+import { authApi, buildSsoRedirectUrl } from '@/api/auth'
 import { STORAGE_KEYS } from '@/utils/constants'
 
 /** Token 刷新间隔：15 分钟 */
@@ -25,7 +25,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const token = ref('')
   const currentUser = ref<User | null>(null)
-  const isRefreshing = ref(false)
 
   const isLoggedIn = computed(() => Boolean(token.value && currentUser.value))
   const userRoles = computed(() => currentUser.value?.roles || [])
@@ -38,27 +37,63 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * 跳转到统一登录系统
+   * @param redirectPath 登录成功后回调到本系统的路径，默认取当前页面完整 URL
+   */
+  function redirectToSso(redirectPath?: string) {
+    const redirectUrl = redirectPath || window.location.href
+    window.location.href = buildSsoRedirectUrl(redirectUrl)
+  }
+
+  /**
+   * 登录 - 调用统一登录系统后端接口（保留兼容，但主流程不再使用）
+   */
+  async function login(params: any) {
+    const result = await authApi.login(params)
+    token.value = result.token
+    currentUser.value = result.user
+    return result.user
+  }
+
+  /**
+   * 从 SSO 回调的 URL 参数登录
+   * 统一登录系统回调时 URL 带有 token + 用户信息参数，直接解析存入 store
+   */
+  function loginBySsoCallback(query: Record<string, string | undefined>) {
+    const result = authApi.parseSsoCallback(query)
+    token.value = result.token
+    currentUser.value = result.user
+    return result.user
+  }
+
+  async function logout() {
+    try {
+      await authApi.logout()
+    }
+    finally {
+      pauseRefresh()
+      clearAuthState()
+      // 重定向到统一登录系统
+      const currentBase = window.location.origin + (import.meta.env.BASE_URL || '/')
+      redirectToSso(currentBase)
+    }
+  }
+
+  /**
    * 刷新 Token
-   * - 调用后端刷新接口获取新 token
-   * - 刷新成功后 token 自动持久化（由 pinia 插件处理）
-   * - 刷新失败则登出用户
+   * 文件传输可能持续很久，需定时刷新避免 token 过期中断用户操作
+   * 响应格式已统一为 SSO 格式，同时更新 token 和用户信息
    */
   async function refreshToken() {
-    if (!token.value || isRefreshing.value)
-      return
-
-    isRefreshing.value = true
+    if (!token.value) return
     try {
       const result = await authApi.refreshToken()
       token.value = result.token
-      // pinia 插件自动持久化
+      if (result.user)
+        currentUser.value = result.user
     }
     catch {
-      // 刷新失败，登出用户
       await logout()
-    }
-    finally {
-      isRefreshing.value = false
     }
   }
 
@@ -78,32 +113,6 @@ export const useAuthStore = defineStore('auth', () => {
       pauseRefresh()
     }
   }, { immediate: true })
-
-  /**
-   * 登录 - 调用真实后端接口
-   * TODO: 当前参数在 API 层写死，后续改为动态传入
-   */
-  async function login(params: any) {
-    const result = await authApi.login(params)
-    token.value = result.token
-    currentUser.value = result.user
-    // pinia 插件自动持久化
-    return result.user
-  }
-
-  async function logout() {
-    try {
-      await authApi.logout()
-    }
-    finally {
-      pauseRefresh() // 停止刷新定时器
-      clearAuthState()
-      // pinia 插件会自动清理 localStorage
-      const basePath = import.meta.env.BASE_URL || '/'
-      if (!window.location.pathname.includes('/login'))
-        window.location.href = `${basePath}login`
-    }
-  }
 
   function hasRole(role: UserRole): boolean {
     return userRoles.value.includes(role)
@@ -125,9 +134,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     userRoles,
     isAdmin,
-    isRefreshing,
-    isTokenRefreshActive: isActive,
     login,
+    loginBySsoCallback,
     logout,
     hasRole,
     hasPermission,
@@ -135,6 +143,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     pauseRefresh,
     resumeRefresh,
+    isTokenRefreshActive: isActive,
+    redirectToSso,
   }
 }, {
   persist: {

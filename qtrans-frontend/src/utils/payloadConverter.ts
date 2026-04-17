@@ -115,7 +115,7 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
     appBaseExternalInfo: {
       applicationType: 0,
       abc: false,
-      vendorName: formData.vendorName || '',  // 下载方名称
+      vendorName: formData.vendorName || '',  // 外网方名称（下载方/上传方，取决于传输方向）
     },
     appTransInfo: {
       transferMode: 0,

@@ -18,6 +18,7 @@ const authStore = useAuthStore()
 const regionMetadataStore = useRegionMetadataStore()
 
 const stepOneRef = ref<InstanceType<typeof StepOneBasicInfo> | null>(null)
+const stepTwoRef = ref<InstanceType<typeof StepTwoUploadFile> | null>(null)
 const uploadInputRef = ref<HTMLInputElement | null>(null)
 
 // 从 URL 获取参数
@@ -96,6 +97,10 @@ async function onClickNext() {
 }
 
 async function onClickSubmit() {
+  // 提交前校验：已上传文件中是否存在哈希校验未通过的
+  if (stepTwoRef.value && !stepTwoRef.value.validateBeforeSubmit()) {
+    return
+  }
   await handleSubmitReal()
 }
 
@@ -235,6 +240,7 @@ onBeforeRouteLeave(() => {
 
       <template v-else-if="currentStep === 1">
         <StepTwoUploadFile
+          ref="stepTwoRef"
           :uploading-files="uploadingFiles"
           :uploaded-files="uploadedFiles"
           :selected-uploading-uids="selectedUploadingUids"

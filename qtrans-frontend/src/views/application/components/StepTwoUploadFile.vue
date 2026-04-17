@@ -249,6 +249,46 @@ async function handleDeleteUploadedFile(file: FileEntity) {
   const idx = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
   if (idx >= 0) selectedUploadedFiles.value.splice(idx, 1)
 }
+
+/**
+ * 校验已上传文件是否存在哈希校验未通过的情况
+ * 供父组件在"提交申请"前调用
+ * @returns true=校验通过，false=存在未通过文件，已拦截
+ */
+function validateBeforeSubmit(): boolean {
+  // 1. 检查上传队列中是否有哈希校验失败的文件
+  const mismatchedUploading = uploadFileList.value.filter(
+    (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',
+  )
+  if (mismatchedUploading.length > 0) {
+    const names = mismatchedUploading.map(f => f.file.name).join('、')
+    Message.error(`以下文件校验未通过，请重新上传：${names}`)
+    return false
+  }
+
+  // 2. 检查已上传文件列表中是否有哈希校验未通过的文件
+  const uploadedFiles = fileListData.value?.fileList ?? []
+  const mismatchedUploaded = uploadedFiles.filter((f: FileEntity) => {
+    const clientHash = f.clientFileHashCode
+    const serverHash = f.hashCode
+    const validClientHash = clientHash && clientHash !== 'null' && clientHash !== '' && clientHash.length === 64
+    const validServerHash = serverHash && serverHash !== 'null' && serverHash !== ''
+    // 两端哈希都有效但不一致 → 未通过
+    if (validClientHash && validServerHash) {
+      return clientHash.toUpperCase() !== serverHash.toUpperCase()
+    }
+    return false
+  })
+  if (mismatchedUploaded.length > 0) {
+    const names = mismatchedUploaded.map(f => f.fileName).join('、')
+    Message.error(`以下文件校验未通过，请删除后重新上传：${names}`)
+    return false
+  }
+
+  return true
+}
+
+defineExpose({ validateBeforeSubmit })
 </script>
 
 <template>

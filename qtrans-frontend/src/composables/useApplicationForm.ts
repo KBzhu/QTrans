@@ -61,9 +61,10 @@ export interface ApplicationFormData {
   approverLevel2?: string     // 二层审批人 W3 账号
   approverLevel3?: string     // 三层审批人 W3 账号
   approverLevel4?: string     // 四层审批人 W3 账号
-  // 外网下载字段（绿区/黄区到外网场景）
-  vendorName?: string         // 下载方名称（单位）
-  downloadEmail?: string      // 下载方邮箱地址
+  // 外网相关字段（源/目标为外网时互斥显示）
+  vendorName?: string         // 外网方名称：目标=外网时"下载方名称"，源=外网时"上传方名称"
+  downloadEmail?: string      // 下载方邮箱地址（目标=外网时显示）
+  uploaderEmail?: string      // 上传方邮箱地址（源=外网时显示）
   // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
 }
 
@@ -160,9 +161,10 @@ function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: s
     approverLevel2: '',
     approverLevel3: '',
     approverLevel4: '',
-    // 外网下载字段初始化
+    // 外网相关字段初始化
     vendorName: '',
     downloadEmail: '',
+    uploaderEmail: '',
   }
 }
 
@@ -224,11 +226,20 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
     }
 
-    // 外网场景：添加必填验证
+    // 外网场景：添加必填验证（目标=外网 和 源=外网 互斥）
     if (formData.value.targetArea === 'external') {
+      // 目标=外网：下载方名称 + 下载方邮箱
       rules.vendorName = [{ required: true, message: '请输入下载方名称' }]
       rules.downloadEmail = [
         { required: true, message: '请输入下载方邮箱地址' },
+        { type: 'email', message: '请输入正确的邮箱格式' },
+      ]
+    }
+    else if (formData.value.sourceArea === 'external') {
+      // 源=外网：上传方名称 + 上传方邮箱
+      rules.vendorName = [{ required: true, message: '请输入上传方名称' }]
+      rules.uploaderEmail = [
+        { required: true, message: '请输入上传方邮箱地址' },
         { type: 'email', message: '请输入正确的邮箱格式' },
       ]
     }
@@ -558,6 +569,9 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       applyReason: draft.applyReason,
       applicantNotifyOptions: draft.applicantNotifyOptions,
       downloaderNotifyOptions: draft.downloaderNotifyOptions,
+      vendorName: (draft as any).vendorName || '',
+      downloadEmail: (draft as any).downloadEmail || '',
+      uploaderEmail: (draft as any).uploaderEmail || '',
     })
 
     updateSnapshot()
@@ -578,6 +592,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         appBaseApprovalRoute,
         appBaseCountryCityRegionRelation,
         appBaseUploadDownloadInfo,
+        appBaseExternalInfo,
       } = detail
 
       // 推断 transferType
@@ -626,6 +641,9 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         applyReason: appBaseInfo.reason || '',
         applicantNotifyOptions: parseNotification(appBaseInfo.uploadNotification),
         downloaderNotifyOptions: parseNotification(appBaseInfo.downloadNotification),
+        vendorName: appBaseExternalInfo?.vendorName || '',
+        downloadEmail: appBaseUploadDownloadInfo.downloadEmail || '',
+        uploaderEmail: appBaseUploadDownloadInfo.uploaderEmail || '',
       })
 
       // 设置已提交的申请单信息

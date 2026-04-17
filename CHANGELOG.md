@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - 2026-04-16
+
+#### 对接统一登录系统 (SSO)
+
+- 移除自建登录表单，改为重定向到统一登录系统 (`https://10.90.37.157/usercenter/login`)
+- 未登录时自动重定向到统一登录系统，带上 `redirectUrl` 参数
+- SSO 回调通过 URL `token` 参数完成登录，自动换取用户信息
+- `/login` 路由保留为 SSO 回调中转页，不再展示登录表单
+- `authApi.login()` 适配新响应格式，从 `userDO` 提取用户信息
+- 新增 `authApi.fetchUserByToken()` 用于 SSO token 换取用户信息
+- `authStore.logout()` 改为重定向到统一登录系统
+- 移除 token 定时刷新逻辑（由统一登录系统管理 token 生命周期）
+- 401 拦截器改为重定向到统一登录系统
+
+##### 变更文件
+
+- **types/user.ts**: 新增 `SsoUserDO`、`SsoLoginResponse` 类型
+- **api/auth.ts**: 新增 `SSO_LOGIN_URL`、`buildSsoRedirectUrl()`、`fetchUserByToken()`；`login()` 适配新响应格式
+- **stores/auth.ts**: 新增 `loginByToken()`、`redirectToSso()`；移除 `useIntervalFn` 定时刷新；`logout()` 重定向到 SSO
+- **composables/useLogin.ts**: 重构为 SSO 回调处理，移除登录表单逻辑和 demo 账号
+- **utils/request.ts**: 401 拦截器改为 `authStore.redirectToSso()`
+- **router/guards.ts**: 未登录时改为重定向到统一登录系统
+- **views/auth/LoginView.vue**: 改为 SSO 回调中转页
+
 ### Added - 2026-04-16
 
 #### 下载人邮箱自动填充
@@ -38,6 +62,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 文件确认操作栏条件从 `!allFilesConfirmed` 改为 `!fileConfirmationCompleted`，修复"完成文件确认"按钮永远不显示的 BUG
   - `keyAssetColumns` 浅拷贝改为 `map` 创建新对象，避免污染 `fileColumns` 缓存
 - **3个 View 页面** (ApplicationDetailView/ApprovalDetailView/AdminApplicationDetailModal): 补充解构 `fileConfirmationCompleted` 并传递 prop
+
+### Added - 2026-04-16
+
+#### 填单页面"外网传xx"场景增加上传方信息字段
+
+**需求**：当源区域为外网（fromId=2，即"外网传xx"场景）时，在"下载人账号"上方增加"上传方名称"和"上传方邮箱地址"两个必填输入框。
+
+##### 新增/修改
+
+- **types/ApplicationFormData**: 新增 `uploaderEmail` 字段（映射到 `appBaseUploadDownloadInfo.uploaderEmail`），`vendorName` / `downloadEmail` 注释更新为外网通用字段说明
+- **StepOneBasicInfo.vue**:
+  - 新增 `isSourceExternal` 计算属性（源区域=外网判断）
+  - 新增 `onUploaderEmailChange` 事件处理
+  - 模板中"下载人账号"上方增加 `v-if="isSourceExternal"` 条件区块，含"上传方名称（单位/人）"和"上传方邮箱地址"两个必填输入框
+  - `vendorName` 字段复用：目标=外网时标签为"下载方名称"，源=外网时标签为"上传方名称"（两种场景互斥）
+- **useApplicationForm.ts**:
+  - `formRules` 新增 `sourceArea === 'external'` 条件分支，校验 `vendorName` 和 `uploaderEmail` 必填 + 邮箱格式
+  - `defaultFormData` 增加 `uploaderEmail: ''` 初始值
+  - `loadApplicationById` 解构 `appBaseExternalInfo`，回填 `vendorName` / `downloadEmail` / `uploaderEmail`
+  - `loadDraft` 回填 `vendorName` / `downloadEmail` / `uploaderEmail`
+- **payloadConverter.ts**: 注释更新（`vendorName` 说明改为"外网方名称"）
 
 ### Changed - 2026-04-16
 
