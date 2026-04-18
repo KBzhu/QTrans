@@ -8,6 +8,7 @@ import { useRouter } from 'vue-router'
 import { useFileList } from '@/composables/useFileList'
 import { useFileDownload } from '@/composables/useFileDownload'
 import { useRegionConfigStore } from '@/stores'
+import { updateTransClientBaseURL } from '@/api'
 
 function formatTransWay(transWay: string): string {
   // "外网,绿区" -> "外网 → 绿区"
@@ -120,6 +121,7 @@ export function useApplicationDetail() {
       // 同时获取流程进展和文件列表
       fetchProcessDetail(id)
       fetchFileList(id)
+      updateTransClientBaseURL(res.appBaseUploadDownloadInfo?.uploadUrl)
       return res
     }
     catch (error) {

@@ -7,7 +7,7 @@ import { MAX_FILE_SIZE } from '@/utils/constants'
 import { DEFAULT_TRANSFER_TYPE, transWayToTransferType as transWayToTransferTypeUtil } from '@/constants'
 import { DEFAULT_CITY } from '@/mocks/data/cities'
 import { applicationApi } from '@/api/application'
-import { completeUpload } from '@/api/transWebService'
+import { completeUpload, updateTransClientBaseURL } from '@/api/transWebService'
 
 // 重新导出 SecurityArea 供其他模块使用
 export type { SecurityArea }
@@ -461,6 +461,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
             extractedParams = paramsMatch[1]
           }
         }
+        updateTransClientBaseURL(url)
       }
 
       // 存储上传地址和参数

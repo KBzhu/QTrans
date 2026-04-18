@@ -174,6 +174,31 @@ const createTransClient = (): AxiosInstance => {
 
 const transClient = createTransClient()
 
+/**
+ * 根据后端返回的 uploadUrl 更新 transClient 的 baseURL，实现直连文件传输服务器
+ *
+ * 解析 uploadUrl（如 http://canpxjqtra00003-wb.qtrans.qiyunfang.com:10110/transWeb/valid?params=...）
+ * 提取 origin 部分（协议+域名+端口）作为 baseURL，使 transClient 所有请求直连传输服务器
+ * 跳过 nginx 代理，避免大文件传输时 nginx 成为性能瓶颈
+ *
+ * 协议说明：直接使用后端返回的 uploadUrl 协议，不做前端升级/降级
+ * - 测试环境：后端返回 http:// → 请求走 HTTP（页面也必须用 HTTP 访问，否则 Mixed Content 被拦截）
+ * - 生产环境：后端返回 https:// → 请求走 HTTPS
+ * 如遇浏览器自动 HTTP→HTTPS 升级，需清除 HSTS 缓存或关闭 HTTPS 优先模式
+ */
+export function updateTransClientBaseURL(uploadUrl: string) {
+  if (!uploadUrl) return
+
+  try {
+    const urlObj = new URL(uploadUrl)
+    // 直接使用 uploadUrl 的协议和 host，拼接 /transWeb 作为 baseURL
+    transClient.defaults.baseURL = `${urlObj.protocol}//${urlObj.host}/transWeb`
+  }
+  catch {
+    console.warn('[transWebService] updateTransClientBaseURL: 无法解析 uploadUrl:', uploadUrl)
+  }
+}
+
 // ============ 初始化相关 API ============
 
 /**
@@ -368,59 +393,28 @@ export async function downloadFile(
   params: string,
   onProgress?: (percent: number, loaded: number, total: number) => void,
 ): Promise<Blob> {
-  const transToken = sessionStorage.getItem(TRANS_TOKEN_KEY)
-  const authStore = useAuthStore()
-  const authToken = authStore.token
-  const url = assetPath(`/transWeb/api/file/download?fileName=${encodeURIComponent(fileName)}&relativeDir=${encodeURIComponent(relativeDir)}&params=${params}`)
+  try {
+    const response = await transClient.get('/api/file/download', {
+      params: {
+        fileName,
+        relativeDir,
+        params,
+      },
+      responseType: 'blob',
+      onDownloadProgress: (progressEvent) => {
+        const loaded = progressEvent.loaded ?? 0
+        const total = progressEvent.total ?? 0
+        const percent = total > 0 ? Math.round((loaded / total) * 100) : 0
 
-  syncAuthTokenCookie(authToken)
+        onProgress?.(percent, loaded, total)
+      },
+    })
 
-  const headers: Record<string, string> = {}
-  if (transToken)
-    headers.Authorization = transToken
-
-  if (authToken)
-    headers.token = authToken
-
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-    credentials: 'same-origin',
-  })
-
-
-  if (!response.ok) {
-    throw new Error(`下载失败: ${response.statusText}`)
+    return response.data
   }
-
-  const contentLength = response.headers.get('content-length')
-  const total = contentLength ? parseInt(contentLength, 10) : 0
-
-  if (!response.body) {
-    throw new Error('响应体为空')
+  catch (error: any) {
+    throw new Error(error?.response?.statusText || error?.message || '下载失败')
   }
-
-  // 使用 ReadableStream 读取数据并计算进度
-  const reader = response.body.getReader()
-  const chunks: Uint8Array<ArrayBuffer>[] = []
-  let loaded = 0
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    chunks.push(value)
-    loaded += value.length
-
-    if (onProgress && total > 0) {
-      const percent = Math.round((loaded / total) * 100)
-      onProgress(percent, loaded, total)
-    }
-  }
-
-  // 合并所有 chunks
-  const blob = new Blob(chunks)
-  return blob
 }
 
 /**
