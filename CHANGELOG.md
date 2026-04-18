@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs - 2026-04-18
+
+#### 资产检测模块 quickStart 文档
+
+- 新增 `docs/guides/quickstart-asset-detection.md` — 资产检测确认功能开发&测试指南
+  - 架构总览（View / Component / Composable / API 四层结构图）
+  - 核心类型定义与关键字段说明
+  - 两级串行确认流程详解（文件确认 → 关键资产确认）
+  - 组件通信方式（Props / Emits / 事件桥接完整映射表）
+  - 筛选与分页规则
+  - 开发指南（新增使用场景、ref(new Set()) 响应式注意事项）
+  - QA 回归测试用例（21 条，覆盖数据加载、文件确认、关键资产确认、完整流程、筛选分页、密级显示）
+
 ### Changed - 2026-04-16
 
 #### 对接统一登录系统 (SSO)

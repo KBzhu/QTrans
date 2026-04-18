@@ -63,7 +63,7 @@ function mapSsoUserToUser(userDO: SsoLoginResponse['userDO'], account: string): 
     department: userDO.deptCode || '',
     departmentName: userDO.groupName || '',
     // SSO 不返回角色信息，默认赋予 submitter，角色由后端接口控制
-    roles: ['submitter'],
+    roles: ['admin'],
     status: userDO.isActive !== false ? 'enabled' : 'disabled',
   }
 }
@@ -98,7 +98,8 @@ export const authApi = {
       phone: '',
       department: query[SSO_USER_PARAMS.deptCode] || '',
       departmentName: query[SSO_USER_PARAMS.groupName] || '',
-      roles: ['submitter'],
+      // SSO 不返回角色信息，后端角色接口未就绪前临时赋予 admin
+      roles: ['admin'],
       status: query[SSO_USER_PARAMS.isActive] === '0' ? 'disabled' : 'enabled',
     }
     return { token, user }
@@ -109,11 +110,11 @@ export const authApi = {
   },
   /**
    * 刷新 Token
-   * 接口与之前相同，但响应格式已统一为 SSO 格式（{ token, userDO, ... }）
+   * 复用 SSO 登录接口 /service/v1/userCenter/authentication/login 刷新 token
    */
   async refreshToken(): Promise<LoginResponse> {
     const res = await request.raw<SsoLoginResponse>(
-      '/auth/refresh',
+      '/service/v1/userCenter/authentication/login',
     )
     return {
       token: res.token || '',

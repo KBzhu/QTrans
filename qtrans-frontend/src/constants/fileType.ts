@@ -22,6 +22,11 @@ export const FILE_TYPE_MAP: Record<number, string> = {
   67: '疑似夹带',
 }
 
+/**
+ * 所有文件类型 key 值数组（查询全部时使用 fileTypes 参数）
+ */
+export const FILE_TYPE_ALL_KEYS = Object.keys(FILE_TYPE_MAP).map(Number)
+
 
 /**
  * 获取文件类型名称

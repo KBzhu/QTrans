@@ -74,8 +74,10 @@ export interface KiaResultListRequest {
   pageNum: number
   /** 每页数量 */
   pageSize: number
-  /** 文件类型筛选（可选） */
+  /** 文件类型筛选（单个，可选） */
   fileType?: number
+  /** 文件类型筛选（多个，查询全部时使用，可选） */
+  fileTypes?: number[]
   /** 文件名关键字查询（可选） */
   fileName?: string
 }

@@ -1,7 +1,7 @@
-import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse, SecretLevelItem } from '@/types/assetDetection'
+import type { KiaFileItem, KiaKeyFileItem, KiaResultCountResponse, KiaResultListRequest, SecretLevelItem } from '@/types/assetDetection'
 import { computed, reactive, ref } from 'vue'
 import { assetDetectionApi } from '@/api/assetDetection'
-import { getFileTypeName } from '@/constants/fileType'
+import { FILE_TYPE_ALL_KEYS, getFileTypeName } from '@/constants/fileType'
 
 /**
  * 资产检测结果 composable
@@ -59,11 +59,21 @@ export function useAssetDetection() {
   /** 是否有关键资产 */
   const hasKeyAssets = computed(() => keyFileList.value.length > 0)
 
-  /** 是否所有文件都已确认（基于已确认数量 vs 总数判断，覆盖分页场景） */
+  /** 是否所有文件都已确认（逐条确认够数 或 点击了"确认全部文件"） */
   const allFilesConfirmed = computed(() => {
+    // 用户点击"确认全部文件"后直接标记为已完成
+    if (fileConfirmationCompleted.value)
+      return true
     if (pagination.total === 0)
       return false
     return confirmedFiles.value.size >= pagination.total
+  })
+
+  /** 已确认的文件数量 */
+  const confirmedFileCount = computed(() => {
+    if (fileConfirmationCompleted.value)
+      return pagination.total
+    return confirmedFiles.value.size
   })
 
   /** 是否所有关键资产都已确认 */
@@ -98,11 +108,13 @@ export function useAssetDetection() {
 
   /** 处理后的文件列表（带展示名称和确认状态） */
   const processedFileList = computed(() => {
+    const allConfirmed = fileConfirmationCompleted.value
     return fileList.value.map((file) => ({
       ...file,
       fileTypeName: getFileTypeName(file.fileType),
       secretLevelName: secretLevelMap.value[file.secretLevel] ?? `密级${file.secretLevel}`,
-      confirmed: confirmedFiles.value.has(file.fileName),
+      // 已逐条确认 或 点击了"确认全部文件" 都视为已确认
+      confirmed: allConfirmed || confirmedFiles.value.has(file.fileName),
     }))
   })
 
@@ -172,6 +184,8 @@ export function useAssetDetection() {
 
   /**
    * 分页查询所有检测文件
+   * - 未选类型时：传 fileTypes（全部 key 数组）
+   * - 选了单个类型时：传 fileType（单个值）
    */
   async function fetchKiaResultList(applicationId: number | string, pageNum?: number) {
     listLoading.value = true
@@ -182,13 +196,27 @@ export function useAssetDetection() {
       }
 
       const currentPage = pageNum ?? pagination.current
-      const res = await assetDetectionApi.getKiaResultList({
+
+      // 构建查询参数：
+      // 有具体 fileType 时传单个 fileType，否则传 fileTypes 全部数组
+      const rawFileType = filters.fileType
+      const hasFileType = rawFileType != null && !Number.isNaN(Number(rawFileType))
+      const params: KiaResultListRequest = {
         applicationId,
         pageNum: currentPage,
         pageSize: pagination.pageSize,
-        fileType: filters.fileType,
-        fileName: filters.fileName,
-      })
+      }
+      if (hasFileType) {
+        params.fileType = Number(rawFileType)
+      }
+      else {
+        params.fileTypes = FILE_TYPE_ALL_KEYS
+      }
+      if (filters.fileName) {
+        params.fileName = filters.fileName.trim()
+      }
+
+      const res = await assetDetectionApi.getKiaResultList(params)
 
       fileList.value = res.result || []
       pagination.total = res.pageVO?.totalRows || 0
@@ -302,12 +330,15 @@ export function useAssetDetection() {
   }
 
   /**
-   * 完成文件确认阶段，进入关键资产确认阶段
+   * 确认全部文件（一次性，基于总数而非当前页数据）
    */
-  function completeFileConfirmation() {
-    if (allFilesConfirmed.value) {
-      fileConfirmationCompleted.value = true
-    }
+  function confirmAllFiles() {
+    // 标记完成（影响 allFilesConfirmed / canOperate / 按钮隐藏）
+    fileConfirmationCompleted.value = true
+    // 将当前已加载的文件名加入 Set（影响 processedFileList 行状态）
+    fileList.value.forEach((file) => {
+      confirmedFiles.value.add(file.fileName)
+    })
   }
 
   /**
@@ -373,6 +404,7 @@ export function useAssetDetection() {
     hasDetectionResult,
     hasKeyAssets,
     allFilesConfirmed,
+    confirmedFileCount,
     allKeyAssetsConfirmed,
     isInKeyAssetConfirmationStage,
     canOperate,
@@ -391,7 +423,7 @@ export function useAssetDetection() {
     confirmKeyAsset,
     unconfirmKeyAsset,
     confirmAllCurrentPageFiles,
-    completeFileConfirmation,
+    confirmAllFiles,
     confirmAllKeyAssets,
     resetConfirmation,
     updateFilters,

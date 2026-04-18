@@ -256,6 +256,16 @@ async function handleDeleteUploadedFile(file: FileEntity) {
  * @returns true=校验通过，false=存在未通过文件，已拦截
  */
 function validateBeforeSubmit(): boolean {
+  // 0. 检查上传队列中是否有尚未完成上传的文件
+  const activeFiles = uploadFileList.value.filter((f: TransUploadFileItem) =>
+    f.status === 'pending' || f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
+  )
+  if (activeFiles.length > 0) {
+    const names = activeFiles.map(f => f.file.name).join('、')
+    Message.error(`以下文件尚未上传完成：${names}`)
+    return false
+  }
+
   // 1. 检查上传队列中是否有哈希校验失败的文件
   const mismatchedUploading = uploadFileList.value.filter(
     (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',

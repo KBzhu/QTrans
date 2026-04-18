@@ -3,6 +3,7 @@ import { useIntervalFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { authApi, buildSsoRedirectUrl } from '@/api/auth'
+import { getDefaultHome } from '@/router/routes'
 import { STORAGE_KEYS } from '@/utils/constants'
 
 /** Token 刷新间隔：15 分钟 */
@@ -74,8 +75,12 @@ export const useAuthStore = defineStore('auth', () => {
       pauseRefresh()
       clearAuthState()
       // 重定向到统一登录系统
-      const currentBase = window.location.origin + (import.meta.env.BASE_URL || '/')
-      redirectToSso(currentBase)
+      // redirectUrl 必须指向 /login 页面（SSO 回调中转页），而非根路径
+      // 这样 SSO 回调链路：SSO → /login → handleSsoCallback 解析 token → 跳转首页
+      const baseUrl = window.location.origin + (import.meta.env.BASE_URL || '/')
+      const loginCallbackUrl = new URL(baseUrl + 'login')
+      loginCallbackUrl.searchParams.set('redirect', getDefaultHome())
+      redirectToSso(loginCallbackUrl.toString())
     }
   }
 

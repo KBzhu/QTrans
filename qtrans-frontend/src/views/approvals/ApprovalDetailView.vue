@@ -50,6 +50,7 @@ const {
   hasKeyAssets,
   hasDetectionResult,
   allFilesConfirmed,
+  confirmedFileCount,
   allKeyAssetsConfirmed,
   canOperate: canOperateAsset,
   initAssetDetection,
@@ -58,7 +59,7 @@ const {
   confirmKeyAsset,
   unconfirmKeyAsset,
   confirmAllCurrentPageFiles,
-  completeFileConfirmation,
+  confirmAllFiles,
   confirmAllKeyAssets,
   fileConfirmationCompleted,
   updateFilters,
@@ -223,8 +224,9 @@ watch(
       </div>
     </header>
 
-    <div v-if="canOperate" class="approval-detail-page__top-actions">
-      <a-button type="primary" @click="onApprove">通过</a-button>
+    <!-- 顶部操作按钮：始终显示，通过按钮受 canOperate 控制 -->
+    <div class="approval-detail-page__top-actions">
+      <a-button type="primary" :disabled="!canOperate" @click="onApprove">通过</a-button>
       <a-button status="danger" @click="onReject">驳回</a-button>
     </div>
 
@@ -281,13 +283,14 @@ watch(
           :pagination="assetPagination"
           :require-confirmation="canOperateBase"
           :all-files-confirmed="allFilesConfirmed"
+          :confirmed-file-count="confirmedFileCount"
           :all-key-assets-confirmed="allKeyAssetsConfirmed"
           :has-key-assets="hasKeyAssets"
           :file-confirmation-completed="fileConfirmationCompleted"
           @confirm-file="handleConfirmFile"
           @confirm-key-asset="handleConfirmKeyAsset"
           @confirm-current-page="confirmAllCurrentPageFiles"
-          @complete-file-confirmation="completeFileConfirmation"
+          @confirm-all-files="confirmAllFiles"
           @confirm-all-key-assets="confirmAllKeyAssets"
           @filter-change="handleFilterChange"
           @page-change="handleAssetPageChange"
@@ -305,8 +308,8 @@ watch(
     </section>
 
 
-    <section v-if="canOperate" class="approval-opinion-card">
-
+    <!-- 审批意见栏：始终显示 -->
+    <section class="approval-opinion-card">
       <h3 class="approval-opinion-card__title">审批意见</h3>
       <a-textarea
         v-model="approvalOpinion"
@@ -317,7 +320,7 @@ watch(
       />
 
       <div class="approval-opinion-card__actions">
-        <a-button type="primary" @click="onApprove">通过</a-button>
+        <a-button type="primary" :disabled="!canOperate" @click="onApprove">通过</a-button>
         <a-button status="danger" @click="onReject">驳回</a-button>
       </div>
     </section>

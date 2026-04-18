@@ -309,6 +309,19 @@ export async function completeUpload(
  * 获取服务端哈希值
  * POST /Handler/UploadHandler?act=HASH
  */
+/**
+ * 模拟 JS 原生 escape() 的行为，将非 ASCII 字符编码为 %uXXXX 格式
+ * 后端 HASH 接口依赖此格式解析文件名（对齐老代码 getServerHash）
+ */
+function escapeUnicode(str: string): string {
+  return str.replace(/[^\w@*+\/.-]/g, (ch) => {
+    const code = ch.charCodeAt(0)
+    if (code > 255) return `%u${code.toString(16).toUpperCase().padStart(4, '0')}`
+    // 0x00-0xFF 范围沿用 encodeURIComponent 的 %XX 格式（与原生 escape 一致）
+    return encodeURIComponent(ch)
+  })
+}
+
 export async function getServerHash(
   relativeFileName: string,
   params: string,
@@ -316,7 +329,7 @@ export async function getServerHash(
   const response = await transClient.post('/Handler/UploadHandler', null, {
     params: {
       act: 'HASH',
-      RelativeFileName: encodeURIComponent(relativeFileName),
+      RelativeFileName: escapeUnicode(relativeFileName),
       params: params,
     },
   })

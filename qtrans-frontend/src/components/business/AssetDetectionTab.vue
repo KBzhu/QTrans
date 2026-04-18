@@ -35,6 +35,8 @@ const props = defineProps<{
   allFilesConfirmed?: boolean
   /** 是否所有关键资产已确认 */
   allKeyAssetsConfirmed?: boolean
+  /** 已确认的文件数量（用于计算未确认总数） */
+  confirmedFileCount?: number
   /** 是否有关键资产 */
   hasKeyAssets?: boolean
   /** 是否已完成文件确认阶段 */
@@ -48,8 +50,8 @@ const emit = defineEmits<{
   (e: 'confirm-key-asset', fileName: string, confirmed: boolean): void
   /** 批量确认当前页 */
   (e: 'confirm-current-page'): void
-  /** 完成文件确认阶段 */
-  (e: 'complete-file-confirmation'): void
+  /** 确认全部文件（一次性） */
+  (e: 'confirm-all-files'): void
   /** 确认所有关键资产 */
   (e: 'confirm-all-key-assets'): void
   /** 筛选变化 */
@@ -152,7 +154,10 @@ const fileConfirmHint = computed(() => {
     return null
 
   if (!props.allFilesConfirmed) {
-    const unconfirmedCount = props.fileList?.filter(f => !f.confirmed).length || 0
+    // 基于 total - 已确认数 计算未确认数量（覆盖全部分页）
+    const total = props.pagination?.total || 0
+    const confirmed = props.confirmedFileCount || 0
+    const unconfirmedCount = Math.max(0, total - confirmed)
     return {
       type: 'warning',
       message: `请逐条确认以下文件，未确认 ${unconfirmedCount} 项`,
@@ -207,9 +212,9 @@ function handleConfirmCurrentPage() {
   emit('confirm-current-page')
 }
 
-// 完成文件确认
-function handleCompleteFileConfirmation() {
-  emit('complete-file-confirmation')
+// 确认全部文件（一次性确认所有分页文件）
+function handleConfirmAllFiles() {
+  emit('confirm-all-files')
   // 自动切换到关键资产tab
   if (props.hasKeyAssets) {
     activeSubTab.value = 'keyAssets'
@@ -354,16 +359,15 @@ function getRowClassName(record: any) {
       </a-table>
 
       <!-- 文件确认操作栏 -->
-      <div v-if="requireConfirmation && !fileConfirmationCompleted" class="asset-detection-tab__actions">
+      <div v-if="requireConfirmation && !allFilesConfirmed" class="asset-detection-tab__actions">
         <a-button type="outline" @click="handleConfirmCurrentPage">
           确认当前页
         </a-button>
         <a-button
-          v-if="allFilesConfirmed"
           type="primary"
-          @click="handleCompleteFileConfirmation"
+          @click="handleConfirmAllFiles"
         >
-          完成文件确认
+          确认全部文件
         </a-button>
       </div>
     </div>

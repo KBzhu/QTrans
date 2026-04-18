@@ -12,8 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: number | undefined): void
   (e: 'update:searchKeyword', value: string | undefined): void
-  (e: 'search'): void
-  (e: 'reset'): void
+  (e: 'filter-change', filters: { fileType?: number; fileName?: string }): void
 }>()
 
 // 文件类型选项
@@ -26,7 +25,7 @@ const fileTypeOptions = computed(() => {
   return [{ value: undefined, label: '全部类型' }, ...options]
 })
 
-// 本地搜索关键字
+// 本地搜索关键字（双向绑定）
 const localSearchKeyword = computed({
   get: () => props.searchKeyword || '',
   set: (val: string) => {
@@ -34,24 +33,38 @@ const localSearchKeyword = computed({
   },
 })
 
-// 本地选中的文件类型
+// 本地选中的文件类型（双向绑定，变化时立即筛选）
 const localFileType = computed({
   get: () => props.modelValue,
-  set: (val: number | undefined) => {
-    emit('update:modelValue', val)
+  set: (val: number | undefined | string) => {
+    // 归一化：null / undefined / 空字符串 / NaN 等无效值统一转为 undefined
+    const normalized = (val != null && val !== '' && !Number.isNaN(Number(val)))
+      ? Number(val)
+      : undefined
+    emit('update:modelValue', normalized)
+    // 选择变化后立即触发筛选，直接传新值避免读取未更新的 props
+    emitFilter(normalized, props.searchKeyword)
   },
 })
 
-// 处理搜索
+/** 统一触发筛选事件 */
+function emitFilter(fileType?: number, fileName?: string) {
+  emit('filter-change', {
+    fileType,
+    fileName,
+  })
+}
+
+// 处理搜索（回车或点击搜索按钮）
 function handleSearch() {
-  emit('search')
+  emitFilter()
 }
 
 // 处理重置
 function handleReset() {
   emit('update:modelValue', undefined)
   emit('update:searchKeyword', undefined)
-  emit('reset')
+  emitFilter()
 }
 </script>
 

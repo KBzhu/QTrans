@@ -375,12 +375,18 @@ export function useTransUpload() {
 
   /**
    * 上传文件（支持分片、断点续传、哈希校验、并发控制）
+   * @param file 要上传的文件
+   * @param params 上传参数
+   * @param relativeDir 相对目录
+   * @param onProgress 进度回调
+   * @param existingItem [可选] 已有的上传项（用于 resume 场景，避免重复创建）
    */
   async function uploadFile(
     file: File,
     params: string,
     relativeDir = '',
     onProgress?: (item: TransUploadFileItem) => void,
+    existingItem: TransUploadFileItem | null = null,
   ): Promise<boolean> {
     if (!initData.value) {
       Message.error('请先初始化上传页面')
@@ -390,53 +396,63 @@ export function useTransUpload() {
     const fileUUID = generateFileUUID(file)
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
 
-    // 创建上传项
-    const uploadItem: TransUploadFileItem = {
-      id: fileUUID,
-      file,
-      status: 'uploading',
-      progress: 0,
-      speed: 0,
-      relativeDir,
-      totalChunks,
-      uploadedChunkCount: 0,
-      selected: false,
-      startTime: Date.now(),
-      retryCount: 0,
-    }
-    uploadFileList.value.push(uploadItem)
-    // 获取 Vue Proxy 响应式引用，后续所有属性修改通过此引用进行
-    // 这样可以直接触发 Proxy setter，确保 UI 响应式更新
-    const ri = uploadFileList.value[uploadFileList.value.length - 1]!
+    // 创建或复用上传项
+    let ri: TransUploadFileItem
 
-    // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
-    // 老代码逻辑：小文件先算 hash 附到请求参数，上传完成后不需要再等后端算哈希
-    let preCalculatedHash = ''
-    if (file.size <= SMALL_FILE_THRESHOLD) {
-      try {
-        preCalculatedHash = await calculateSHA256(file)
-        console.log('[上传] 小文件预计算哈希:', preCalculatedHash.substring(0, 16) + '...')
-      } catch (e) {
-        console.warn('[上传] 小文件预计算哈希失败，将在上传后计算:', e)
+    if (existingItem) {
+      // [Bug2修复] resume 场景：复用已有列表项，不重复创建
+      ri = existingItem
+    } else {
+      const uploadItem: TransUploadFileItem = {
+        id: fileUUID,
+        file,
+        status: 'pending',
+        progress: 0,
+        speed: 0,
+        relativeDir,
+        totalChunks,
+        uploadedChunkCount: 0,
+        selected: false,
+        startTime: Date.now(),
+        retryCount: 0,
       }
+      uploadFileList.value.push(uploadItem)
+      ri = uploadFileList.value[uploadFileList.value.length - 1]!
     }
 
-    // 创建上传记录到 IndexedDB
-    await createUploadRecord({
-      fileUUID,
-      fileName: file.name,
-      fileSize: file.size,
-      totalChunks,
-      uploadParams: params,
-      relativeDir,
-      status: 'uploading',
-    })
+    // [Bug1修复] 立即触发 UI 更新，让进度条在用户选择文件后立刻出现
+    onProgress?.(ri)
 
-    // 创建 AbortController
+    // 创建 AbortController（提前创建，确保暂停操作能正确中断）
     const controller = new AbortController()
     abortControllers.set(fileUUID, controller)
 
     try {
+      // [Bug1修复] 状态切换为 uploading，并异步执行准备操作
+      ri.status = 'uploading'
+
+      // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
+      let preCalculatedHash = ''
+      if (file.size <= SMALL_FILE_THRESHOLD) {
+        try {
+          preCalculatedHash = await calculateSHA256(file)
+          console.log('[上传] 小文件预计算哈希:', preCalculatedHash.substring(0, 16) + '...')
+        } catch (e) {
+          console.warn('[上传] 小文件预计算哈希失败，将在上传后计算:', e)
+        }
+      }
+
+      // 创建上传记录到 IndexedDB（移到此处，不阻塞进度条显示）
+      await createUploadRecord({
+        fileUUID,
+        fileName: file.name,
+        fileSize: file.size,
+        totalChunks,
+        uploadParams: params,
+        relativeDir,
+        status: 'uploading',
+      })
+
       // 查询已上传分片（断点续传）
       const { skip, reupload } = await checkChunkStatus(fileUUID, file.name, relativeDir, params, totalChunks)
 
@@ -817,7 +833,7 @@ export function useTransUpload() {
   }
 
   /**
-   * 继续上传
+   * 继续上传（复用已有上传项，不重复创建）
    */
   async function resumeUpload(
     fileId: string,
@@ -835,7 +851,8 @@ export function useTransUpload() {
     item.error = undefined
     item.startTime = Date.now()
 
-    return uploadFile(item.file, params, item.relativeDir, onProgress)
+    // [Bug2修复] 传入已有项，uploadFile 内部不会 push 新项到列表
+    return uploadFile(item.file, params, item.relativeDir, onProgress, item)
   }
 
   /**
