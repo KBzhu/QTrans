@@ -380,6 +380,7 @@ export function useTransUpload() {
    * @param relativeDir 相对目录
    * @param onProgress 进度回调
    * @param existingItem [可选] 已有的上传项（用于 resume 场景，避免重复创建）
+   * @param existingFileUUID [可选] 已有的文件 UUID（用于 resume 场景，复用 ID 保证暂停/断点续传生效）
    */
   async function uploadFile(
     file: File,
@@ -387,13 +388,15 @@ export function useTransUpload() {
     relativeDir = '',
     onProgress?: (item: TransUploadFileItem) => void,
     existingItem: TransUploadFileItem | null = null,
+    existingFileUUID?: string,
   ): Promise<boolean> {
     if (!initData.value) {
       Message.error('请先初始化上传页面')
       return false
     }
 
-    const fileUUID = generateFileUUID(file)
+    // resume 场景复用已有 UUID，避免 Date.now() 导致 ID 不一致
+    const fileUUID = existingFileUUID || generateFileUUID(file)
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
 
     // 创建或复用上传项
@@ -846,13 +849,13 @@ export function useTransUpload() {
       return false
     }
 
-    // 重置状态
+    // 重置状态（保留 uploadedChunkCount，断点续传时会通过 checkChunkStatus 重新计算）
     item.status = 'pending'
     item.error = undefined
     item.startTime = Date.now()
 
-    // [Bug2修复] 传入已有项，uploadFile 内部不会 push 新项到列表
-    return uploadFile(item.file, params, item.relativeDir, onProgress, item)
+    // [Bug2修复] 传入已有项 + 已有 UUID，uploadFile 内部不会 push 新项到列表，且复用 UUID 保证暂停/断点续传生效
+    return uploadFile(item.file, params, item.relativeDir, onProgress, item, item.id)
   }
 
   /**
@@ -943,7 +946,8 @@ export function useTransUpload() {
     // 清理旧的分片记录
     await deleteChunksByFileUUID(fileId)
 
-    return uploadFile(item.file, params, item.relativeDir, onProgress)
+    // 传入已有项 + 已有 UUID，复用 ID 保证暂停/断点续传生效
+    return uploadFile(item.file, params, item.relativeDir, onProgress, item, item.id)
   }
 
   // ============ 批量操作 ============

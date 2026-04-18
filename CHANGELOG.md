@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-04-18
+
+#### 上传暂停 BUG 修复
+
+- 修复暂停上传只能生效一次的问题：`resumeUpload` → `uploadFile` 时 `generateFileUUID` 因含 `Date.now()` 会生成新 UUID，导致 `abortControllers` Map 中的 key 与列表 `item.id` 不一致，第二次暂停找不到 AbortController
+- 修复暂停后继续上传进度从 0 重新开始的问题：新 UUID 导致 `checkChunkStatus` 查不到服务端已上传分片，全部分片重新上传
+- `uploadFile` 增加可选参数 `existingFileUUID`，resume/retry 场景复用已有 UUID
+- 同步修复 `retryUpload` 也会生成新 UUID 导致列表重复的问题
+
 ### Docs - 2026-04-18
 
 #### 资产检测模块 quickStart 文档
