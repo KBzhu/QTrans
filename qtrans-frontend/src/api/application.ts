@@ -239,6 +239,51 @@ findSecurityLevelList(params: {
       { params: { applicationId } },
     )
   },
+  /**
+   * 导出我的申请列表 - 真实后端接口
+   * POST /workflowService/services/frontendService/frontend/findMyApplicationExport
+   * 响应: Excel 文件流 (blob)
+   */
+  async exportMyApplication(applicationIdList: (number | string)[]): Promise<void> {
+    const { default: axios } = await import('axios')
+    const { useAuthStore } = await import('@/stores')
+    const { assetPath } = await import('@/utils/path')
+
+    const authStore = useAuthStore()
+    const token = authStore.token
+
+    const response = await axios.post(
+      assetPath('/workflowService/services/frontendService/frontend/findMyApplicationExport'),
+      { applicationIdList },
+      {
+        responseType: 'blob',
+        headers: {
+          ...(token ? { token } : {}),
+        },
+      },
+    )
+
+    // 从 content-disposition 提取文件名
+    let fileName = `application-export-${Date.now()}.xlsx`
+    const disposition = response.headers['content-disposition']
+    if (disposition) {
+      const match = disposition.match(/filename=([^;]+)/)
+      if (match) {
+        fileName = decodeURIComponent(match[1])
+      }
+    }
+
+    // 创建下载链接
+    const blob = new Blob([response.data], { type: 'application/vnd.ms-excel' })
+    const href = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = href
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(href)
+  },
 }
 
 /** 真实后端 - 文件信息列表项 */

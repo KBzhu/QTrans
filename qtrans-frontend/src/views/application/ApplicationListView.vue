@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { MyApplicationItem } from '@/api/application'
+import { applicationApi } from '@/api/application'
 import { Message, Modal } from '@arco-design/web-vue'
 import { IconCopy, IconEye, IconFile, IconStop } from '@arco-design/web-vue/es/icon'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CloseApplicationModal from '@/components/business/CloseApplicationModal.vue'
 import { useApplicationList } from '@/composables/useApplicationList'
-import { formatDateTime } from '@/utils'
 import { assetPath } from '@/utils/path'
 import './application-list.scss'
 
@@ -77,38 +77,29 @@ function onCloseSuccess() {
   fetchList()
 }
 
-function onExport() {
-  const rows = selectedRowKeys.value.length > 0
-    ? listData.value.filter(item => selectedRowKeys.value.includes(String(item.applicationId)))
-    : listData.value
+const exportLoading = ref(false)
 
-  if (rows.length === 0) {
+async function onExport() {
+  const ids = selectedRowKeys.value.length > 0
+    ? selectedRowKeys.value
+    : listData.value.map(item => String(item.applicationId))
+
+  if (ids.length === 0) {
     Message.warning('暂无可导出的数据')
     return
   }
 
-  const headers = ['申请单号', '传输路由', '当前流程', '申请单状态', '申请原因', '对方名称', '创建时间']
-  const body = rows.map((item) => {
-    return [
-      item.applicationId,
-      getTransferTypeLabel(item.transWay),
-      item.currentStatus || '-',
-      item.taskStatus || '-',
-      item.reason || '-',
-      item.targetName || '-',
-      formatDateTime(item.creationDate),
-    ].join(',')
-  })
-
-  const csv = `${headers.join(',')}\n${body.join('\n')}`
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `application-list-${Date.now()}.csv`
-  link.click()
-  URL.revokeObjectURL(url)
-  Message.success(`已导出 ${rows.length} 条记录`)
+  exportLoading.value = true
+  try {
+    await applicationApi.exportMyApplication(ids)
+    Message.success(`已导出 ${ids.length} 条记录`)
+  }
+  catch (error: any) {
+    Message.error(error?.message || '导出失败')
+  }
+  finally {
+    exportLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -151,7 +142,7 @@ onMounted(async () => {
 
     <section class="application-table-card">
       <div class="application-table-card__toolbar">
-        <a-button type="primary" @click="onExport">
+        <a-button type="primary" :loading="exportLoading" @click="onExport">
           <template #icon>
             <img :src="assetPath('/figma/3961_3234/4.svg')" alt="导出" class="filter-icon" />
           </template>
