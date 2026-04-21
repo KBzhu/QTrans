@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 修复暂停上传只能生效一次的问题：`resumeUpload` → `uploadFile` 时 `generateFileUUID` 因含 `Date.now()` 会生成新 UUID，导致 `abortControllers` Map 中的 key 与列表 `item.id` 不一致，第二次暂停找不到 AbortController
 - 修复暂停后继续上传进度从 0 重新开始的问题：新 UUID 导致 `checkChunkStatus` 查不到服务端已上传分片，全部分片重新上传
+- 修复 `checkChunkStatus` 将 `hash=partial` 误判为分片不完整的问题：`partial` 仅表示服务端哈希未算完，不代表数据不完整；改为按 `size` 判断数据完整性（非最后分片 `size >= CHUNK_SIZE`、最后分片 `size > 0` 即为完整）
 - `uploadFile` 增加可选参数 `existingFileUUID`，resume/retry 场景复用已有 UUID
 - 同步修复 `retryUpload` 也会生成新 UUID 导致列表重复的问题
 

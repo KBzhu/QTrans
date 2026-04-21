@@ -341,3 +341,62 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Task 5: 哈希不匹配弹窗样式 ===== */
+.hash-mismatch-modal {
+  &__tip {
+    color: #4e5969;
+    margin-bottom: 12px;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff1f0;
+    border: 1px solid #ffc7c7;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__name {
+    font-weight: 500;
+    color: #1d2129;
+    flex: 1;
+  }
+
+  &__hash {
+    font-size: 11px;
+    color: #86909c;
+    font-family: monospace;
+    width: 100%;
+
+    &--server {
+      color: #f53f3f;
+    }
+  }
+}
+
+/* ===== Task 9: 隐私政策链接 ===== */
+.privacy-link {
+  margin-right: 8px;
+  color: #86909c !important;
+
+  &:hover {
+    color: #165dff !important;
+  }
+}

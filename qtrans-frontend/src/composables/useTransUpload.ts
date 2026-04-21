@@ -4,6 +4,7 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import {
   type FileListData,
   type UploadInitResponse,
@@ -11,7 +12,10 @@ import {
   calculateSHA256,
   calculateChunkHash,
   cancelUploadApi,
+  cacheRefresh,
   completeUpload,
+  continueUploadApi,
+  refreshTransToken,
   deleteFiles,
   getChunkSize,
   getFileList,
@@ -29,7 +33,6 @@ import {
   createUploadRecord,
   deleteChunksByFileUUID,
   deleteUploadRecord,
-  getChunksByFileUUID,
   saveChunk,
   updateUploadStatus,
   cleanCompletedRecords,
@@ -166,6 +169,16 @@ export function useTransUpload() {
 
   /** 当前活跃的上传队列 */
   const activeUploads = ref(0)
+
+  /** Task 7: Session 保活定时器（对标老代码 cacheRefreshTimer） */
+  const sessionKeepAliveTimer = ref<ReturnType<typeof setInterval> | null>(null)
+  /** Session 保活间隔（毫秒）：每 25 秒调用 act=cache 刷新服务端缓存 */
+  const SESSION_KEEP_ALIVE_INTERVAL = 25_000
+
+  /** Task 8: Trans Token 自动刷新定时器 */
+  const transTokenRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null)
+  /** Token 刷新间隔（毫秒）：每 60 秒调用 /client/refreshToken，对标老代码 refreshToken() 定时器 */
+  const TRANS_TOKEN_REFRESH_INTERVAL = 60_000
   
   // 计算属性：选中的文件
   const selectedFiles = computed(() => 
@@ -190,6 +203,12 @@ export function useTransUpload() {
       // 尝试恢复未完成的上传
       await restorePendingUploads(params)
 
+      // Task 7: 启动 Session 保活定时器（对标老代码 cacheRefreshTimer）
+      startSessionKeepAlive(params)
+
+      // Task 8: 启动 Trans Token 自动刷新定时器（每 60 秒，对标老代码 refreshToken）
+      startTransTokenRefresh(params, lang)
+
       return data
     }
     catch (error: any) {
@@ -198,6 +217,68 @@ export function useTransUpload() {
     }
     finally {
       initLoading.value = false
+    }
+  }
+
+  /**
+   * Task 7: 启动 Session 保活定时器
+   * 对标老代码：定期调用 act=cache 刷新服务端缓存、保持 session 活跃
+   */
+  function startSessionKeepAlive(params: string) {
+    // 停止已有的定时器
+    stopSessionKeepAlive()
+
+    sessionKeepAliveTimer.value = setInterval(async () => {
+      try {
+        await cacheRefresh(params)
+        console.log('[Session保活] act=cache 调用成功')
+      } catch (e) {
+        console.warn('[Session保活] act=cache 调用失败:', e)
+      }
+    }, SESSION_KEEP_ALIVE_INTERVAL)
+    console.log(`[Session保活] 已启动定时器（间隔 ${SESSION_KEEP_ALIVE_INTERVAL / 1000}s）`)
+  }
+
+  /**
+   * Task 7: 停止 Session 保活定时器
+   */
+  function stopSessionKeepAlive() {
+    if (sessionKeepAliveTimer.value) {
+      clearInterval(sessionKeepAliveTimer.value)
+      sessionKeepAliveTimer.value = null
+      console.log('[Session保活] 定时器已停止')
+    }
+  }
+
+  /**
+   * Task 8: 启动 Trans Token 自动刷新定时器
+   * 对标老代码：每 60 秒调用 /client/refreshToken 获取新 token
+   * 与 Session 保活定时器（25s）并行运行，互不干扰
+   *
+   * @param params 申请单参数
+   * @param lang 语言（用于 refreshToken 接口）
+   */
+  function startTransTokenRefresh(params: string, lang = 'zh_CN') {
+    // 停止已有的定时器
+    stopTransTokenRefresh()
+
+    transTokenRefreshTimer.value = setInterval(async () => {
+      const result = await refreshTransToken(params, lang)
+      if (result.success) {
+        console.log('[Token刷新] trans token 已更新')
+      }
+    }, TRANS_TOKEN_REFRESH_INTERVAL)
+    console.log(`[Token刷新] 已启动定时器（间隔 ${TRANS_TOKEN_REFRESH_INTERVAL / 1000}s）`)
+  }
+
+  /**
+   * Task 8: 停止 Trans Token 自动刷新定时器
+   */
+  function stopTransTokenRefresh() {
+    if (transTokenRefreshTimer.value) {
+      clearInterval(transTokenRefreshTimer.value)
+      transTokenRefreshTimer.value = null
+      console.log('[Token刷新] 定时器已停止')
     }
   }
 
@@ -215,6 +296,9 @@ export function useTransUpload() {
       return null
     }
   }
+
+  /** 防抖刷新（Task 6）：避免频繁刷新请求击垮后端 */
+  const debouncedLoadFileList = useDebounceFn(loadFileList, 500)
 
   /**
    * 恢复未完成的上传
@@ -268,36 +352,27 @@ export function useTransUpload() {
         return { skip: [], reupload: Array.from({ length: totalChunks }, (_, i) => i) }
       }
 
-      // 从 IndexedDB 获取本地分片信息
-      const localChunks = await getChunksByFileUUID(fileUUID)
-      const localChunkMap = new Map(localChunks.map(c => [c.chunkIndex, c]))
 
       const skip: number[] = []
       const reupload: number[] = []
 
       for (const serverChunk of response.data.chunks) {
-        const localChunk = localChunkMap.get(serverChunk.index)
+        const isLastChunk = serverChunk.index === totalChunks - 1
 
-        // 分片不完整（大小校验）
-        if (serverChunk.hash === 'partial' || 
-            (serverChunk.index < totalChunks - 1 && serverChunk.size < CHUNK_SIZE)) {
+        // 分片数据完整性校验：hash=partial 仅表示服务端哈希未算完，不代表数据不完整
+        // 需通过 size 判断：非最后分片 size >= CHUNK_SIZE、最后分片 size > 0 即为数据完整
+        const isDataComplete = isLastChunk
+          ? serverChunk.size > 0
+          : serverChunk.size >= CHUNK_SIZE
+
+        if (!isDataComplete) {
+          // 数据不完整，需要重新上传
           reupload.push(serverChunk.index)
           continue
         }
 
-        // 本地没有记录，但服务端有完整分片 -> 跳过
-        if (!localChunk) {
-          skip.push(serverChunk.index)
-          continue
-        }
-
-        // 哈希匹配 -> 跳过
-        if (serverChunk.hash === localChunk.chunkHash) {
-          skip.push(serverChunk.index)
-        } else {
-          // 哈希不匹配 -> 重新上传
-          reupload.push(serverChunk.index)
-        }
+        // 数据完整，可跳过（无论 hash 是 partial 还是具体值）
+        skip.push(serverChunk.index)
       }
 
       // 服务端没有记录的分片 -> 需要上传
@@ -788,23 +863,39 @@ export function useTransUpload() {
   }
 
   /**
-   * 确认上传完成
+   * 确认上传完成（带自动重试，对齐老代码逻辑）
    */
   async function confirmUpload(params: string): Promise<boolean> {
-    try {
-      const result = await completeUpload(params)
-      if (result.success) {
-        Message.success('上传确认成功')
-        return true
-      } else {
-        Message.error(result.error || '上传确认失败')
-        return false
+    let lastError: Error | null = null
+
+    for (let attempt = 1; attempt <= MAX_AUTO_RETRY; attempt++) {
+      try {
+        const result = await completeUpload(params)
+        if (result.success) {
+          if (attempt > 1) {
+            Message.success(`上传确认成功（重试第 ${attempt - 1} 次后）`)
+          } else {
+            Message.success('上传确认成功')
+          }
+          return true
+        } else {
+          lastError = new Error(result.error || '上传确认失败')
+          console.warn(`[confirmUpload] 第 ${attempt} 次尝试失败:`, lastError.message)
+        }
+      }
+      catch (error: any) {
+        lastError = new Error(error.message || '未知错误')
+        console.warn(`[confirmUpload] 第 ${attempt} 次尝试异常:`, lastError.message)
+      }
+
+      // 非最后一次，等待后重试
+      if (attempt < MAX_AUTO_RETRY) {
+        await new Promise(resolve => setTimeout(resolve, AUTO_RETRY_DELAY))
       }
     }
-    catch (error: any) {
-      Message.error(`上传确认失败: ${error.message || '未知错误'}`)
-      return false
-    }
+
+    Message.error(`上传确认失败（已重试 ${MAX_AUTO_RETRY} 次）: ${lastError?.message || '未知错误'}`)
+    return false
   }
 
   /**
@@ -837,6 +928,7 @@ export function useTransUpload() {
 
   /**
    * 继续上传（复用已有上传项，不重复创建）
+   * 对齐老代码 retryTask(): 先调用 act=continue 通知后端恢复上传状态
    */
   async function resumeUpload(
     fileId: string,
@@ -847,6 +939,15 @@ export function useTransUpload() {
     if (!item || !item.file) {
       Message.error('找不到上传文件')
       return false
+    }
+
+    // 对齐老代码 retryTask(): 调用 act=continue 通知后端该文件即将恢复上传
+    // 后端依赖此接口恢复内部状态（如重置超时计时器、标记文件为上传中等）
+    try {
+      await continueUploadApi(item.file.name, item.relativeDir, params)
+      console.log('[继续上传] 已通知后端恢复上传:', item.file.name)
+    } catch (e) {
+      console.warn('[继续上传] 通知后端 continue 失败（继续上传）:', e)
     }
 
     // 重置状态（保留 uploadedChunkCount，断点续传时会通过 checkChunkStatus 重新计算）
@@ -1074,6 +1175,7 @@ export function useTransUpload() {
     // 方法
     initialize,
     loadFileList,
+    debouncedLoadFileList,
     uploadFile,
     uploadFiles,
     confirmUpload,
@@ -1085,6 +1187,10 @@ export function useTransUpload() {
     clearCompleted,
     cleanupExpiredData,
     checkStorageSpace,
+    startSessionKeepAlive,
+    stopSessionKeepAlive,
+    startTransTokenRefresh,
+    stopTransTokenRefresh,
 
     // 批量操作
     toggleSelectAll,

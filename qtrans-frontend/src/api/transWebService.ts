@@ -502,6 +502,48 @@ export async function getUploadedChunks(
 }
 
 /**
+ * 继续上传（通知后端恢复上传状态）
+ * POST /Handler/UploadHandler?act=continue
+ *
+ * 对齐老代码 retryTask(): 调用 act=continue 通知后端该文件即将恢复上传
+ * 后端依赖此接口恢复内部状态（如重置超时计时器、标记文件为上传中等）
+ */
+export async function continueUploadApi(
+  fileName: string,
+  qqpath: string,
+  params: string,
+): Promise<UploadResponse> {
+  const response = await transClient.post('/Handler/UploadHandler', null, {
+    params: {
+      act: 'continue',
+      name: fileName,
+      qqpath: qqpath,
+      params: params,
+    },
+  })
+  return response.data
+}
+
+/**
+ * 缓存刷新 / Session 保活
+ * POST /Handler/UploadHandler?act=cache
+ *
+ * 对齐老代码定时器逻辑：定期调用此接口刷新服务端缓存、保持 session 活跃
+ * 后端收到此请求后会重置文件上传相关的超时计时器
+ */
+export async function cacheRefresh(
+  params: string,
+): Promise<UploadResponse> {
+  const response = await transClient.post('/Handler/UploadHandler', null, {
+    params: {
+      act: 'cache',
+      params: params,
+    },
+  })
+  return response.data
+}
+
+/**
  * 暂停上传
  * POST /Handler/UploadHandler?act=pause
  */
@@ -624,6 +666,46 @@ export function clearTransToken(): void {
   sessionStorage.removeItem(TRANS_TOKEN_KEY)
 }
 
+/**
+ * 刷新 Trans Token（Task 8）
+ * GET /client/refreshToken
+ *
+ * 对齐老代码 refreshToken():
+ * - 通过 transClient 请求，自动携带当前 Authorization (trans token)
+ * - 成功后将返回的新 token 写回 sessionStorage
+ * - 失败仅 console.warn，不中断上传流程
+ *
+ * @param params 申请单参数
+ * @param lang 语言
+ * @returns { success, newToken? }
+ */
+export async function refreshTransToken(
+  params: string,
+  lang = 'zh_CN',
+): Promise<{ success: boolean; newToken?: string }> {
+  try {
+    const response = await transClient.get('/client/refreshToken', {
+      params: { params, lang },
+    })
+
+    // 老代码响应格式: { status: boolean, result: string(新token), message?: string }
+    // transClient 响应拦截器已解包一层 axios data，这里取 response.data
+    const resultVO = response.data
+
+    if (resultVO?.status === true && resultVO?.result) {
+      setTransToken(resultVO.result)
+      return { success: true, newToken: resultVO.result }
+    }
+
+    console.warn('[refreshTransToken] 服务端返回异常:', resultVO?.message || '未知原因')
+    return { success: false }
+  } catch (error: any) {
+    // 对标老代码 error 回调：只打日志不中断
+    console.warn('[refreshTransToken] 请求失败:', error?.message || error)
+    return { success: false }
+  }
+}
+
 // ============ 导出所有方法和常量 ============
 
 export const transApi = {
@@ -644,6 +726,15 @@ export const transApi = {
   
   // 断点续传
   getUploadedChunks,
+
+  // 继续上传
+  continueUploadApi,
+
+  // 缓存刷新 / Session 保活
+  cacheRefresh,
+
+  // Trans Token 刷新（Task 8）
+  refreshTransToken,
 
   // 取消上传
   cancelUploadApi,

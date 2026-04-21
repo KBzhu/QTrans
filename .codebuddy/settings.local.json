@@ -1,8 +1,8 @@
 {
   "enabledPlugins": {
-    "atuin@codebuddy-plugins-official": true,
-    "skills-security-check@codebuddy-plugins-official": true,
-    "agent-orchestration@codebuddy-plugins-official": true,
-    "doc-coauthoring@codebuddy-plugins-official": true
+    "atuin@codebuddy-plugins-official": false,
+    "skills-security-check@codebuddy-plugins-official": false,
+    "agent-orchestration@codebuddy-plugins-official": false,
+    "doc-coauthoring@codebuddy-plugins-official": false
   }
 }

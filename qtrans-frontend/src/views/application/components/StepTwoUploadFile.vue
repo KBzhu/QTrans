@@ -1,8 +1,8 @@
 <!-- StepTwoUploadFile.vue -->
 <script setup lang="ts">
-import { IconDelete, IconFile, IconRefresh } from '@arco-design/web-vue/es/icon'
-import { Message } from '@arco-design/web-vue'
-import { onMounted, ref } from 'vue'
+import { IconCheck, IconDelete, IconFile, IconFolder, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
+import { Message, Modal } from '@arco-design/web-vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { watchDeep } from '@vueuse/core'
 import type { FileEntity } from '@/api/transWebService'
 import { calculateSHA256 } from '@/api/transWebService'
@@ -32,6 +32,7 @@ const {
   uploadFileList,
   initialize,
   loadFileList,
+  debouncedLoadFileList,
   uploadFiles,
   confirmUpload,
   pauseUpload,
@@ -50,6 +51,14 @@ const isDragging = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const selectedUploadedFiles = ref<FileEntity[]>([])
 const autoSubmitTriggered = ref(false)
+
+// Task 5: 哈希不匹配弹窗
+const hashMismatchModalVisible = ref(false)
+const mismatchedFiles = ref<TransUploadFileItem[]>([])
+
+// Task 10: 文件列表增量刷新定时器
+const fileListPollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const FILE_LIST_POLL_INTERVAL = 10_000 // 每 10 秒轮询一次文件列表
 
 // 监听上传列表变化，实现自动提交
 watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
@@ -85,12 +94,120 @@ async function handleAutoSubmit() {
   }
 }
 
+/**
+ * Task 4: 手动确认提交
+ * 1. 先显示二次确认弹窗
+ * 2. 确认后再调用 confirmUpload
+ * 3. 成功后 emit 'confirmed'
+ */
+function handleManualConfirmSubmit() {
+  // 检查是否有哈希不匹配文件
+  const mismatched = getHashMismatchedFiles()
+  if (mismatched.length > 0) {
+    mismatchedFiles.value = mismatched
+    hashMismatchModalVisible.value = true
+    return
+  }
+
+  doConfirmSubmit()
+}
+
+function doConfirmSubmit() {
+  Modal.confirm({
+    title: '确认提交文件',
+    content: '提交后将无法继续上传新文件，是否确认提交？',
+    okText: '确认提交',
+    cancelText: '取消',
+    onOk: async () => {
+      const ok = await confirmUpload(props.params)
+      if (ok) {
+        Message.success('提交成功')
+        emit('confirmed')
+      }
+    },
+  })
+}
+
+/**
+ * Task 5: 获取哈希不匹配的文件列表（来自上传队列）
+ */
+function getHashMismatchedFiles(): TransUploadFileItem[] {
+  return uploadFileList.value.filter(
+    (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',
+  )
+}
+
+
+/**
+ * Task 5: 删除哈希不匹配文件并继续提交
+ */
+async function handleRemoveMismatchedAndSubmit() {
+  // 批量删除不匹配的文件
+  for (const file of mismatchedFiles.value) {
+    await cancelUpload(file.id, props.params)
+  }
+  mismatchedFiles.value = []
+  hashMismatchModalVisible.value = false
+
+  // 删除后继续提交
+  doConfirmSubmit()
+}
+
+/**
+ * Task 9: 隐私政策弹窗
+ */
+function showPrivacyPolicy() {
+  Modal.info({
+    title: '隐私政策',
+    content: '我们非常重视您的隐私保护。在使用本文件传输服务时，系统将收集必要的文件元数据（文件名、大小、上传时间等）用于传输管理。所有数据均按照公司信息安全政策进行存储和处理，不会用于任何其他目的。如有疑问，请联系管理员。',
+    okText: '我已知晓',
+    width: 480,
+  })
+}
+
 onMounted(() => initPage())
 
 async function initPage() {
   if (!props.params) return Message.error('缺少必要参数 params')
   const ok = await initialize(props.params, props.lang)
   if (!ok) Message.error('初始化失败，请检查参数是否正确')
+  // Task 10: 启动文件列表轮询（增量刷新）
+  startFileListPolling()
+}
+
+onUnmounted(() => {
+  stopFileListPolling()
+})
+
+/**
+ * Task 10: 启动文件列表轮询（增量刷新）
+ * 对标老代码：定时拉取文件列表，保持 UI 与服务端状态同步
+ */
+function startFileListPolling() {
+  stopFileListPolling()
+  fileListPollingTimer.value = setInterval(async () => {
+    // 只在非上传状态时轮询（上传中频繁刷新可能影响性能）
+    const hasActiveUpload = uploadFileList.value.some(
+      (f: TransUploadFileItem) => f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
+    )
+    if (hasActiveUpload) return
+
+    // 使用防抖版本避免并发
+    await debouncedLoadFileList('', props.params)
+    console.log('[文件列表轮询] 已刷新文件列表')
+  }, FILE_LIST_POLL_INTERVAL)
+  console.log(`[文件列表轮询] 已启动（间隔 ${FILE_LIST_POLL_INTERVAL / 1000}s）`)
+}
+
+/**
+ * Task 10: 停止文件列表轮询
+ */
+function stopFileListPolling() {
+  if (fileListPollingTimer.value) {
+    clearInterval(fileListPollingTimer.value)
+    fileListPollingTimer.value = null
+    console.log('[文件列表轮询] 已停止')
+  }
 }
 
 async function handleFileSelect(e: Event) {
@@ -173,14 +290,15 @@ async function handleFiles(files: File[]) {
 }
 
 /**
- * 刷新已上传文件列表（带重试）
+ * 刷新已上传文件列表（带重试 ）
  * 上传完成后后端 hashCode 可能还没算完，FileListHandler 返回 null
  * 对齐老代码逻辑：如果 hashCode 为 null，延迟再刷新一次
  */
 async function refreshFileListWithRetry(relativeDir: string, params: string, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    // 延迟刷新：给后端计算哈希的时间
-    if (i > 0) {
+  // Task 6: 先防抖延迟，等 uploadFile 完成状态稳定后再刷新
+  const doRefresh = async (attempt = 0) => {
+    if (attempt > 0) {
+      // 重试时给后端计算哈希的时间
       await new Promise(resolve => setTimeout(resolve, 3000))
     }
     await loadFileList(relativeDir, params)
@@ -188,9 +306,15 @@ async function refreshFileListWithRetry(relativeDir: string, params: string, max
     const hasNullHash = fileListData.value?.fileList.some(
       (f: FileEntity) => f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode !== '' && (!f.hashCode || f.hashCode === 'null'),
     )
-    if (!hasNullHash) break
-    console.log(`[文件列表刷新] 第 ${i + 1} 次刷新后仍有 hashCode 为 null 的文件，将重试...`)
+    if (!hasNullHash) return
+    console.log(`[文件列表刷新] 第 ${attempt + 1} 次刷新后仍有 hashCode 为 null 的文件，将重试...`)
+    if (attempt < maxRetries - 1) {
+      await doRefresh(attempt + 1)
+    }
   }
+  // 防抖延迟 500ms 后执行刷新
+  await new Promise(resolve => setTimeout(resolve, 500))
+  await doRefresh(0)
 }
 
 
@@ -223,8 +347,10 @@ function handleBatchPause() { batchPause(props.params) }
 function handleBatchResume() { batchResume(props.params, updateUploadProgress) }
 function handleBatchDelete() { batchCancel(props.params) }
 
+// Task 6: 刷新按钮防抖（500ms 避免频繁请求）
 async function handleRefresh() {
-  await loadFileList('', props.params)
+  // 已有防抖的 debouncedLoadFileList，避免与 refreshFileListWithRetry 重复调用
+  await debouncedLoadFileList('', props.params)
 }
 
 function handleToggleSelectUploaded(file: FileEntity) {
@@ -317,8 +443,14 @@ defineExpose({ validateBeforeSubmit })
         >
           上传完毕后自动提交
         </a-checkbox>
+        <!-- Task 4: 手动确认提交按钮 -->
+        <a-button type="outline" status="success" @click="handleManualConfirmSubmit">
+          <template #icon><IconCheck /></template>
+          确认提交
+        </a-button>
       </div>
-      <a-button type="text" class="privacy-link">
+      <!-- Task 9: 隐私政策弹窗 -->
+      <a-button type="text" class="privacy-link" @click="showPrivacyPolicy">
         <template #icon><IconFile /></template>
         隐私政策
       </a-button>
@@ -398,6 +530,35 @@ defineExpose({ validateBeforeSubmit })
         />
       </section>
     </template>
+
+    <!-- Task 5: 哈希不匹配文件弹窗 -->
+    <a-modal
+      v-model:visible="hashMismatchModalVisible"
+      title="哈希校验未通过"
+      :mask-closable="false"
+      :footer="[
+        { text: '删除并继续提交', type: 'primary', status: 'danger', run: handleRemoveMismatchedAndSubmit },
+        { text: '取消', run: () => { hashMismatchModalVisible = false } }
+      ]"
+    >
+      <div class="hash-mismatch-modal">
+        <p class="hash-mismatch-modal__tip">
+          以下文件的哈希校验未通过，请删除后重新上传：
+        </p>
+        <ul class="hash-mismatch-modal__list">
+          <li v-for="file in mismatchedFiles" :key="file.id" class="hash-mismatch-modal__item">
+            <IconFile />
+            <span class="hash-mismatch-modal__name">{{ file.file.name }}</span>
+            <span class="hash-mismatch-modal__hash">
+              客户端: {{ file.hashState?.clientHash?.substring(0, 16) }}...
+            </span>
+            <span class="hash-mismatch-modal__hash hash-mismatch-modal__hash--server">
+              服务端: {{ file.hashState?.serverHash?.substring(0, 16) }}...
+            </span>
+          </li>
+        </ul>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -423,6 +584,55 @@ defineExpose({ validateBeforeSubmit })
   .dropzone-hint {
     color: var(--color-text-3);
     font-size: 12px;
+  }
+}
+
+// Task 5: 哈希不匹配弹窗样式
+.hash-mismatch-modal {
+  &__tip {
+    color: var(--color-text-2);
+    margin-bottom: 12px;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgb(var(--danger-1));
+    border: 1px solid rgb(var(--danger-3));
+    border-radius: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__name {
+    font-weight: 500;
+    color: var(--color-text-1);
+    flex: 1;
+  }
+
+  &__hash {
+    font-size: 11px;
+    color: var(--color-text-3);
+    font-family: monospace;
+    width: 100%;
+
+    &--server {
+      color: rgb(var(--danger-6));
+    }
   }
 }
 </style>
