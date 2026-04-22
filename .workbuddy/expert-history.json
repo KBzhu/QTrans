@@ -120,6 +120,15 @@
     ],
     "b233de1e9c56400b87649a8f2d98a154": [
       {
+        "expertId": "TencentSecurityExpert",
+        "name": "云鼎",
+        "profession": "腾讯安全专家",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/TencentSecurityExpert/TencentSecurityExpert.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/TencentSecurityExpert/TencentSecurityExpert_zh.md",
+        "usedAt": 1776821160694,
+        "industryId": "02-Engineering"
+      },
+      {
         "expertId": "SeniorDeveloper",
         "name": "吴八哥",
         "profession": "高级开发工程师",
@@ -130,5 +139,5 @@
       }
     ]
   },
-  "lastUpdated": 1776761037624
+  "lastUpdated": 1776821160709
 }

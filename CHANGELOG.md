@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-04-22
+
+#### 大文件上传 Hash 计算内存溢出修复
+
+- 修复上传大文件（5GB+）时 `calculateSHA256(file)` 因 `file.arrayBuffer()` 一次性读取全文件导致 `NotReadableError` 的问题
+  - `transWebService.ts` `calculateSHA256` 改为基于 `hash-wasm` 的流式实现，分片读取文件，内存占用恒定
+  - 新增 `calculateChunkHashFromBuffer` 辅助函数，避免分片 hash 计算中重复读取 ArrayBuffer
+- 修复大文件上传完成后二次读取全文件计算 hash 的性能问题
+  - `useTransUpload.ts` 大文件上传时创建流式 hasher，在 `uploadSingleChunk` 中边上传边累积 hash
+  - 上传完成后直接取 `hasher.digest()`，50GB 文件无需额外读取
+  - 重试逻辑同步改造，避免重试完成后再次全量读取
+- 优化上传前重复文件检测对大文件的处理
+  - `TransUploadView.vue` / `StepTwoUploadFile.vue` 对大于 100MB 的文件跳过上传前全量 hash 计算
+  - 防止大文件在上传前就因 hash 计算导致页面卡死或报错
+
+### Fixed - 2026-04-21
+
+#### 下载功能 BUG 修复
+
+- 修复下载文件内容为 HTML 的问题：`useApplicationDetail.fetchDetail` 中 `updateTransClientBaseURL` 使用的是 `uploadUrl`，导致 `transClient.baseURL` 指向上传服务器；下载时请求到达上传服务器返回 SPA 首页 HTML，而非真实文件
+  - `useFileDownload.downloadFile/batchDownload` 在下载前调用 `updateTransClientBaseURL(downloadUrl)` 指向下载服务器
+  - `useTransDownload.initialize` 在初始化时用当前页面 URL 更新 `transClient.baseURL`
+- 修复下载成功提示先于浏览器下载弹窗的问题：`downloadAndSave` 在触发 `link.click()` 后延迟 300ms 再 resolve，给浏览器处理下载对话框的时间
+- 新增 `validateDownloadBlob` 校验：当服务端返回 HTML 而非文件时（如认证过期被重定向），检测 Blob 内容并抛出明确错误，避免静默保存无效文件
+
 ### Fixed - 2026-04-18
 
 #### 上传暂停 BUG 修复

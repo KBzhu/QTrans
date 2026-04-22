@@ -384,6 +384,27 @@ export async function updateClientHash(
 // ============ 下载相关 API ============
 
 /**
+ * 检测 Blob 是否为 HTML 响应（通常因请求被重定向到 SPA 首页导致）
+ * 当下载接口返回 HTML 而非真实文件时抛出明确错误
+ */
+async function validateDownloadBlob(blob: Blob): Promise<void> {
+  // 小于 1KB 的 blob 大概率不是真实文件，也可能是 HTML
+  // 但真正关键的检测是 content-type 或内容
+  if (blob.type && blob.type.includes('text/html')) {
+    throw new Error('下载失败：服务端返回了 HTML 页面，可能是认证已过期或请求路径错误')
+  }
+
+  // 对于 type 为空或 application/octet-stream 但内容实际为 HTML 的情况，
+  // 读取前 100 字节检查是否包含 <!doctype 或 <html
+  if (blob.size < 2048) {
+    const text = await blob.slice(0, 200).text()
+    if (/<!doctype\s+html|<html/i.test(text)) {
+      throw new Error('下载失败：服务端返回了 HTML 页面，可能是认证已过期或请求路径错误')
+    }
+  }
+}
+
+/**
  * 文件下载（fetch方式，支持进度）
  * GET /api/file/download
  */
@@ -410,7 +431,9 @@ export async function downloadFile(
       },
     })
 
-    return response.data
+    const blob: Blob = response.data
+    await validateDownloadBlob(blob)
+    return blob
   }
   catch (error: any) {
     throw new Error(error?.response?.statusText || error?.message || '下载失败')
@@ -437,6 +460,10 @@ export async function downloadAndSave(
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+
+  // 延迟 300ms 让浏览器有时间处理下载对话框
+  // 避免"下载成功"提示先于浏览器下载弹窗出现
+  await new Promise(resolve => setTimeout(resolve, 300))
 }
 
 /**

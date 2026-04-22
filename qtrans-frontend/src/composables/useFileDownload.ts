@@ -1,6 +1,6 @@
 import type { DetailFileItem } from '@/types/detail'
 import { Message } from '@arco-design/web-vue'
-import { initDownload, downloadAndSave } from '@/api/transWebService'
+import { initDownload, downloadAndSave, updateTransClientBaseURL } from '@/api/transWebService'
 import { ref } from 'vue'
 
 /**
@@ -34,6 +34,9 @@ export function useFileDownload() {
       Message.error('无法获取下载参数，downloadUrl 无效')
       return
     }
+
+    // 用 downloadUrl 更新 transClient 的 baseURL，确保请求指向下载服务器
+    updateTransClientBaseURL(downloadUrl)
 
     downloading.value = true
     downloadingFile.value = file.fileName
@@ -77,6 +80,9 @@ export function useFileDownload() {
       Message.error('无法获取下载参数，downloadUrl 无效')
       return
     }
+
+    // 用 downloadUrl 更新 transClient 的 baseURL，确保请求指向下载服务器
+    updateTransClientBaseURL(downloadUrl)
 
     // 第一步：初始化下载，获取 token（只需一次）
     try {

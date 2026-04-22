@@ -14,6 +14,7 @@ import {
   formatFileSize,
   getFileList,
   initDownload,
+  updateTransClientBaseURL,
 } from '@/api/transWebService'
 
 /** 下载进度 */
@@ -53,6 +54,12 @@ export function useTransDownload() {
    * 初始化下载页面
    */
   async function initialize(params: string, lang = 'zh_CN'): Promise<DownloadInitResponse | null> {
+    // 使用当前页面 URL 更新 transClient.baseURL，确保请求指向正确的下载服务器
+    // 页面 URL 通常形如 https://xxx/transWeb/valid?params=...
+    if (typeof window !== 'undefined') {
+      updateTransClientBaseURL(window.location.href)
+    }
+
     initLoading.value = true
     try {
       const data = await initDownload(params, lang)
