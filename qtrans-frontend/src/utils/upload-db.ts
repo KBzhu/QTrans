@@ -27,6 +27,7 @@ export interface UploadRecord {
   createdAt: Date           // 创建时间
   updatedAt: Date           // 最后更新时间
   completedAt?: Date        // 完成时间
+  clientHash?: string       // 全文件 SHA-256 hash（用于断点续传时校验文件一致性）
 }
 
 /**
@@ -38,10 +39,35 @@ class UploadDatabase extends Dexie {
 
   constructor() {
     super('TransUploadDB')
-    
+
     this.version(1).stores({
       chunks: '++id, fileUUID, chunkIndex, [fileUUID+chunkIndex]',
       uploads: '++id, fileUUID, fileName, status, updatedAt'
+    })
+
+    // v2: 为 uploads 表增加 uploadParams 索引，支持按 params 查询未完成任务
+    this.version(2).stores({
+      uploads: '++id, fileUUID, fileName, status, updatedAt, uploadParams'
+    }).upgrade((tx) => {
+      // 升级时将现有记录的 uploadParams 设为空字符串，避免查询时报 undefined
+      const table = tx.table('uploads')
+      return table.toCollection().modify((record: any) => {
+        if (!record.uploadParams) {
+          record.uploadParams = ''
+        }
+      })
+    })
+
+    // v3: 为 uploads 表增加 clientHash 字段，支持断点续传时校验文件一致性
+    this.version(3).stores({
+      uploads: '++id, fileUUID, fileName, status, updatedAt, uploadParams'
+    }).upgrade((tx) => {
+      const table = tx.table('uploads')
+      return table.toCollection().modify((record: any) => {
+        if (!record.clientHash) {
+          record.clientHash = ''
+        }
+      })
     })
   }
 }
@@ -124,6 +150,22 @@ export async function updateUploadStatus(
       status,
       updatedAt: new Date(),
       ...extra
+    })
+  }
+}
+
+/**
+ * 更新上传记录（按 fileUUID）
+ */
+export async function updateUploadRecord(
+  fileUUID: string,
+  changes: Partial<UploadRecord>,
+): Promise<void> {
+  const record = await getUploadRecord(fileUUID)
+  if (record?.id) {
+    await db.uploads.update(record.id, {
+      updatedAt: new Date(),
+      ...changes,
     })
   }
 }

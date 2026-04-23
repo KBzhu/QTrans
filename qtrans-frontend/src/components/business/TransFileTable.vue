@@ -340,13 +340,13 @@ function isUploadedFileSelected(file: FileEntity): boolean {
           </div>
 
           <!-- 文件图标 -->
-          <img :src="getFileIcon(item.file?.name || '')" alt="file" class="upload-item__icon" />
+          <img :src="getFileIcon(item.file?.name || item.fileName || '')" alt="file" class="upload-item__icon" />
 
           <!-- 文件信息 -->
           <div class="upload-item__info">
             <div class="upload-item__header">
-              <span class="upload-item__name" :title="item.file?.name">{{ item.file?.name }}</span>
-              <span class="upload-item__size">{{ formatFileSize(item.file?.size || 0) }}</span>
+              <span class="upload-item__name" :title="item.file?.name || item.fileName">{{ item.file?.name || item.fileName }}</span>
+              <span class="upload-item__size">{{ formatFileSize(item.file?.size || item.fileSize || 0) }}</span>
             </div>
 
             <!-- 进度条 -->

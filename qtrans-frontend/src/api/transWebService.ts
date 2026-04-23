@@ -5,6 +5,7 @@
  * 接口规范参考 task_Trans_Web.md 文档
  */
 import axios, { type AxiosInstance, type AxiosProgressEvent } from 'axios'
+import { createSHA256 } from 'hash-wasm'
 import { useAuthStore } from '@/stores'
 import { assetPath } from '@/utils/path'
 
@@ -631,15 +632,32 @@ export async function getStorageInfo(
   return response.data
 }
 
-// ============ 哈希计算工具（前端Mock实现）============
+// ============ 哈希计算工具 ============
 
 /**
- * 计算 SHA-256 哈希值（Mock实现）
- * 实际项目中可以使用 crypto-js 或 Web Crypto API
+ * 计算 SHA-256 哈希值（流式实现，支持大文件）
+ * 使用 hash-wasm 分片读取，避免一次性加载全文件到内存
  */
 export async function calculateSHA256(file: File): Promise<string> {
-  // 使用 Web Crypto API 计算 SHA-256
-  const arrayBuffer = await file.arrayBuffer()
+  const hasher = await createSHA256()
+  const stream = file.stream()
+  const reader = stream.getReader()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    hasher.update(value)
+  }
+
+  return hasher.digest()
+}
+
+/**
+ * 计算文件分片哈希（基于 ArrayBuffer）
+ */
+export async function calculateChunkHashFromBuffer(
+  arrayBuffer: ArrayBuffer,
+): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
@@ -647,16 +665,13 @@ export async function calculateSHA256(file: File): Promise<string> {
 }
 
 /**
- * 计算文件分片哈希
+ * 计算文件分片哈希（基于 Blob）
  */
 export async function calculateChunkHash(
   chunk: Blob,
 ): Promise<string> {
   const arrayBuffer = await chunk.arrayBuffer()
-  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  return hashHex
+  return calculateChunkHashFromBuffer(arrayBuffer)
 }
 
 // ============ 辅助函数 ============
@@ -777,6 +792,7 @@ export const transApi = {
   // 哈希计算
   calculateSHA256,
   calculateChunkHash,
+  calculateChunkHashFromBuffer,
 
   // 辅助函数
   formatFileSize,

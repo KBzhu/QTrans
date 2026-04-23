@@ -6,6 +6,59 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed - 2026-04-23
+
+#### 断点续传 hash 不一致修复
+
+**问题修复**:
+- 修复断点续传恢复后全文件 hash 计算错误的问题
+- 修复恢复时用户可选择同名但内容不同文件导致 hash mismatch 的问题
+
+**根本原因**:
+- `fileHasher` 边传边算时，`skip` 的已上传分片未进入 hasher，导致最终 hash 残缺
+- 恢复时只校验文件名，未校验文件大小和内容
+
+**解决方案**:
+- 断点续传恢复时，先把 `skip` 分片数据本地读取并喂给 `fileHasher`，补全 hash 累积
+- IndexedDB `UploadRecord` 增加 `clientHash` 字段（v3 升级），上传完成后持久化保存
+- 恢复时增加文件大小校验 + clientHash 比对，不一致则拒绝续传并友好提示
+- 自动重试场景同样补全 `retrySkip` 分片的 hash 累积
+
+**涉及文件**:
+- `src/utils/upload-db.ts` — v3 升级，增加 clientHash 字段和 updateUploadRecord 方法
+- `src/composables/useTransUpload.ts` — 恢复 fileHasher，补全 skip 分片 hash 累积，增加恢复校验
+- `src/views/trans/TransUploadView.vue` — handleResume 增加大小校验
+- `src/views/application/components/StepTwoUploadFile.vue` — handleResume 增加大小校验
+
+### Fixed - 2026-04-22
+
+#### 大文件上传 hash 计算内存溢出修复
+
+**问题修复**:
+- 修复上传 5GB+ 大文件时页面无反应、UploadHandler 未调用的问题
+- 修复 `calculateSHA256` 使用 `file.arrayBuffer()` 一次性读取全文件导致 `NotReadableError` 内存溢出
+
+**解决方案**:
+- 重写 `calculateSHA256` 为流式实现（`hash-wasm` + `file.stream().getReader()` 分片读取）
+- 大文件启用 `fileHasher` 边上传边累积全文件 hash，避免 50GB 文件上传后二次读取
+- 小文件（<=4MB）仍预计算 hash，大文件跳过预计算
+- 重复检测统一为"同名即提示覆盖确认"（无论大小文件）
+
+**IndexedDB 断点续传补齐**:
+- `upload-db.ts` v2 升级增加 `uploadParams` 索引，支持按 params 查询未完成任务
+- `restorePendingUploads` 从 IndexedDB 恢复任务到上传列表
+- `checkChunkStatus` IndexedDB 本地记录 + 服务端双重校验
+- 恢复任务增加 `fileName`/`fileSize` 字段持久化，解决 File 对象无法存储问题
+- 恢复任务无 File 时唤起文件选择器，校验同名后传入 `resumeUpload`
+
+**涉及文件**:
+- `src/api/transWebService.ts` — 流式 hash 实现
+- `src/composables/useTransUpload.ts` — 边传边算 + IndexedDB 恢复逻辑
+- `src/utils/upload-db.ts` — v2 升级 + 索引迁移
+- `src/views/trans/TransUploadView.vue` — 覆盖确认 + 文件选择器
+- `src/views/application/components/StepTwoUploadFile.vue` — 覆盖确认 + 文件选择器
+- `src/components/business/TransFileTable.vue` — 兼容恢复任务展示
+
 ### Changed - 2026-04-03
 
 #### 登录页面重设计

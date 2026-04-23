@@ -23,6 +23,7 @@
     "axios": "^1.13.6",
     "dayjs": "^1.11.19",
     "dexie": "^4.3.0",
+    "hash-wasm": "^4.12.0",
     "lodash-es": "^4.17.23",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",

@@ -287,34 +287,62 @@ async function handleFiles(files: File[]) {
   const hasSpace = await checkStorageSpace(params.value, totalFileSize)
   if (!hasSpace) return
 
-  // 重复上传拦截：逐文件计算 SHA256，与已上传且校验通过的文件比对
-  // 条件：hash 相同且文件名相同才视为重复，hash 相同但文件名不同则放行
+  // 上传前重复检测：无论大小文件，同名即提示用户确认是否覆盖
+  // 小文件（<=100MB）额外计算 hash 用于日志记录，但不作为拦截条件
   const uploadedFiles = fileListData.value?.fileList ?? []
-  const duplicateFiles: string[] = []
+  const sameNameFiles: string[] = []
   const uniqueFiles: File[] = []
 
+  const PRE_UPLOAD_HASH_MAX_SIZE = 100 * 1024 * 1024 // 100MB
+
   for (const file of files) {
-    // 计算当前文件 hash
-    const fileHash = await calculateSHA256(file)
-    // 比对已上传列表：hash 匹配 + 文件名相同 才视为重复
-    const duplicate = uploadedFiles.find((f: FileEntity) => {
-      // 文件名不同，即使 hash 相同也放行
-      if (f.fileName !== file.name) return false
-      const validClientHash = f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode !== ''
-      const validServerHash = f.hashCode && f.hashCode !== 'null' && f.hashCode !== ''
-      if (validClientHash && f.clientFileHashCode === fileHash) return true
-      if (validServerHash && f.hashCode.toUpperCase() === fileHash.toUpperCase()) return true
-      return false
-    })
-    if (duplicate) {
-      duplicateFiles.push(file.name)
+    let fileHash = ''
+
+    // 小文件计算全量 hash（仅用于日志，不用于拦截决策）
+    if (file.size <= PRE_UPLOAD_HASH_MAX_SIZE) {
+      try {
+        fileHash = await calculateSHA256(file)
+      } catch (e) {
+        console.warn('[重复检测] 计算 hash 失败，跳过:', file.name, e)
+      }
+    }
+
+    // 同名即加入确认列表，由用户决定是否覆盖
+    const sameName = uploadedFiles.find((f: FileEntity) => f.fileName === file.name)
+    if (sameName) {
+      sameNameFiles.push(file.name)
+      if (fileHash) {
+        console.log('[重复检测] 小文件 hash 已计算，但统一走覆盖确认:', file.name, fileHash.substring(0, 16))
+      }
     } else {
       uniqueFiles.push(file)
     }
   }
 
-  if (duplicateFiles.length > 0) {
-    Message.warning(`${duplicateFiles.join('、')} 在服务器上已存在，请勿重复上传`)
+  // 同名文件提示用户确认覆盖
+  if (sameNameFiles.length > 0) {
+    const names = sameNameFiles.join('、')
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Modal.confirm({
+        title: '文件已存在',
+        content: `${names} 在服务器上已存在同名文件，是否覆盖上传？`,
+        okText: '覆盖上传',
+        cancelText: '取消',
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      })
+    })
+    if (!confirmed) {
+      // 用户取消覆盖，过滤掉同名文件
+      const sameNameSet = new Set(sameNameFiles)
+      files = files.filter(f => !sameNameSet.has(f.name))
+    }
+  }
+
+  // 重新计算 uniqueFiles（考虑用户可能取消覆盖的情况）
+  uniqueFiles.length = 0
+  for (const f of files) {
+    uniqueFiles.push(f)
   }
 
   if (uniqueFiles.length === 0) return
@@ -375,8 +403,34 @@ async function handlePause(fileId: string) {
 
 /**
  * 继续上传
+ * 断点续传恢复的任务没有 File 对象，需用户重新选择文件
  */
 async function handleResume(fileId: string) {
+  const item = uploadFileList.value.find(f => f.id === fileId)
+  // 断点续传恢复的任务：唤起文件选择器让用户重新选择同一文件
+  if (item && !item.file) {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files
+      if (files && files.length > 0) {
+        const restoredFile = files[0]
+        // 校验文件名是否一致
+        if (restoredFile.name !== item.fileName) {
+          Message.error(`请选择同名文件：${item.fileName}`)
+          return
+        }
+        // 校验文件大小是否一致（resumeUpload 内部也会校验，此处提前提示更友好）
+        if (restoredFile.size !== item.fileSize) {
+          Message.error(`文件大小不一致（期望: ${formatFileSize(item.fileSize || 0)}，实际: ${formatFileSize(restoredFile.size)}），请重新选择正确的文件`)
+          return
+        }
+        await resumeUpload(fileId, params.value, updateUploadProgress, restoredFile)
+      }
+    }
+    input.click()
+    return
+  }
   await resumeUpload(fileId, params.value, updateUploadProgress)
 }
 

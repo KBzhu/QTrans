@@ -5,12 +5,13 @@
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
+import { createSHA256 } from 'hash-wasm'
 import {
   type FileListData,
   type UploadInitResponse,
   type UploadResponse,
   calculateSHA256,
-  calculateChunkHash,
+  calculateChunkHashFromBuffer,
   cancelUploadApi,
   cacheRefresh,
   completeUpload,
@@ -29,11 +30,14 @@ import {
 } from '@/api/transWebService'
 import { classifyUploadError, UploadErrorType } from '@/types/upload-error'
 import {
-  type UploadRecord,
   createUploadRecord,
   deleteChunksByFileUUID,
   deleteUploadRecord,
+  getPendingUploads,
+  getUploadedChunkIndexes,
+  getUploadRecord,
   saveChunk,
+  updateUploadRecord,
   updateUploadStatus,
   cleanCompletedRecords,
   cleanFailedRecords,
@@ -83,6 +87,10 @@ export interface TransUploadFileItem {
   retryCount?: number           // 自动重试次数（对齐老代码 retry.enableAuto）
   /** 服务端返回的最新预估剩余时间（秒），用于速率估算 */
   lastTimeLeft?: number
+  /** 文件名称（用于 IndexedDB 恢复后展示，因为 File 对象无法持久化） */
+  fileName?: string
+  /** 文件大小（用于 IndexedDB 恢复后展示） */
+  fileSize?: number
 }
 
 /**
@@ -302,41 +310,45 @@ export function useTransUpload() {
 
   /**
    * 恢复未完成的上传
+   * 从 IndexedDB 读取未完成任务，恢复到上传列表中（状态为 paused，需用户手动继续）
    */
   async function restorePendingUploads(params: string): Promise<void> {
-    // 从 IndexedDB 获取未完成的上传记录
-    const pendingRecords = await getPendingUploadRecords(params)
-    
+    const pendingRecords = await getPendingUploads(params)
+
     for (const record of pendingRecords) {
       // 检查是否已有相同的文件在上传列表中
       const existing = uploadFileList.value.find(f => f.id === record.fileUUID)
       if (existing) continue
-      
-      // 创建上传项（但不自动开始上传）
+
+      // 从 IndexedDB 查询本地已上传的分片数
+      const localChunkIndexes = await getUploadedChunkIndexes(record.fileUUID)
+      const localUploadedCount = localChunkIndexes.size
+      const progress = record.totalChunks > 0
+        ? Math.min(Math.floor((localUploadedCount / record.totalChunks) * 99), 99)
+        : 0
+
+      // 创建上传项（状态为 paused，需用户手动选择文件后继续）
       uploadFileList.value.push({
         id: record.fileUUID,
-        file: null as any, // 恢复的记录没有 File 对象
+        file: null as any, // 恢复的记录没有 File 对象，需用户重新选择
         status: 'paused',
-        progress: 0,
+        progress,
         speed: 0,
         relativeDir: record.relativeDir,
         totalChunks: record.totalChunks,
-        uploadedChunkCount: 0,
+        uploadedChunkCount: localUploadedCount,
         selected: false,
+        fileName: record.fileName,
+        fileSize: record.fileSize,
       })
+
+      console.log(`[断点续传] 恢复任务: ${record.fileName}, 已传分片: ${localUploadedCount}/${record.totalChunks}`)
     }
   }
 
   /**
-   * 获取待恢复的上传记录（简化版，从 IndexedDB 获取）
-   */
-  async function getPendingUploadRecords(_params: string): Promise<UploadRecord[]> {
-    // 这里返回空数组，实际应该从 IndexedDB 查询
-    return []
-  }
-
-  /**
-   * 查询服务端分片状态并对比
+   * 查询分片状态并对比（IndexedDB + 服务端双重校验）
+   * 优先使用 IndexedDB 本地记录，再与服务端记录合并，减少不必要的网络请求
    */
   async function checkChunkStatus(
     fileUUID: string,
@@ -345,18 +357,29 @@ export function useTransUpload() {
     params: string,
     totalChunks: number,
   ): Promise<{ skip: number[]; reupload: number[] }> {
-    try {
-      const response = await getUploadedChunks(fileUUID, fileName, relativeDir, params)
-      
-      if (!response.success || !response.data.chunks) {
-        return { skip: [], reupload: Array.from({ length: totalChunks }, (_, i) => i) }
-      }
+    // 1. 先查本地 IndexedDB 已传分片
+    const localChunkIndexes = await getUploadedChunkIndexes(fileUUID)
+    console.log(`[断点续传] 本地 IndexedDB 已传分片: ${localChunkIndexes.size} 个`)
 
+    try {
+      // 2. 再查服务端已传分片
+      const response = await getUploadedChunks(fileUUID, fileName, relativeDir, params)
+
+      if (!response.success || !response.data.chunks) {
+        // 服务端查询失败，回退到本地记录
+        const skip = Array.from(localChunkIndexes)
+        const reupload = Array.from({ length: totalChunks }, (_, i) => i)
+          .filter(i => !localChunkIndexes.has(i))
+        console.log(`[断点续传] 服务端查询失败，使用本地记录: skip=${skip.length}`)
+        return { skip, reupload }
+      }
 
       const skip: number[] = []
       const reupload: number[] = []
+      const serverIndexes = new Set<number>()
 
       for (const serverChunk of response.data.chunks) {
+        serverIndexes.add(serverChunk.index)
         const isLastChunk = serverChunk.index === totalChunks - 1
 
         // 分片数据完整性校验：hash=partial 仅表示服务端哈希未算完，不代表数据不完整
@@ -375,24 +398,42 @@ export function useTransUpload() {
         skip.push(serverChunk.index)
       }
 
+      // 3. 合并本地记录：本地有但服务端没有的分片，以服务端为准（服务端是权威）
+      // 但本地有记录的分片可以额外打印日志，帮助排查
+      localChunkIndexes.forEach((localIndex) => {
+        if (!serverIndexes.has(localIndex) && !skip.includes(localIndex) && !reupload.includes(localIndex)) {
+          // 本地有记录但服务端没有：可能服务端已清理，保守起见重新上传
+          console.warn(`[断点续传] 分片 ${localIndex} 本地有记录但服务端无，将重新上传`)
+          reupload.push(localIndex)
+        }
+      })
+
       // 服务端没有记录的分片 -> 需要上传
-      const serverIndexes = new Set(response.data.chunks.map(c => c.index))
       for (let i = 0; i < totalChunks; i++) {
         if (!serverIndexes.has(i) && !skip.includes(i) && !reupload.includes(i)) {
           reupload.push(i)
         }
       }
 
+      console.log(`[断点续传] 最终: skip=${skip.length}, reupload=${reupload.length}`)
       return { skip, reupload }
     }
     catch (error) {
-      // 查询失败，需要重新上传所有分片
-      return { skip: [], reupload: Array.from({ length: totalChunks }, (_, i) => i) }
+      // 查询失败，回退到本地 IndexedDB 记录
+      const skip: number[] = []
+      localChunkIndexes.forEach((i) => { skip.push(i) })
+      const reupload: number[] = []
+      for (let i = 0; i < totalChunks; i++) {
+        if (!localChunkIndexes.has(i)) reupload.push(i)
+      }
+      console.warn(`[断点续传] 服务端查询异常，使用本地记录: skip=${skip.length}`, error)
+      return { skip, reupload }
     }
   }
 
   /**
    * 上传单个分片（带哈希）
+   * @param fileHasher 流式全文件哈希器，存在时会将分片数据同时累积到全文件 hash
    */
   async function uploadSingleChunk(
     file: File,
@@ -401,13 +442,20 @@ export function useTransUpload() {
     totalChunks: number,
     params: string,
     onProgress?: (percent: number) => void,
+    fileHasher?: any,
   ): Promise<UploadResponse> {
     const start = chunkIndex * CHUNK_SIZE
     const end = Math.min(start + CHUNK_SIZE, file.size)
     const chunkBlob = file.slice(start, end)
 
-    // 计算分片哈希
-    const chunkHash = await calculateChunkHash(chunkBlob)
+    // 读取一次 ArrayBuffer，同时用于分片哈希和全文件哈希累积
+    const chunkBuffer = await chunkBlob.arrayBuffer()
+    const chunkHash = await calculateChunkHashFromBuffer(chunkBuffer)
+
+    // 如果有 fileHasher，同时累积全文件 hash（边上传边算，避免上传后二次读取）
+    if (fileHasher) {
+      fileHasher.update(new Uint8Array(chunkBuffer))
+    }
 
     // 将 Blob 转换为 File，确保后端能正确识别文件名
     const chunkFile = new File([chunkBlob], file.name, { type: file.type || 'application/octet-stream' })
@@ -505,12 +553,14 @@ export function useTransUpload() {
     const controller = new AbortController()
     abortControllers.set(fileUUID, controller)
 
+    // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
+    let preCalculatedHash = ''
+    let fileHasher: any = null
+
     try {
       // [Bug1修复] 状态切换为 uploading，并异步执行准备操作
       ri.status = 'uploading'
 
-      // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
-      let preCalculatedHash = ''
       if (file.size <= SMALL_FILE_THRESHOLD) {
         try {
           preCalculatedHash = await calculateSHA256(file)
@@ -518,6 +568,10 @@ export function useTransUpload() {
         } catch (e) {
           console.warn('[上传] 小文件预计算哈希失败，将在上传后计算:', e)
         }
+      } else {
+        // 大文件：创建流式 hasher，边上传边累积全文件 hash，避免上传后二次读取
+        fileHasher = await createSHA256()
+        console.log('[上传] 大文件启用流式哈希累积:', file.name)
       }
 
       // 创建上传记录到 IndexedDB（移到此处，不阻塞进度条显示）
@@ -533,6 +587,20 @@ export function useTransUpload() {
 
       // 查询已上传分片（断点续传）
       const { skip, reupload } = await checkChunkStatus(fileUUID, file.name, relativeDir, params, totalChunks)
+
+      // 断点续传场景：skip 的分片没有进入 uploadSingleChunk，需要先把它们的数据喂给 fileHasher
+      // 否则最终 fileHasher.digest() 只包含 reupload 分片的 hash，导致全文件 hash 错误
+      if (fileHasher && skip.length > 0) {
+        console.log(`[断点续传] 恢复已上传 ${skip.length} 个分片的 hash 累积...`)
+        for (const chunkIndex of skip.sort((a, b) => a - b)) {
+          const start = chunkIndex * CHUNK_SIZE
+          const end = Math.min(start + CHUNK_SIZE, file.size)
+          const chunkBlob = file.slice(start, end)
+          const chunkBuffer = await chunkBlob.arrayBuffer()
+          fileHasher.update(new Uint8Array(chunkBuffer))
+        }
+        console.log(`[断点续传] 已恢复 ${skip.length} 个分片的 hash 累积`)
+      }
 
       let uploadedCount = skip.length
       ri.uploadedChunkCount = uploadedCount
@@ -566,6 +634,7 @@ export function useTransUpload() {
           params,
           // 分片上传中不更新进度/速率（等分片完成后统一更新）
           undefined,
+          fileHasher || undefined,
         )
         console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 完成:`, result)
 
@@ -614,8 +683,8 @@ export function useTransUpload() {
       }
       onProgress?.(ri)
 
-      // P2-7: 小文件可能已预计算过哈希，直接复用
-      const clientHash = preCalculatedHash || await calculateSHA256(file)
+      // P2-7: 小文件可能已预计算过哈希，直接复用；大文件使用流式 hasher 的累积结果
+      const clientHash = preCalculatedHash || fileHasher?.digest() || await calculateSHA256(file)
       ri.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
 
@@ -624,6 +693,14 @@ export function useTransUpload() {
         await updateClientHash(file.name, relativeDir, clientHash)
       } catch (e) {
         console.warn('[哈希校验] 更新客户端哈希失败，跳过:', e)
+      }
+
+      // 保存 clientHash 到 IndexedDB，用于断点续传时校验文件一致性
+      try {
+        await updateUploadRecord(fileUUID, { clientHash })
+        console.log('[哈希校验] clientHash 已保存到 IndexedDB')
+      } catch (e) {
+        console.warn('[哈希校验] 保存 clientHash 到 IndexedDB 失败:', e)
       }
 
       // 轮询获取服务端哈希并做前端比对校验（对齐老代码 validHashTimer + getServerHashTimer 逻辑）
@@ -721,6 +798,25 @@ export function useTransUpload() {
           )
           ri.uploadedChunkCount = retrySkip.length
 
+          // 大文件重试时需要重新创建流式 hasher（分片会重新上传）
+          let retryFileHasher: any = null
+          if (file.size > SMALL_FILE_THRESHOLD && !preCalculatedHash) {
+            retryFileHasher = await createSHA256()
+          }
+
+          // 重试时同样需要把 skip 的分片喂给 hasher
+          if (retryFileHasher && retrySkip.length > 0) {
+            console.log(`[重试] 恢复已上传 ${retrySkip.length} 个分片的 hash 累积...`)
+            for (const chunkIndex of retrySkip.sort((a, b) => a - b)) {
+              const start = chunkIndex * CHUNK_SIZE
+              const end = Math.min(start + CHUNK_SIZE, file.size)
+              const chunkBlob = file.slice(start, end)
+              const chunkBuffer = await chunkBlob.arrayBuffer()
+              retryFileHasher.update(new Uint8Array(chunkBuffer))
+            }
+            console.log(`[重试] 已恢复 ${retrySkip.length} 个分片的 hash 累积`)
+          }
+
           for (const retryChunkIndex of retryReupload) {
             if (controller.signal.aborted) {
               ri.status = 'paused'
@@ -731,6 +827,7 @@ export function useTransUpload() {
               file, fileUUID, retryChunkIndex, totalChunks, params,
               // 分片上传中不更新进度/速率
               undefined,
+              retryFileHasher || undefined,
             )
 
             ri.uploadedChunkCount++
@@ -765,8 +862,16 @@ export function useTransUpload() {
           }
           onProgress?.(ri)
 
-          const retryClientHash = preCalculatedHash || await calculateSHA256(file)
+          // 小文件复用预计算 hash；大文件使用重试时边上传边累积的流式 hash
+          const retryClientHash = preCalculatedHash || retryFileHasher?.digest() || await calculateSHA256(file)
           ri.hashState!.clientHash = retryClientHash
+
+          // 保存 clientHash 到 IndexedDB
+          try {
+            await updateUploadRecord(fileUUID, { clientHash: retryClientHash })
+          } catch (e) {
+            console.warn('[哈希校验] 保存 clientHash 到 IndexedDB 失败:', e)
+          }
 
           try {
             await updateClientHash(file.name, relativeDir, retryClientHash)
@@ -929,16 +1034,46 @@ export function useTransUpload() {
   /**
    * 继续上传（复用已有上传项，不重复创建）
    * 对齐老代码 retryTask(): 先调用 act=continue 通知后端恢复上传状态
+   * @param restoredFile 断点续传恢复的任务需提供 File 对象（因为 IndexedDB 无法持久化 File）
    */
   async function resumeUpload(
     fileId: string,
     params: string,
     onProgress?: (item: TransUploadFileItem) => void,
+    restoredFile?: File,
   ): Promise<boolean> {
     const item = uploadFileList.value.find(f => f.id === fileId)
-    if (!item || !item.file) {
-      Message.error('找不到上传文件')
+    if (!item) {
+      Message.error('找不到上传任务')
       return false
+    }
+
+    // 断点续传恢复的任务没有 File 对象，需外部传入
+    if (!item.file) {
+      if (!restoredFile) {
+        Message.error('请重新选择文件以继续上传')
+        return false
+      }
+
+      // 校验文件大小是否一致
+      if (restoredFile.size !== item.fileSize) {
+        Message.error(`文件大小不一致（期望: ${formatFileSize(item.fileSize || 0)}，实际: ${formatFileSize(restoredFile.size)}），请重新选择正确的文件`)
+        return false
+      }
+
+      // 如有保存的 clientHash，校验文件内容是否一致
+      const record = await getUploadRecord(fileId)
+      if (record?.clientHash) {
+        console.log('[断点续传] 校验文件 hash 一致性...')
+        const restoredHash = await calculateSHA256(restoredFile)
+        if (restoredHash.toUpperCase() !== record.clientHash.toUpperCase()) {
+          Message.error('文件内容已变更，无法断点续传，请删除后重新上传')
+          return false
+        }
+        console.log('[断点续传] 文件 hash 校验通过')
+      }
+
+      item.file = restoredFile
     }
 
     // 对齐老代码 retryTask(): 调用 act=continue 通知后端该文件即将恢复上传
