@@ -4,14 +4,12 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useIntervalFn } from '@vueuse/core'
 import { createSHA256 } from 'hash-wasm'
 import {
   type FileListData,
   type UploadInitResponse,
   type UploadResponse,
-  calculateSHA256,
-  calculateChunkHashFromBuffer,
   cancelUploadApi,
   cacheRefresh,
   completeUpload,
@@ -28,7 +26,9 @@ import {
   updateClientHash,
   uploadChunk as apiUploadChunk,
 } from '@/api/transWebService'
+import { useUploadHashWorker } from '@/composables/useUploadHashWorker'
 import { classifyUploadError, UploadErrorType } from '@/types/upload-error'
+
 import {
   createUploadRecord,
   deleteChunksByFileUUID,
@@ -178,23 +178,59 @@ export function useTransUpload() {
   /** 当前活跃的上传队列 */
   const activeUploads = ref(0)
 
-  /** Task 7: Session 保活定时器（对标老代码 cacheRefreshTimer） */
-  const sessionKeepAliveTimer = ref<ReturnType<typeof setInterval> | null>(null)
+  /** Task 7: Session 保活定时器上下文 */
+  const sessionKeepAliveParams = ref('')
   /** Session 保活间隔（毫秒）：每 25 秒调用 act=cache 刷新服务端缓存 */
   const SESSION_KEEP_ALIVE_INTERVAL = 25_000
 
-  /** Task 8: Trans Token 自动刷新定时器 */
-  const transTokenRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null)
+  /** Task 8: Trans Token 自动刷新定时器上下文 */
+  const transTokenRefreshParams = ref('')
+  const transTokenRefreshLang = ref('zh_CN')
   /** Token 刷新间隔（毫秒）：每 60 秒调用 /client/refreshToken，对标老代码 refreshToken() 定时器 */
   const TRANS_TOKEN_REFRESH_INTERVAL = 60_000
-  
+
+  const {
+    calculateChunkHashInWorker,
+    calculateFileHashInWorker,
+  } = useUploadHashWorker()
+
+  const {
+    pause: pauseSessionKeepAliveTimer,
+    resume: resumeSessionKeepAliveTimer,
+    isActive: isSessionKeepAliveActive,
+  } = useIntervalFn(async () => {
+    if (!sessionKeepAliveParams.value) return
+
+    try {
+      await cacheRefresh(sessionKeepAliveParams.value)
+      console.log('[Session保活] act=cache 调用成功')
+    }
+    catch (e) {
+      console.warn('[Session保活] act=cache 调用失败:', e)
+    }
+  }, SESSION_KEEP_ALIVE_INTERVAL, { immediate: false })
+
+  const {
+    pause: pauseTransTokenRefreshTimer,
+    resume: resumeTransTokenRefreshTimer,
+    isActive: isTransTokenRefreshActive,
+  } = useIntervalFn(async () => {
+    if (!transTokenRefreshParams.value) return
+
+    const result = await refreshTransToken(transTokenRefreshParams.value, transTokenRefreshLang.value)
+    if (result.success) {
+      console.log('[Token刷新] trans token 已更新')
+    }
+  }, TRANS_TOKEN_REFRESH_INTERVAL, { immediate: false })
+
   // 计算属性：选中的文件
-  const selectedFiles = computed(() => 
+  const selectedFiles = computed(() =>
     uploadFileList.value.filter(f => f.selected)
   )
-  
+
   // 计算属性：是否有选中的文件
   const hasSelection = computed(() => selectedFiles.value.length > 0)
+
 
   /**
    * 初始化上传页面
@@ -233,17 +269,9 @@ export function useTransUpload() {
    * 对标老代码：定期调用 act=cache 刷新服务端缓存、保持 session 活跃
    */
   function startSessionKeepAlive(params: string) {
-    // 停止已有的定时器
-    stopSessionKeepAlive()
-
-    sessionKeepAliveTimer.value = setInterval(async () => {
-      try {
-        await cacheRefresh(params)
-        console.log('[Session保活] act=cache 调用成功')
-      } catch (e) {
-        console.warn('[Session保活] act=cache 调用失败:', e)
-      }
-    }, SESSION_KEEP_ALIVE_INTERVAL)
+    sessionKeepAliveParams.value = params
+    pauseSessionKeepAliveTimer()
+    resumeSessionKeepAliveTimer()
     console.log(`[Session保活] 已启动定时器（间隔 ${SESSION_KEEP_ALIVE_INTERVAL / 1000}s）`)
   }
 
@@ -251,11 +279,11 @@ export function useTransUpload() {
    * Task 7: 停止 Session 保活定时器
    */
   function stopSessionKeepAlive() {
-    if (sessionKeepAliveTimer.value) {
-      clearInterval(sessionKeepAliveTimer.value)
-      sessionKeepAliveTimer.value = null
-      console.log('[Session保活] 定时器已停止')
-    }
+    sessionKeepAliveParams.value = ''
+    if (!isSessionKeepAliveActive.value) return
+
+    pauseSessionKeepAliveTimer()
+    console.log('[Session保活] 定时器已停止')
   }
 
   /**
@@ -267,15 +295,10 @@ export function useTransUpload() {
    * @param lang 语言（用于 refreshToken 接口）
    */
   function startTransTokenRefresh(params: string, lang = 'zh_CN') {
-    // 停止已有的定时器
-    stopTransTokenRefresh()
-
-    transTokenRefreshTimer.value = setInterval(async () => {
-      const result = await refreshTransToken(params, lang)
-      if (result.success) {
-        console.log('[Token刷新] trans token 已更新')
-      }
-    }, TRANS_TOKEN_REFRESH_INTERVAL)
+    transTokenRefreshParams.value = params
+    transTokenRefreshLang.value = lang
+    pauseTransTokenRefreshTimer()
+    resumeTransTokenRefreshTimer()
     console.log(`[Token刷新] 已启动定时器（间隔 ${TRANS_TOKEN_REFRESH_INTERVAL / 1000}s）`)
   }
 
@@ -283,12 +306,13 @@ export function useTransUpload() {
    * Task 8: 停止 Trans Token 自动刷新定时器
    */
   function stopTransTokenRefresh() {
-    if (transTokenRefreshTimer.value) {
-      clearInterval(transTokenRefreshTimer.value)
-      transTokenRefreshTimer.value = null
-      console.log('[Token刷新] 定时器已停止')
-    }
+    transTokenRefreshParams.value = ''
+    if (!isTransTokenRefreshActive.value) return
+
+    pauseTransTokenRefreshTimer()
+    console.log('[Token刷新] 定时器已停止')
   }
+
 
   /**
    * 加载文件列表
@@ -450,7 +474,8 @@ export function useTransUpload() {
 
     // 读取一次 ArrayBuffer，同时用于分片哈希和全文件哈希累积
     const chunkBuffer = await chunkBlob.arrayBuffer()
-    const chunkHash = await calculateChunkHashFromBuffer(chunkBuffer)
+    const chunkHash = await calculateChunkHashInWorker(chunkBuffer)
+
 
     // 如果有 fileHasher，同时累积全文件 hash（边上传边算，避免上传后二次读取）
     if (fileHasher) {
@@ -563,7 +588,8 @@ export function useTransUpload() {
 
       if (file.size <= SMALL_FILE_THRESHOLD) {
         try {
-          preCalculatedHash = await calculateSHA256(file)
+          preCalculatedHash = await calculateFileHashInWorker(file)
+
           console.log('[上传] 小文件预计算哈希:', preCalculatedHash.substring(0, 16) + '...')
         } catch (e) {
           console.warn('[上传] 小文件预计算哈希失败，将在上传后计算:', e)
@@ -684,7 +710,8 @@ export function useTransUpload() {
       onProgress?.(ri)
 
       // P2-7: 小文件可能已预计算过哈希，直接复用；大文件使用流式 hasher 的累积结果
-      const clientHash = preCalculatedHash || fileHasher?.digest() || await calculateSHA256(file)
+      const clientHash = preCalculatedHash || fileHasher?.digest() || await calculateFileHashInWorker(file)
+
       ri.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
 
@@ -863,7 +890,8 @@ export function useTransUpload() {
           onProgress?.(ri)
 
           // 小文件复用预计算 hash；大文件使用重试时边上传边累积的流式 hash
-          const retryClientHash = preCalculatedHash || retryFileHasher?.digest() || await calculateSHA256(file)
+          const retryClientHash = preCalculatedHash || retryFileHasher?.digest() || await calculateFileHashInWorker(file)
+
           ri.hashState!.clientHash = retryClientHash
 
           // 保存 clientHash 到 IndexedDB
@@ -1065,7 +1093,8 @@ export function useTransUpload() {
       const record = await getUploadRecord(fileId)
       if (record?.clientHash) {
         console.log('[断点续传] 校验文件 hash 一致性...')
-        const restoredHash = await calculateSHA256(restoredFile)
+        const restoredHash = await calculateFileHashInWorker(restoredFile)
+
         if (restoredHash.toUpperCase() !== record.clientHash.toUpperCase()) {
           Message.error('文件内容已变更，无法断点续传，请删除后重新上传')
           return false

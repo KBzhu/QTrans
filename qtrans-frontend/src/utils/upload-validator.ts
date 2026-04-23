@@ -14,6 +14,24 @@ export interface FileNameValidationResult {
   error?: string
 }
 
+export interface UploadedFileLike {
+  fileName: string
+  relativeDir?: string
+}
+
+export interface UploadQueueFileLike {
+  file?: File | null
+  fileName?: string
+  relativeDir?: string
+}
+
+export interface UploadNameConflictResult {
+  readyFiles: File[]
+  serverDuplicates: File[]
+  queueDuplicates: File[]
+  selectionDuplicates: File[]
+}
+
 /**
  * 解码后端返回的 base64 编码黑名单
  * @param encodedBlackList 后端返回的 base64 编码黑名单字符串
@@ -30,10 +48,18 @@ function decodeBlackList(encodedBlackList: string): string {
   }
 }
 
+function buildRelativeFilePath(relativeDir: string, fileName: string): string {
+  return relativeDir ? `${relativeDir}/${fileName}` : fileName
+}
+
+function resolveQueueFileName(item: UploadQueueFileLike): string {
+  return item.file?.name || item.fileName || ''
+}
+
 /**
  * 校验文件名合法性
  * @param fileName 文件名（不含路径）
- * @param blackList 后端返回的黑名单字符（base64 编码，如 atob 后为 "/\\:*?\"<>|"）
+ * @param blackList 后端返回的 blackList（base64 编码，如 atob 后为 "/\\:*?\"<>|"）
  * @param maxLength4Name 文件名最大长度（来自 initData.maxLength4Name）
  */
 export function validateFileName(
@@ -62,7 +88,7 @@ export function validateFileName(
   if (defaultForbidden.test(fileName)) {
     return {
       valid: false,
-      error: `文件名包含非法字符: \\ : * ? " < > |`,
+      error: '文件名包含非法字符: \\ : * ? " < > |',
     }
   }
 
@@ -88,7 +114,7 @@ export function validateFilePath(
   fileName: string,
   maxLength4Path: number,
 ): FileNameValidationResult {
-  const fullPath = relativeDir ? `${relativeDir}/${fileName}` : fileName
+  const fullPath = buildRelativeFilePath(relativeDir, fileName)
 
   if (maxLength4Path && fullPath.length > maxLength4Path) {
     return {
@@ -132,4 +158,71 @@ export function validateFileNames(
   }
 
   return invalidFiles
+}
+
+/**
+ * 检测上传候选文件与服务端文件、上传队列、本次选择之间的重名冲突
+ */
+export function detectUploadNameConflicts(
+  files: File[],
+  uploadedFiles: UploadedFileLike[],
+  queueFiles: UploadQueueFileLike[],
+  relativeDir = '',
+): UploadNameConflictResult {
+  const uploadedPathSet = new Set(
+    uploadedFiles.map(item => buildRelativeFilePath(item.relativeDir ?? relativeDir, item.fileName)),
+  )
+
+  const queuePathSet = new Set(
+    queueFiles
+      .map((item) => {
+        const queueFileName = resolveQueueFileName(item)
+        if (!queueFileName) return ''
+        return buildRelativeFilePath(item.relativeDir ?? relativeDir, queueFileName)
+      })
+      .filter(Boolean),
+  )
+
+  const batchPathCount = new Map<string, number>()
+  for (const file of files) {
+    const filePath = buildRelativeFilePath(relativeDir, file.name)
+    batchPathCount.set(filePath, (batchPathCount.get(filePath) ?? 0) + 1)
+  }
+
+  const readyFiles: File[] = []
+  const serverDuplicates: File[] = []
+  const queueDuplicates: File[] = []
+  const selectionDuplicates: File[] = []
+  const acceptedSelectionPaths = new Set<string>()
+
+  for (const file of files) {
+    const filePath = buildRelativeFilePath(relativeDir, file.name)
+
+    if (queuePathSet.has(filePath)) {
+      queueDuplicates.push(file)
+      continue
+    }
+
+    if (uploadedPathSet.has(filePath)) {
+      serverDuplicates.push(file)
+      continue
+    }
+
+    if ((batchPathCount.get(filePath) ?? 0) > 1) {
+      if (acceptedSelectionPaths.has(filePath)) {
+        selectionDuplicates.push(file)
+        continue
+      }
+      acceptedSelectionPaths.add(filePath)
+    }
+
+    readyFiles.push(file)
+  }
+
+  return {
+    readyFiles,
+    serverDuplicates,
+    queueDuplicates,
+    selectionDuplicates,
+  }
 }

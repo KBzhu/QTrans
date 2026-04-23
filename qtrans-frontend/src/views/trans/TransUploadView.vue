@@ -12,16 +12,16 @@ import {
 } from '@arco-design/web-vue/es/icon'
 import { Message, Modal } from '@arco-design/web-vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { watchDeep } from '@vueuse/core'
+import { useIntervalFn, watchDeep } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import type { FileEntity } from '@/api/transWebService'
-import { calculateSHA256 } from '@/api/transWebService'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import { useTransUpload } from '@/composables/useTransUpload'
 import TransFileTable from '@/components/business/TransFileTable.vue'
 import { formatFileSize } from '@/utils/format'
-  import { validateFileNames } from '@/utils/upload-validator'
+import { detectUploadNameConflicts, validateFileNames } from '@/utils/upload-validator'
 import './trans-upload.scss'
+
 
 const route = useRoute()
 const router = useRouter()
@@ -69,8 +69,22 @@ const hashMismatchModalVisible = ref(false)
 const mismatchedFiles = ref<TransUploadFileItem[]>([])
 
 // Task 10: 文件列表增量刷新定时器
-const fileListPollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const FILE_LIST_POLL_INTERVAL = 10_000 // 每 10 秒轮询一次文件列表
+
+const {
+  pause: pauseFileListPolling,
+  resume: resumeFileListPolling,
+  isActive: isFileListPollingActive,
+} = useIntervalFn(async () => {
+  const hasActiveUpload = uploadFileList.value.some(
+    (f: TransUploadFileItem) => f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
+  )
+  if (hasActiveUpload) return
+
+  await debouncedLoadFileList('', params.value)
+  console.log('[文件列表轮询] 已刷新文件列表')
+}, FILE_LIST_POLL_INTERVAL, { immediate: false })
+
 
 // 监听上传列表变化，实现自动提交
 watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
@@ -196,18 +210,8 @@ onUnmounted(() => {
  * 对标老代码：定时拉取文件列表，保持 UI 与服务端状态同步
  */
 function startFileListPolling() {
-  stopFileListPolling()
-  fileListPollingTimer.value = setInterval(async () => {
-    // 只在非上传状态时轮询（上传中频繁刷新可能影响性能）
-    const hasActiveUpload = uploadFileList.value.some(
-      (f: TransUploadFileItem) => f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
-    )
-    if (hasActiveUpload) return
-
-    // 使用防抖版本避免并发
-    await debouncedLoadFileList('', params.value)
-    console.log('[文件列表轮询] 已刷新文件列表')
-  }, FILE_LIST_POLL_INTERVAL)
+  pauseFileListPolling()
+  resumeFileListPolling()
   console.log(`[文件列表轮询] 已启动（间隔 ${FILE_LIST_POLL_INTERVAL / 1000}s）`)
 }
 
@@ -215,12 +219,12 @@ function startFileListPolling() {
  * Task 10: 停止文件列表轮询
  */
 function stopFileListPolling() {
-  if (fileListPollingTimer.value) {
-    clearInterval(fileListPollingTimer.value)
-    fileListPollingTimer.value = null
-    console.log('[文件列表轮询] 已停止')
-  }
+  if (!isFileListPollingActive.value) return
+
+  pauseFileListPolling()
+  console.log('[文件列表轮询] 已停止')
 }
+
 
 /**
  * 处理文件选择
@@ -287,41 +291,28 @@ async function handleFiles(files: File[]) {
   const hasSpace = await checkStorageSpace(params.value, totalFileSize)
   if (!hasSpace) return
 
-  // 上传前重复检测：无论大小文件，同名即提示用户确认是否覆盖
-  // 小文件（<=100MB）额外计算 hash 用于日志记录，但不作为拦截条件
   const uploadedFiles = fileListData.value?.fileList ?? []
-  const sameNameFiles: string[] = []
-  const uniqueFiles: File[] = []
+  const {
+    readyFiles,
+    serverDuplicates,
+    queueDuplicates,
+    selectionDuplicates,
+  } = detectUploadNameConflicts(files, uploadedFiles, uploadFileList.value, '')
 
-  const PRE_UPLOAD_HASH_MAX_SIZE = 100 * 1024 * 1024 // 100MB
-
-  for (const file of files) {
-    let fileHash = ''
-
-    // 小文件计算全量 hash（仅用于日志，不用于拦截决策）
-    if (file.size <= PRE_UPLOAD_HASH_MAX_SIZE) {
-      try {
-        fileHash = await calculateSHA256(file)
-      } catch (e) {
-        console.warn('[重复检测] 计算 hash 失败，跳过:', file.name, e)
-      }
-    }
-
-    // 同名即加入确认列表，由用户决定是否覆盖
-    const sameName = uploadedFiles.find((f: FileEntity) => f.fileName === file.name)
-    if (sameName) {
-      sameNameFiles.push(file.name)
-      if (fileHash) {
-        console.log('[重复检测] 小文件 hash 已计算，但统一走覆盖确认:', file.name, fileHash.substring(0, 16))
-      }
-    } else {
-      uniqueFiles.push(file)
-    }
+  if (selectionDuplicates.length > 0) {
+    const names = [...new Set(selectionDuplicates.map(file => file.name))].join('、')
+    Message.warning(`本次选择中存在重名文件，已自动忽略后续重复项：${names}`)
   }
 
-  // 同名文件提示用户确认覆盖
-  if (sameNameFiles.length > 0) {
-    const names = sameNameFiles.join('、')
+  if (queueDuplicates.length > 0) {
+    const names = [...new Set(queueDuplicates.map(file => file.name))].join('、')
+    Message.error(`以下文件已在上传队列中，请勿重复添加：${names}`)
+  }
+
+  let filesToUpload = [...readyFiles]
+
+  if (serverDuplicates.length > 0) {
+    const names = [...new Set(serverDuplicates.map(file => file.name))].join('、')
     const confirmed = await new Promise<boolean>((resolve) => {
       Modal.confirm({
         title: '文件已存在',
@@ -332,23 +323,17 @@ async function handleFiles(files: File[]) {
         onCancel: () => resolve(false),
       })
     })
-    if (!confirmed) {
-      // 用户取消覆盖，过滤掉同名文件
-      const sameNameSet = new Set(sameNameFiles)
-      files = files.filter(f => !sameNameSet.has(f.name))
+
+    if (confirmed) {
+      filesToUpload = filesToUpload.concat(serverDuplicates)
     }
   }
 
-  // 重新计算 uniqueFiles（考虑用户可能取消覆盖的情况）
-  uniqueFiles.length = 0
-  for (const f of files) {
-    uniqueFiles.push(f)
-  }
-
-  if (uniqueFiles.length === 0) return
+  if (filesToUpload.length === 0) return
 
   autoSubmitTriggered.value = false
-  await uploadFiles(uniqueFiles, params.value, '', updateUploadProgress)
+  await uploadFiles(filesToUpload, params.value, '', updateUploadProgress)
+
 }
 
 /**
