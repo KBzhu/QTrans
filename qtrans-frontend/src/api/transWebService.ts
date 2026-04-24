@@ -95,8 +95,22 @@ export interface HashResponse {
 const TRANS_TOKEN_KEY = 'trans_token'
 const AUTH_TOKEN_COOKIE_KEY = 'token'
 
-/** 分片大小: 4MB */
-const CHUNK_SIZE = 4 * 1024 * 1024
+/** 分片大小: 4MB (默认值，后续可从 uploadInit 接口动态获取) */
+const DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024
+
+/** 环境变量覆盖（仅开发阶段使用，生产环境由接口返回） */
+const ENV_CHUNK_SIZE = Number(import.meta.env?.VITE_UPLOAD_CHUNK_SIZE)
+const CHUNK_SIZE = Number.isFinite(ENV_CHUNK_SIZE) && ENV_CHUNK_SIZE > 0
+  ? ENV_CHUNK_SIZE
+  : DEFAULT_CHUNK_SIZE
+
+/**
+ * 获取当前分片大小
+ * TODO(P3): 上传初始化后根据 UploadInitResponse 中的服务端配置动态更新
+ */
+export function getChunkSize(): number {
+  return CHUNK_SIZE
+}
 
 function setCookie(name: string, value: string) {
   if (typeof document === 'undefined')
@@ -637,8 +651,10 @@ export async function getStorageInfo(
 /**
  * 计算 SHA-256 哈希值（流式实现，支持大文件）
  * 使用 hash-wasm 分片读取，避免一次性加载全文件到内存
+ * @deprecated 上传主流程请优先使用 `useHashWorker()`，该函数仅作为 Worker 降级路径保留。
  */
 export async function calculateSHA256(file: File): Promise<string> {
+
   const hasher = await createSHA256()
   const stream = file.stream()
   const reader = stream.getReader()
@@ -688,11 +704,15 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
- * 获取分片大小
+ * 格式化传输速度
  */
-export function getChunkSize(): number {
-  return CHUNK_SIZE
+export function formatSpeed(bytesPerSecond: number): string {
+  if (bytesPerSecond === 0) return '0 B/s'
+  if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`
+  if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`
+  return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`
 }
+
 
 /**
  * 获取 Token
@@ -796,6 +816,7 @@ export const transApi = {
 
   // 辅助函数
   formatFileSize,
+  formatSpeed,
   getChunkSize,
   getTransToken,
   clearTransToken,

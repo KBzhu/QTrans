@@ -5,7 +5,6 @@
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
 import { useDebounceFn, useIntervalFn } from '@vueuse/core'
-import { createSHA256 } from 'hash-wasm'
 import {
   type FileListData,
   type UploadInitResponse,
@@ -16,6 +15,8 @@ import {
   continueUploadApi,
   refreshTransToken,
   deleteFiles,
+  formatFileSize as fmtSize,
+  formatSpeed as fmtSpeed,
   getChunkSize,
   getFileList,
   getServerHash,
@@ -26,8 +27,10 @@ import {
   updateClientHash,
   uploadChunk as apiUploadChunk,
 } from '@/api/transWebService'
-import { useUploadHashWorker } from '@/composables/useUploadHashWorker'
+import { useHashWorker, type StreamFileHasher } from '@/composables/useHashWorker'
+import { useUploadPrepWorker } from '@/composables/useUploadPrepWorker'
 import { classifyUploadError, UploadErrorType } from '@/types/upload-error'
+
 
 import {
   createUploadRecord,
@@ -142,25 +145,6 @@ function estimateSpeedFromFile(fileSize: number, uploadedChunkCount: number, chu
   return remainingBytes / timeLeftSec
 }
 
-/**
- * 格式化速度
- */
-function formatSpeed(bytesPerSecond: number): string {
-  if (bytesPerSecond === 0) return '0 B/s'
-  if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`
-  if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`
-  return `${(bytesPerSecond / 1024 / 1024).toFixed(1)} MB/s`
-}
-
-/**
- * 格式化文件大小
- */
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
-  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-}
 
 /**
  * TransWebService 上传 Composable
@@ -190,9 +174,15 @@ export function useTransUpload() {
   const TRANS_TOKEN_REFRESH_INTERVAL = 60_000
 
   const {
-    calculateChunkHashInWorker,
     calculateFileHashInWorker,
-  } = useUploadHashWorker()
+    createStreamFileHasher,
+  } = useHashWorker()
+
+  const {
+    prepareUploadChunk,
+    readChunkBuffer,
+  } = useUploadPrepWorker()
+
 
   const {
     pause: pauseSessionKeepAliveTimer,
@@ -466,24 +456,17 @@ export function useTransUpload() {
     totalChunks: number,
     params: string,
     onProgress?: (percent: number) => void,
-    fileHasher?: any,
+    fileHasher?: StreamFileHasher,
   ): Promise<UploadResponse> {
-    const start = chunkIndex * CHUNK_SIZE
-    const end = Math.min(start + CHUNK_SIZE, file.size)
-    const chunkBlob = file.slice(start, end)
+    const preparedChunk = await prepareUploadChunk(file, chunkIndex, CHUNK_SIZE)
 
-    // 读取一次 ArrayBuffer，同时用于分片哈希和全文件哈希累积
-    const chunkBuffer = await chunkBlob.arrayBuffer()
-    const chunkHash = await calculateChunkHashInWorker(chunkBuffer)
-
-
-    // 如果有 fileHasher，同时累积全文件 hash（边上传边算，避免上传后二次读取）
     if (fileHasher) {
-      fileHasher.update(new Uint8Array(chunkBuffer))
+      await fileHasher.update(preparedChunk.chunkBuffer.slice(0), chunkIndex)
     }
 
-    // 将 Blob 转换为 File，确保后端能正确识别文件名
-    const chunkFile = new File([chunkBlob], file.name, { type: file.type || 'application/octet-stream' })
+    const chunkFile = new File([preparedChunk.chunkBuffer], file.name, {
+      type: preparedChunk.fileType || file.type || 'application/octet-stream',
+    })
 
     const formData = new FormData()
     formData.append('file', chunkFile)
@@ -492,29 +475,26 @@ export function useTransUpload() {
     formData.append('qqtotalparts', String(totalChunks))
     formData.append('qqfilename', file.name)
     formData.append('qqtotalfilesize', String(file.size))
-    formData.append('qqchunksize', String(chunkBlob.size))       // ✅ 分片实际大小
-    formData.append('qqpartbyteoffset', String(start))           // ✅ 分片偏移量
-    formData.append('act', 'add')                                 // ✅ 操作类型（必须！）
+    formData.append('qqchunksize', String(preparedChunk.size))
+    formData.append('qqpartbyteoffset', String(preparedChunk.start))
+    formData.append('act', 'add')
     formData.append('name', file.name)
-    // P1-4: 对齐老代码 onUploadChunk，将分片哈希附到请求参数
-    formData.append('qqhashcode', chunkHash)
+    formData.append('qqhashcode', preparedChunk.chunkHash)
 
-    console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 数据大小: ${chunkFile.size} bytes, 哈希: ${chunkHash.substring(0, 8)}...`)
+    console.log(`[上传] 分片 ${chunkIndex + 1}/${totalChunks} 数据大小: ${chunkFile.size} bytes, 哈希: ${preparedChunk.chunkHash.substring(0, 8)}...`)
 
     const result = await apiUploadChunk(formData, params, onProgress)
 
-    // 检查上传结果
     if (!result.success) {
       console.error('[上传] 分片上传失败:', result.error)
       throw new Error(result.error || '分片上传失败')
     }
 
-    // 保存分片信息到 IndexedDB
     await saveChunk({
       fileUUID,
       chunkIndex,
-      chunkHash,
-      chunkSize: chunkBlob.size,
+      chunkHash: preparedChunk.chunkHash,
+      chunkSize: preparedChunk.size,
       uploadedAt: new Date(),
     })
 
@@ -580,7 +560,9 @@ export function useTransUpload() {
 
     // P2-7: 对齐老代码 onUpload，小文件在上传前预计算哈希
     let preCalculatedHash = ''
-    let fileHasher: any = null
+    let fileHasher: StreamFileHasher | null = null
+    /** 重试路径创建的流式 hasher（需与 fileHasher 一并在 finally 中 dispose） */
+    let retryFileHasher: StreamFileHasher | null = null
 
     try {
       // [Bug1修复] 状态切换为 uploading，并异步执行准备操作
@@ -596,7 +578,7 @@ export function useTransUpload() {
         }
       } else {
         // 大文件：创建流式 hasher，边上传边累积全文件 hash，避免上传后二次读取
-        fileHasher = await createSHA256()
+        fileHasher = await createStreamFileHasher(file.size)
         console.log('[上传] 大文件启用流式哈希累积:', file.name)
       }
 
@@ -619,11 +601,8 @@ export function useTransUpload() {
       if (fileHasher && skip.length > 0) {
         console.log(`[断点续传] 恢复已上传 ${skip.length} 个分片的 hash 累积...`)
         for (const chunkIndex of skip.sort((a, b) => a - b)) {
-          const start = chunkIndex * CHUNK_SIZE
-          const end = Math.min(start + CHUNK_SIZE, file.size)
-          const chunkBlob = file.slice(start, end)
-          const chunkBuffer = await chunkBlob.arrayBuffer()
-          fileHasher.update(new Uint8Array(chunkBuffer))
+          const { chunkBuffer } = await readChunkBuffer(file, chunkIndex, CHUNK_SIZE)
+          await fileHasher.update(chunkBuffer, chunkIndex)
         }
         console.log(`[断点续传] 已恢复 ${skip.length} 个分片的 hash 累积`)
       }
@@ -710,7 +689,8 @@ export function useTransUpload() {
       onProgress?.(ri)
 
       // P2-7: 小文件可能已预计算过哈希，直接复用；大文件使用流式 hasher 的累积结果
-      const clientHash = preCalculatedHash || fileHasher?.digest() || await calculateFileHashInWorker(file)
+      const streamedHash = fileHasher ? await fileHasher.digest() : ''
+      const clientHash = preCalculatedHash || streamedHash || await calculateFileHashInWorker(file)
 
       ri.hashState!.clientHash = clientHash
       console.log('[哈希校验] 客户端哈希:', clientHash.substring(0, 16) + '...')
@@ -826,23 +806,21 @@ export function useTransUpload() {
           ri.uploadedChunkCount = retrySkip.length
 
           // 大文件重试时需要重新创建流式 hasher（分片会重新上传）
-          let retryFileHasher: any = null
+          retryFileHasher = null
           if (file.size > SMALL_FILE_THRESHOLD && !preCalculatedHash) {
-            retryFileHasher = await createSHA256()
+            retryFileHasher = await createStreamFileHasher(file.size)
           }
 
           // 重试时同样需要把 skip 的分片喂给 hasher
           if (retryFileHasher && retrySkip.length > 0) {
             console.log(`[重试] 恢复已上传 ${retrySkip.length} 个分片的 hash 累积...`)
             for (const chunkIndex of retrySkip.sort((a, b) => a - b)) {
-              const start = chunkIndex * CHUNK_SIZE
-              const end = Math.min(start + CHUNK_SIZE, file.size)
-              const chunkBlob = file.slice(start, end)
-              const chunkBuffer = await chunkBlob.arrayBuffer()
-              retryFileHasher.update(new Uint8Array(chunkBuffer))
+              const { chunkBuffer } = await readChunkBuffer(file, chunkIndex, CHUNK_SIZE)
+              await retryFileHasher.update(chunkBuffer, chunkIndex)
             }
             console.log(`[重试] 已恢复 ${retrySkip.length} 个分片的 hash 累积`)
           }
+
 
           for (const retryChunkIndex of retryReupload) {
             if (controller.signal.aborted) {
@@ -890,7 +868,9 @@ export function useTransUpload() {
           onProgress?.(ri)
 
           // 小文件复用预计算 hash；大文件使用重试时边上传边累积的流式 hash
-          const retryClientHash = preCalculatedHash || retryFileHasher?.digest() || await calculateFileHashInWorker(file)
+          const retryStreamedHash = retryFileHasher ? await retryFileHasher.digest() : ''
+          const retryClientHash = preCalculatedHash || retryStreamedHash || await calculateFileHashInWorker(file)
+
 
           ri.hashState!.clientHash = retryClientHash
 
@@ -963,10 +943,20 @@ export function useTransUpload() {
       return false
     }
     finally {
+      // 释放原始流式 hasher（如有）
+      if (fileHasher) {
+        await fileHasher.dispose()
+      }
+      // 释放重试路径创建的流式 hasher（如有）
+      if (retryFileHasher) {
+        await retryFileHasher.dispose()
+      }
+
       activeUploads.value = Math.max(0, activeUploads.value - 1)
       uploading.value = activeUploads.value > 0
       abortControllers.delete(fileUUID)
     }
+
   }
 
   /**
@@ -1045,12 +1035,15 @@ export function useTransUpload() {
     if (item) {
       item.status = 'paused'
       item.speed = 0
-      
-      // 调用后端暂停接口
-      try {
-        await apiPauseUpload(item.file.name, item.relativeDir, params)
-      } catch (e) {
-        // 忽略暂停接口错误
+
+      // 断点续传恢复的任务可能 file 为 null，此时跳过后端通知
+      if (item.file) {
+        try {
+          await apiPauseUpload(item.file.name, item.relativeDir, params)
+        }
+        catch (e) {
+          // 忽略暂停接口错误
+        }
       }
 
       await updateUploadStatus(fileId, 'paused')
@@ -1085,7 +1078,7 @@ export function useTransUpload() {
 
       // 校验文件大小是否一致
       if (restoredFile.size !== item.fileSize) {
-        Message.error(`文件大小不一致（期望: ${formatFileSize(item.fileSize || 0)}，实际: ${formatFileSize(restoredFile.size)}），请重新选择正确的文件`)
+        Message.error(`文件大小不一致（期望: ${fmtSize(item.fileSize || 0)}，实际: ${fmtSize(restoredFile.size)}），请重新选择正确的文件`)
         return false
       }
 
@@ -1165,11 +1158,15 @@ export function useTransUpload() {
     // P0-2: 对齐老代码 onCancel，通知后端取消上传并清理临时分片
     const item = uploadFileList.value.find(f => f.id === fileId)
     if (item && params) {
-      try {
-        await cancelUploadApi(item.file.name, item.relativeDir, params)
-        console.log('[取消上传] 已通知后端清理临时文件:', item.file.name)
-      } catch (e) {
-        console.warn('[取消上传] 通知后端取消失败（忽略）:', e)
+      // 断点续传恢复的任务可能 file 为 null
+      if (item.file) {
+        try {
+          await cancelUploadApi(item.file.name, item.relativeDir, params)
+          console.log('[取消上传] 已通知后端清理临时文件:', item.file.name)
+        }
+        catch (e) {
+          console.warn('[取消上传] 通知后端取消失败（忽略）:', e)
+        }
       }
     }
 
@@ -1271,10 +1268,12 @@ export function useTransUpload() {
       return
     }
 
-    const files = selected.map(item => ({
-      fileName: item.file.name,
-      relativeDir: item.relativeDir,
-    }))
+    const files = selected
+      .filter(item => item.file != null)
+      .map(item => ({
+        fileName: item!.file!.name,
+        relativeDir: item.relativeDir,
+      }))
 
     const success = await removeFiles(files, params)
     if (success) {
@@ -1316,7 +1315,7 @@ export function useTransUpload() {
 
       const remainingSpace = storageInfo.totalSize - storageInfo.usedSize
       if (remainingSpace < fileSize) {
-        Message.error(`存储空间不足，剩余 ${formatFileSize(remainingSpace)}，需要 ${formatFileSize(fileSize)}`)
+        Message.error(`存储空间不足，剩余 ${fmtSize(remainingSpace)}，需要 ${fmtSize(fileSize)}`)
         return false
       }
       return true
@@ -1364,8 +1363,8 @@ export function useTransUpload() {
     batchDeleteUploaded,
 
     // 工具函数
-    formatSpeed,
-    formatFileSize,
+    formatSpeed: fmtSpeed,
+    formatFileSize: fmtSize,
     generateFileUUID,
   }
 }

@@ -1,5 +1,5 @@
 export const MAX_FILE_SIZE = 50 * 1024 * 1024 * 1024
-export const CHUNK_SIZE = 5 * 1024 * 1024
+// NOTE: CHUNK_SIZE 已迁移到 transWebService.getChunkSize()，支持环境变量覆盖及后续接口动态获取
 export const MAX_CONCURRENT_UPLOADS = 3
 export const MAX_FILES_PER_APPLICATION = 100
 

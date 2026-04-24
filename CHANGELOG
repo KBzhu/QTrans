@@ -6,6 +6,29 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+- **CHUNK_SIZE 数据源统一修复**: `transWebService.ts` 的 `getChunkSize()` 作为唯一分片大小数据源（支持 `VITE_UPLOAD_CHUNK_SIZE` 环境变量覆盖，预留接口动态获取扩展点），移除 `constants.ts` 中的重复定义，`useFileChunk.ts` 改为调用 `getChunkSize()` 而非从 constants 导入，消除 4MB/5MB 不一致导致的分片索引越界与断点续传状态错乱。
+- **retryFileHasher 内存泄漏修复**: `useTransUpload.ts` 重试路径创建的流式 hasher 变量提升至 try 块外层声明，finally 中同步 dispose，修复每次自动重试泄漏 SHA256 实例的问题。
+- **item.file 空安全守卫**: `pauseUpload`/`cancelUpload`/`batchDeleteUploaded` 三处添加 `item.file` null 检查，防止断点续传恢复任务（file=null）触发 `TypeError: Cannot read properties of null (reading 'name')`。
+- **formatFileSize/formatSpeed DRY 违反消除**: 将两函数统一收敛到 `transWebService.ts` 导出并加入 `transApi` 聚合对象，`useTransUpload.ts` 删除本地重复定义改为导入复用。
+
+### Added
+- 新增 `src/composables/useUploadHashWorker.ts`，作为兼容层衔接新的 `useHashWorker` 双 Worker 架构。
+- 新增 `src/composables/useHashWorker.ts`，封装 `HashWorker` 的全量哈希、流式哈希与降级逻辑。
+- 新增 `src/composables/useUploadPrepWorker.ts`，封装 `UploadPrepWorker` 的分片切片、读取与预处理逻辑。
+- 新增 `src/workers/hash.worker.ts`、`src/workers/upload-prep.worker.ts`、`src/types/worker-messages.ts`，形成完整的双 Worker 通信层。
+- 新增 `src/workers/shared/hash-utils.ts` 与 `src/workers/shared/hash-utils.spec.ts`，沉淀共享哈希工具与基础测试。
+- 新增 `src/utils/__tests__/upload-validator.spec.ts`，覆盖服务端重名、上传队列重名与本次选择重名场景。
+- 新增 `docs/exec/task_web_worker_exec.md` 与 `docs/exec/task_web_worker_P2_exec.md`，记录两阶段 Web Worker 上传链路改造执行过程。
+
+### Changed
+- `src/composables/useTransUpload.ts` 升级为完整双 Worker 调度模式：主线程仅负责状态管理、FormData 组装与网络请求，分片预处理与流式哈希迁移至 Worker。
+- `src/composables/useFileChunk.ts` 对齐新的 HashWorker 路径，支持 Worker 计算与主线程降级。
+- `src/api/transWebService.ts` 为旧哈希工具补充废弃说明，明确双 Worker 升级后的推荐入口。
+- `src/views/trans/TransUploadView.vue` 与 `src/views/application/components/StepTwoUploadFile.vue` 统一复用公共重名冲突检测与 VueUse 轮询能力。
+- `src/utils/upload-validator.ts` 扩展为同时负责文件名合法性校验和上传冲突分类。
+- `docs/tasks/task_web_worker.md`、`docs/tasks/task_web_worker_P2.md` 补充本次任务目标、范围与拆解步骤。
+
 ### Added
 - 新增 `src/composables/useUploadHashWorker.ts`，基于 VueUse `useWebWorkerFn` 提供文件哈希与分片哈希的 Worker 计算能力。
 - 新增 `src/utils/__tests__/upload-validator.spec.ts`，覆盖服务端重名、上传队列重名与本次选择重名场景。
