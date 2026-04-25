@@ -30,6 +30,8 @@ export interface UploadNameConflictResult {
   serverDuplicates: File[]
   queueDuplicates: File[]
   selectionDuplicates: File[]
+  /** 与上传队列冲突且队列中文件正在上传的文件 */
+  queueUploadingDuplicates: File[]
 }
 
 /**
@@ -192,6 +194,7 @@ export function detectUploadNameConflicts(
   const readyFiles: File[] = []
   const serverDuplicates: File[] = []
   const queueDuplicates: File[] = []
+  const queueUploadingDuplicates: File[] = []
   const selectionDuplicates: File[] = []
   const acceptedSelectionPaths = new Set<string>()
 
@@ -199,7 +202,12 @@ export function detectUploadNameConflicts(
     const filePath = buildRelativeFilePath(relativeDir, file.name)
 
     if (queuePathSet.has(filePath)) {
-      queueDuplicates.push(file)
+      const queueItem = queueFiles.find(q => buildRelativeFilePath(q.relativeDir ?? relativeDir, resolveQueueFileName(q)) === filePath)
+      if (queueItem && (queueItem as any).status === 'uploading') {
+        queueUploadingDuplicates.push(file)
+      } else {
+        queueDuplicates.push(file)
+      }
       continue
     }
 
@@ -224,5 +232,6 @@ export function detectUploadNameConflicts(
     serverDuplicates,
     queueDuplicates,
     selectionDuplicates,
+    queueUploadingDuplicates,
   }
 }

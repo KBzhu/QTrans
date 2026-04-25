@@ -53,6 +53,8 @@ export interface UploadInitResponse {
   blackList: string
   maxLength4Name: number
   maxLength4Path: number
+  /** 最大允许上传文件数量 */
+  maxFileCount?: number
   privatePolicyUrl?: string
   showPrivacyDialog?: boolean
   params: string

@@ -229,7 +229,7 @@ async function handleDrop(e: DragEvent) {
 }
 
 async function handleFiles(files: File[]) {
-  const maxCount = initData.value?.maxLength4Name ? 1000 : 20
+  const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)
   if (uploadFileList.value.length + files.length > maxCount)
     return Message.error(`最多只能上传 ${maxCount} 个文件`)
   const maxSize = (initData.value?.applicationSize || 1024) * 1024 * 1024
@@ -263,22 +263,28 @@ async function handleFiles(files: File[]) {
     serverDuplicates,
     queueDuplicates,
     selectionDuplicates,
+    queueUploadingDuplicates,
   } = detectUploadNameConflicts(files, uploadedFiles, uploadFileList.value, '')
 
   if (selectionDuplicates.length > 0) {
-    const names = [...new Set(selectionDuplicates.map(file => file.name))].join('、')
+    const names = Array.from(new Set(selectionDuplicates.map((file: File) => file.name))).join('、')
     Message.warning(`本次选择中存在重名文件，已自动忽略后续重复项：${names}`)
   }
 
+  if (queueUploadingDuplicates.length > 0) {
+    const names = Array.from(new Set(queueUploadingDuplicates.map((file: File) => file.name))).join('、')
+    Message.error(`以下文件正在上传中，请勿重复添加：${names}`)
+  }
+
   if (queueDuplicates.length > 0) {
-    const names = [...new Set(queueDuplicates.map(file => file.name))].join('、')
+    const names = Array.from(new Set(queueDuplicates.map((file: File) => file.name))).join('、')
     Message.error(`以下文件已在上传队列中，请勿重复添加：${names}`)
   }
 
   let filesToUpload = [...readyFiles]
 
   if (serverDuplicates.length > 0) {
-    const names = [...new Set(serverDuplicates.map(file => file.name))].join('、')
+    const names = Array.from(new Set(serverDuplicates.map((file: File) => file.name))).join('、')
     const confirmed = await new Promise<boolean>((resolve) => {
       Modal.confirm({
         title: '文件已存在',
@@ -381,7 +387,15 @@ function handleResume(id: string) {
   resumeUpload(id, props.params, updateUploadProgress)
 }
 
-const handleDelete = (id: string) => cancelUpload(id, props.params)
+/** 取消上传（带防抖，避免批量操作时弹框过多） */
+const cancelUploadModalLock = ref(false)
+
+function handleDelete(id: string) {
+  if (cancelUploadModalLock.value) return
+  cancelUploadModalLock.value = true
+  setTimeout(() => { cancelUploadModalLock.value = false }, 300)
+  cancelUpload(id, props.params)
+}
 const handleRetry = (id: string) => retryUpload(id, props.params, updateUploadProgress)
 
 function handleToggleSelect(id: string) {
@@ -400,26 +414,55 @@ async function handleRefresh() {
 }
 
 function handleToggleSelectUploaded(file: FileEntity) {
-  const index = selectedUploadedFiles.value.indexOf(file)
-  index >= 0
-    ? selectedUploadedFiles.value.splice(index, 1)
-    : selectedUploadedFiles.value.push(file)
+  const index = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
+  if (index >= 0) {
+    selectedUploadedFiles.value.splice(index, 1)
+  } else {
+    selectedUploadedFiles.value.push(file)
+  }
+}
+
+function handleToggleSelectAllUploaded(selected: boolean) {
+  if (selected) {
+    const currentList = fileListData.value?.fileList ?? []
+    // 去重合并
+    const existingIds = new Set(selectedUploadedFiles.value.map((f: FileEntity) => f.fileId))
+    currentList.forEach((file: FileEntity) => {
+      if (!existingIds.has(file.fileId)) {
+        selectedUploadedFiles.value.push(file)
+      }
+    })
+  } else {
+    selectedUploadedFiles.value = []
+  }
 }
 
 async function handleDeleteSelectedUploaded() {
   if (!selectedUploadedFiles.value.length) return Message.warning('请先选择要删除的文件')
-  await removeFiles(
-    selectedUploadedFiles.value.map((f: FileEntity) => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
-    props.params,
-  )
-  selectedUploadedFiles.value = []
+  if (cancelUploadModalLock.value) return
+  cancelUploadModalLock.value = true
+  try {
+    await removeFiles(
+      selectedUploadedFiles.value.map((f: FileEntity) => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
+      props.params,
+    )
+    selectedUploadedFiles.value = []
+  } finally {
+    setTimeout(() => { cancelUploadModalLock.value = false }, 300)
+  }
 }
 
 async function handleDeleteUploadedFile(file: FileEntity) {
-  await removeFiles([{ fileName: file.fileName, relativeDir: file.relativeDir }], props.params)
-  // 从选中列表中移除
-  const idx = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
-  if (idx >= 0) selectedUploadedFiles.value.splice(idx, 1)
+  if (cancelUploadModalLock.value) return
+  cancelUploadModalLock.value = true
+  try {
+    await removeFiles([{ fileName: file.fileName, relativeDir: file.relativeDir }], props.params)
+    // 从选中列表中移除
+    const idx = selectedUploadedFiles.value.findIndex((f: FileEntity) => f.fileId === file.fileId)
+    if (idx >= 0) selectedUploadedFiles.value.splice(idx, 1)
+  } finally {
+    setTimeout(() => { cancelUploadModalLock.value = false }, 300)
+  }
 }
 
 /**
@@ -433,7 +476,7 @@ function validateBeforeSubmit(): boolean {
     f.status === 'pending' || f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
   )
   if (activeFiles.length > 0) {
-    const names = activeFiles.map(f => f.file.name).join('、')
+    const names = activeFiles.map((f: TransUploadFileItem) => f.file.name).join('、')
     Message.error(`以下文件尚未上传完成：${names}`)
     return false
   }
@@ -443,7 +486,7 @@ function validateBeforeSubmit(): boolean {
     (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',
   )
   if (mismatchedUploading.length > 0) {
-    const names = mismatchedUploading.map(f => f.file.name).join('、')
+    const names = mismatchedUploading.map((f: TransUploadFileItem) => f.file.name).join('、')
     Message.error(`以下文件校验未通过，请重新上传：${names}`)
     return false
   }
@@ -462,7 +505,7 @@ function validateBeforeSubmit(): boolean {
     return false
   })
   if (mismatchedUploaded.length > 0) {
-    const names = mismatchedUploaded.map(f => f.fileName).join('、')
+    const names = mismatchedUploaded.map((f: FileEntity) => f.fileName).join('、')
     Message.error(`以下文件校验未通过，请删除后重新上传：${names}`)
     return false
   }
@@ -566,11 +609,12 @@ defineExpose({ validateBeforeSubmit })
         <TransFileTable
           :files="[]"
           mode="uploaded"
-          :show-batch-actions="false"
+          :show-batch-actions="true"
           :show-hash-status="true"
           :uploaded-files="fileListData.fileList"
           :selected-uploaded-files="selectedUploadedFiles"
           @toggle-select-uploaded="handleToggleSelectUploaded"
+          @toggle-select-all-uploaded="handleToggleSelectAllUploaded"
           @batch-delete="handleDeleteSelectedUploaded"
           @delete-uploaded-file="handleDeleteUploadedFile"
         />

@@ -103,6 +103,7 @@ const emit = defineEmits<{
   
   // 已上传模式
   (e: 'toggle-select-uploaded', file: FileEntity): void
+  (e: 'toggle-select-all-uploaded', selected: boolean): void
   (e: 'delete-uploaded-file', file: FileEntity): void
   
   // 下载模式
@@ -207,7 +208,7 @@ function getStatusColor(status: TransUploadFileItem['status']): string {
 function handlePauseResume(item: TransUploadFileItem) {
   if (item.status === 'uploading') {
     emit('pause', item.id)
-  } else if (item.status === 'paused') {
+  } else if (item.status === 'paused' || item.status === 'error') {
     emit('resume', item.id)
   }
 }
@@ -296,25 +297,32 @@ function isUploadedFileSelected(file: FileEntity): boolean {
             </a-button>
           </template>
           <template v-else>
-            <a-button 
-              v-if="uploadingCount > 0" 
-              size="small" 
+            <a-button
+              v-if="uploadingCount > 0"
+              size="small"
               @click="$emit('batch-pause')"
             >
               <template #icon><IconPause /></template>
               全部暂停
             </a-button>
-            <a-button 
-              v-if="pausedCount > 0" 
-              size="small" 
+            <a-button
+              v-if="pausedCount > 0"
+              size="small"
               @click="$emit('batch-resume')"
             >
               <template #icon><IconPlayArrow /></template>
               全部继续
             </a-button>
-            <a-button 
-              v-if="completedCount > 0" 
-              size="small" 
+            <a-button
+              v-if="files.length > 0"
+              size="small"
+              @click="$emit('toggle-select-all', true)"
+            >
+              全选
+            </a-button>
+            <a-button
+              v-if="completedCount > 0"
+              size="small"
               @click="$emit('clear-completed')"
             >
               清空已完成
@@ -325,15 +333,16 @@ function isUploadedFileSelected(file: FileEntity): boolean {
 
       <!-- 文件列表 -->
       <div v-if="files.length > 0" class="trans-file-table__list">
-        <div 
-          v-for="item in files" 
-          :key="item.id" 
+        <div
+          v-for="item in files"
+          :key="item.id"
           class="upload-item"
           :class="{ 'is-selected': item.selected }"
+          @click="$emit('toggle-select', item.id)"
         >
           <!-- 选择框 -->
-          <div v-if="showBatchActions && item.status !== 'uploading'" class="upload-item__select">
-            <a-checkbox 
+          <div v-if="showBatchActions" class="upload-item__select" @click.stop>
+            <a-checkbox
               :model-value="item.selected"
               @change="$emit('toggle-select', item.id)"
             />
@@ -393,7 +402,7 @@ function isUploadedFileSelected(file: FileEntity): boolean {
           </div>
 
           <!-- 操作按钮 -->
-          <div class="upload-item__actions">
+          <div class="upload-item__actions" @click.stop>
             <a-button
               v-if="item.status === 'uploading'"
               type="text"
@@ -448,9 +457,23 @@ function isUploadedFileSelected(file: FileEntity): boolean {
           共 {{ uploadedFiles.length }} 个文件
         </div>
         <div class="toolbar-actions">
-          <a-button 
-            v-if="selectedUploadedCount > 0" 
-            size="small" 
+          <a-button
+            v-if="selectedUploadedCount === uploadedFiles.length"
+            size="small"
+            @click="$emit('toggle-select-all-uploaded', false)"
+          >
+            取消全选
+          </a-button>
+          <a-button
+            v-else
+            size="small"
+            @click="$emit('toggle-select-all-uploaded', true)"
+          >
+            全选
+          </a-button>
+          <a-button
+            v-if="selectedUploadedCount > 0"
+            size="small"
             status="danger"
             @click="$emit('batch-delete')"
           >
@@ -469,6 +492,12 @@ function isUploadedFileSelected(file: FileEntity): boolean {
           :class="{ 'is-selected': isUploadedFileSelected(file) }"
           @click="$emit('toggle-select-uploaded', file)"
         >
+          <div class="uploaded-item__select" @click.stop>
+            <a-checkbox
+              :model-value="isUploadedFileSelected(file)"
+              @change="$emit('toggle-select-uploaded', file)"
+            />
+          </div>
           <img :src="getFileIcon(file.fileName)" alt="file" class="uploaded-item__icon" />
           <div class="uploaded-item__info">
             <div class="uploaded-item__header">
@@ -512,7 +541,6 @@ function isUploadedFileSelected(file: FileEntity): boolean {
               删除
             </a-button>
           </div>
-          <IconCheck v-if="isUploadedFileSelected(file)" class="uploaded-item__check" />
         </div>
       </div>
 
