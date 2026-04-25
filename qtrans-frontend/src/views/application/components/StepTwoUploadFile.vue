@@ -30,6 +30,7 @@ const {
   initData,
   fileListData,
   uploadFileList,
+  maxConcurrentUploads,
   initialize,
   loadFileList,
   debouncedLoadFileList,
@@ -111,6 +112,15 @@ async function handleAutoSubmit() {
  * 2. 确认后再调用 confirmUpload
  * 3. 成功后 emit 'confirmed'
  */
+function handleMaxConcurrentChange(val: number) {
+  try {
+    localStorage.setItem('qtrans_max_concurrent_uploads', String(val))
+  }
+  catch {
+    // ignore
+  }
+}
+
 function handleManualConfirmSubmit() {
   // 检查是否有哈希不匹配文件
   const mismatched = getHashMismatchedFiles()
@@ -531,6 +541,15 @@ defineExpose({ validateBeforeSubmit })
         >
           上传完毕后自动提交
         </a-checkbox>
+        <span class="concurrent-label">并发数：</span>
+        <a-select
+          v-model="maxConcurrentUploads"
+          size="small"
+          style="width: 70px"
+          @change="handleMaxConcurrentChange"
+        >
+          <a-option v-for="n in 10" :key="n" :value="n">{{ n }}</a-option>
+        </a-select>
         <!-- Task 4: 手动确认提交按钮 -->
         <a-button type="outline" status="success" @click="handleManualConfirmSubmit">
           <template #icon><IconCheck /></template>

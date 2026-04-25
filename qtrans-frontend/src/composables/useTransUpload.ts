@@ -49,8 +49,12 @@ import {
 /** 分片大小 */
 const CHUNK_SIZE = getChunkSize()
 
-/** 最大并发上传数 */
-const MAX_CONCURRENT_UPLOADS = 3
+/** 最大并发上传数 localStorage key */
+const MAX_CONCURRENT_KEY = 'qtrans_max_concurrent_uploads'
+/** 最大并发上传数默认值 */
+const DEFAULT_MAX_CONCURRENT = 3
+/** 最大并发上传数上限 */
+const MAX_CONCURRENT_LIMIT = 10
 
 /** 自动重试最大次数（对齐老代码 FineUploader autoAttempts: 3） */
 const MAX_AUTO_RETRY = 3
@@ -161,6 +165,21 @@ export function useTransUpload() {
 
   /** 当前活跃的上传队列 */
   const activeUploads = ref(0)
+
+  /** 最大并发上传数（支持用户调整并持久化到 localStorage） */
+  const maxConcurrentUploads = ref(DEFAULT_MAX_CONCURRENT)
+  try {
+    const stored = localStorage.getItem(MAX_CONCURRENT_KEY)
+    if (stored) {
+      const n = Number.parseInt(stored, 10)
+      if (!Number.isNaN(n) && n >= 1 && n <= MAX_CONCURRENT_LIMIT) {
+        maxConcurrentUploads.value = n
+      }
+    }
+  }
+  catch {
+    // localStorage 不可用则忽略
+  }
 
   /** Task 7: Session 保活定时器上下文 */
   const sessionKeepAliveParams = ref('')
@@ -631,7 +650,7 @@ export function useTransUpload() {
       onProgress?.(ri)
 
       // 等待并发队列有空位
-      while (activeUploads.value >= MAX_CONCURRENT_UPLOADS) {
+      while (activeUploads.value >= maxConcurrentUploads.value) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
       activeUploads.value++
@@ -1449,6 +1468,7 @@ export function useTransUpload() {
     uploadFileList,
     selectedFiles,
     hasSelection,
+    maxConcurrentUploads,
 
     // 方法
     initialize,

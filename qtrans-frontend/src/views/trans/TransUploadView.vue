@@ -30,6 +30,7 @@ const {
   initData,
   fileListData,
   uploadFileList,
+  maxConcurrentUploads,
   initialize,
   loadFileList,
   debouncedLoadFileList,
@@ -121,6 +122,15 @@ async function handleAutoSubmit() {
  * 2. 再弹出二次确认弹窗
  * 3. 确认后调用 confirmUpload
  */
+function handleMaxConcurrentChange(val: number) {
+  try {
+    localStorage.setItem('qtrans_max_concurrent_uploads', String(val))
+  }
+  catch {
+    // ignore
+  }
+}
+
 function handleManualConfirmSubmit() {
   const mismatched = getHashMismatchedFiles()
   if (mismatched.length > 0) {
@@ -624,6 +634,15 @@ onMounted(() => {
         </div>
         <div class="dropzone-toolbar">
           <a-checkbox v-model="autoSubmitAfterUpload">上传完毕后自动提交</a-checkbox>
+          <span class="concurrent-label">并发数：</span>
+          <a-select
+            v-model="maxConcurrentUploads"
+            size="small"
+            style="width: 70px"
+            @change="handleMaxConcurrentChange"
+          >
+            <a-option v-for="n in 10" :key="n" :value="n">{{ n }}</a-option>
+          </a-select>
           <!-- Task 4: 手动确认提交按钮 -->
           <a-button type="outline" status="success" @click="handleManualConfirmSubmit">
             <template #icon><IconCheck /></template>

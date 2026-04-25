@@ -84,7 +84,13 @@
   .dropzone-toolbar {
     display: flex;
     align-items: center;
+    gap: 12px;
     margin-top: 12px;
+
+    .concurrent-label {
+      font-size: 14px;
+      color: #64748b;
+    }
   }
 }
 
