@@ -65,6 +65,9 @@ const selectedUploadedFiles = ref<FileEntity[]>([])
 const autoSubmitAfterUpload = ref(false)
 const autoSubmitTriggered = ref(false)
 
+// 提交完成状态（自动/手动提交后屏蔽操作）
+const isSubmitted = ref(false)
+
 // BUG6: 取消上传弹框防抖锁
 const cancelUploadModalLock = ref(false)
 
@@ -111,6 +114,8 @@ async function handleAutoSubmit() {
   const ok = await confirmUpload(params.value)
   if (ok) {
     Message.success('自动提交成功')
+    isSubmitted.value = true
+    showSubmittedModal()
   } else {
     autoSubmitTriggered.value = false
   }
@@ -152,8 +157,21 @@ function doConfirmSubmit() {
       const ok = await confirmUpload(params.value)
       if (ok) {
         Message.success('提交成功')
+        isSubmitted.value = true
+        showSubmittedModal()
       }
     },
+  })
+}
+
+function showSubmittedModal() {
+  Modal.info({
+    title: '提交完成',
+    content: '文件已提交，请关闭页面',
+    okText: '我知道了',
+    closable: false,
+    maskClosable: false,
+    escToClose: false,
   })
 }
 
@@ -617,14 +635,23 @@ onMounted(() => {
 
     <!-- 主内容 -->
     <template v-else-if="initData">
+      <!-- 提交后遮罩 -->
+      <div v-if="isSubmitted" class="submitted-overlay">
+        <div class="submitted-mask" />
+        <div class="submitted-content">
+          <p class="submitted-title">文件已提交</p>
+          <p class="submitted-hint">请关闭页面</p>
+        </div>
+      </div>
+
       <!-- 上传区域 -->
-      <section class="trans-upload-dropzone">
+      <section class="trans-upload-dropzone" :class="{ 'is-disabled': isSubmitted }">
         <div class="dropzone-area"
-          :class="{ 'is-dragging': isDragging }"
-          @drop="handleDrop"
-          @dragover.prevent="isDragging = true"
+          :class="{ 'is-dragging': isDragging, 'is-disabled': isSubmitted }"
+          @drop="!isSubmitted && handleDrop($event)"
+          @dragover.prevent="!isSubmitted && (isDragging = true)"
           @dragleave="isDragging = false"
-          @click="fileInputRef?.click()"
+          @click="!isSubmitted && fileInputRef?.click()"
         >
           <IconUpload class="dropzone-icon" />
           <p class="dropzone-text">点击或拖拽文件到此处上传</p>
@@ -633,18 +660,19 @@ onMounted(() => {
           </p>
         </div>
         <div class="dropzone-toolbar">
-          <a-checkbox v-model="autoSubmitAfterUpload">上传完毕后自动提交</a-checkbox>
+          <a-checkbox v-model="autoSubmitAfterUpload" :disabled="isSubmitted">上传完毕后自动提交</a-checkbox>
           <span class="concurrent-label">并发数：</span>
           <a-select
             v-model="maxConcurrentUploads"
             size="small"
             style="width: 70px"
+            :disabled="isSubmitted"
             @change="handleMaxConcurrentChange"
           >
             <a-option v-for="n in 10" :key="n" :value="n">{{ n }}</a-option>
           </a-select>
           <!-- Task 4: 手动确认提交按钮 -->
-          <a-button type="outline" status="success" @click="handleManualConfirmSubmit">
+          <a-button type="outline" status="success" :disabled="isSubmitted" @click="handleManualConfirmSubmit">
             <template #icon><IconCheck /></template>
             确认提交
           </a-button>

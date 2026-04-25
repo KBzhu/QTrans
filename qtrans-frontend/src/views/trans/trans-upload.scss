@@ -61,6 +61,16 @@
       border-color: #165dff;
       background: #f2f7ff;
     }
+
+    &.is-disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &:hover {
+        border-color: #c9cdd4;
+        background: #fff;
+      }
+    }
   }
 
   .dropzone-icon {
@@ -324,6 +334,47 @@
   p {
     margin: 0;
     font-size: 16px;
+  }
+}
+
+.submitted-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  .submitted-mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.7);
+    pointer-events: auto;
+  }
+
+  .submitted-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    pointer-events: auto;
+    background: #fff;
+    padding: 48px 64px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+    .submitted-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1d2129;
+      margin: 0 0 8px;
+    }
+
+    .submitted-hint {
+      font-size: 14px;
+      color: #86909c;
+      margin: 0;
+    }
   }
 }
 

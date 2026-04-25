@@ -250,6 +250,7 @@ onBeforeRouteLeave(() => {
           @update:selected-uploading-uids="(val: string[]) => selectedUploadingUids = val"
           @update:selected-uploaded-uids="(val: string[]) => selectedUploadedUids = val"
           @update:auto-submit-after-upload="(val: boolean) => autoSubmitAfterUpload = val"
+          @confirmed="onClickSubmit"
           @select-upload-files="onSelectUploadFiles"
           @pause-upload-file="pauseUploadFile"
           @resume-upload-file="resumeUploadFile"
