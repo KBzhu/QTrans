@@ -1297,13 +1297,69 @@ export function useTransUpload() {
   /**
    * 批量继续
    * 同时触发所有目标任务的启动，由 uploadFile 内部并发控制管理实际上传并发数
+   * 断点续传恢复的任务（file 为 null）需要重新选择文件，不参与批量继续
    */
   function batchResume(params: string, onProgress?: (item: TransUploadFileItem) => void): void {
     const targets = uploadFileList.value.filter(f => f.status === 'paused' || f.status === 'error')
-    targets.forEach((item) => {
+    const resumable = targets.filter(f => f.file)
+    const needRestore = targets.filter(f => !f.file)
+
+    resumable.forEach((item) => {
       resumeUpload(item.id, params, onProgress)
     })
-    if (targets.length > 0) Message.success(`已继续 ${targets.length} 个文件`)
+
+    if (resumable.length > 0 && needRestore.length > 0) {
+      Message.success(`已继续 ${resumable.length} 个文件，${needRestore.length} 个任务需要重新选择文件才能继续上传`)
+    }
+    else if (resumable.length > 0) {
+      Message.success(`已继续 ${resumable.length} 个文件`)
+    }
+    else if (needRestore.length > 0) {
+      Message.warning(`选中的 ${needRestore.length} 个任务需要重新选择文件才能继续上传`)
+    }
+  }
+
+  /**
+   * 批量断点续传：通过拖拽/选择文件自动匹配恢复任务
+   * 按 fileName + fileSize 匹配，匹配上的自动 resumeUpload，未匹配上的返回继续正常上传
+   */
+  async function batchResumeFromFiles(
+    files: File[],
+    params: string,
+    onProgress?: (item: TransUploadFileItem) => void,
+  ): Promise<File[]> {
+    const restoreTasks = uploadFileList.value.filter(
+      f => !f.file && (f.status === 'paused' || f.status === 'error'),
+    )
+    if (restoreTasks.length === 0) return files
+
+    const remaining: File[] = []
+    let matchedCount = 0
+    let mismatchCount = 0
+
+    for (const file of files) {
+      const task = restoreTasks.find(t => t.fileName === file.name)
+      if (task) {
+        if (task.fileSize !== file.size) {
+          mismatchCount++
+          remaining.push(file)
+          continue
+        }
+        await resumeUpload(task.id, params, onProgress, file)
+        matchedCount++
+      } else {
+        remaining.push(file)
+      }
+    }
+
+    if (matchedCount > 0) {
+      Message.success(`已匹配并继续 ${matchedCount} 个断点续传任务`)
+    }
+    if (mismatchCount > 0) {
+      Message.warning(`${mismatchCount} 个文件大小已变更，无法断点续传，已转为新上传`)
+    }
+
+    return remaining
   }
 
   /**
@@ -1418,6 +1474,7 @@ export function useTransUpload() {
     toggleSelectAll,
     batchPause,
     batchResume,
+    batchResumeFromFiles,
     batchCancel,
     batchDeleteUploaded,
 

@@ -42,6 +42,7 @@ const {
   clearCompleted,
   batchPause,
   batchResume,
+  batchResumeFromFiles,
   batchCancel,
   removeFiles,
   checkStorageSpace,
@@ -253,6 +254,10 @@ async function handleFiles(files: File[]) {
     Message.error('缺少必要参数 params')
     return
   }
+
+  // 先尝试批量断点续传匹配
+  files = await batchResumeFromFiles(files, params.value, updateUploadProgress)
+  if (files.length === 0) return
 
   // 检查文件数量限制（BUG5: 优先使用 maxFileCount，需累加已上传数量）
   const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)

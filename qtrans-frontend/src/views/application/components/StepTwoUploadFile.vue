@@ -42,6 +42,7 @@ const {
   clearCompleted,
   batchPause,
   batchResume,
+  batchResumeFromFiles,
   batchCancel,
   removeFiles,
   checkStorageSpace,
@@ -225,6 +226,10 @@ async function handleDrop(e: DragEvent) {
 }
 
 async function handleFiles(files: File[]) {
+  // 先尝试批量断点续传匹配
+  files = await batchResumeFromFiles(files, props.params, updateUploadProgress)
+  if (files.length === 0) return
+
   const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)
   const uploadedCount = fileListData.value?.fileList.length ?? 0
   if (uploadedCount + uploadFileList.value.length + files.length > maxCount)

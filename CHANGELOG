@@ -30,6 +30,8 @@ The format is based on Keep a Changelog.
   - `resumeUpload` 文件一致性校验阶段：临时将 `status` 设为 `'hashing'`，校验完成后恢复 `'paused'`，避免用户面对静止页面无感知。
 - **maxFileCount 校验累加已上传数量**: `StepTwoUploadFile.vue` 与 `TransUploadView.vue` 的文件数量限制校验由 `uploadFileList.length + files.length` 改为 `uploadedCount + uploadFileList.length + files.length`，避免已上传文件未被计入导致总文件数超过 `maxFileCount`。
 - **批量提示文案改为纯统计模式**: `StepTwoUploadFile.vue` 与 `TransUploadView.vue` 中所有涉及多文件名的提示（重名忽略、上传中重复、队列重复、服务器重复覆盖、未上传完成、校验未通过）均由列举文件名改为仅展示数量统计，避免文件过多时提示撑爆屏幕。
+- **批量继续分类处理断点续传任务**: `useTransUpload.ts` 的 `batchResume` 将选中任务分为`可直接继续`（file 存在）和`需重新选择文件`（file 为 null，断点续传恢复）两类。前者正常调用 `resumeUpload`，后者跳过并统一提示，避免逐个弹窗 `请重新选择文件以继续上传`。
+- **批量拖拽断点续传**: `useTransUpload.ts` 新增 `batchResumeFromFiles`，按 `fileName` + `fileSize` 自动匹配拖拽/选择的文件与断点续传恢复任务（`file === null`）。匹配成功的自动 `resumeUpload`，文件名匹配但大小不匹配的跳过并提示"已转为新上传"，未匹配的文件继续走正常上传流程。`StepTwoUploadFile.vue` / `TransUploadView.vue` 的 `handleFiles` 中优先调用此函数。
 - **已上传列表操作栏合并（BUG1）**: 删除 `StepTwoUploadFile.vue` / `TransUploadView.vue` 中已上传区域的外层 `upload-section__header`，统一使用 `TransFileTable` 的 `trans-file-table__toolbar`。已上传 toolbar 文案改为"已上传共 (x) 个文件"，刷新按钮移至 toolbar 最右侧，消除两层操作栏的功能重复。
 - **文件列表滚动条与搜索（问题3）**: `TransFileTable` 增加 `max-height: 400px` + `overflow-y: auto` 滚动条，避免大量文件撑开页面；toolbar 增加 `a-input-search` 搜索框，支持按文件名实时过滤上传中/已上传列表，空状态根据搜索条件展示不同提示。
 
