@@ -5,9 +5,7 @@
  */
 import {
   IconCheck,
-  IconDelete,
   IconFile,
-  IconRefresh,
   IconUpload,
 } from '@arco-design/web-vue/es/icon'
 import { Message, Modal } from '@arco-design/web-vue'
@@ -661,25 +659,6 @@ onMounted(() => {
 
       <!-- 已上传文件列表 -->
       <section v-if="fileListData && fileListData.fileList.length > 0" class="trans-uploaded-section">
-        <header class="uploaded-header">
-          <h3>已上传文件 ({{ fileListData.totalFileCount }})</h3>
-          <div class="uploaded-actions">
-            <a-button size="small" @click="handleRefresh">
-              <template #icon><IconRefresh /></template>
-              刷新
-            </a-button>
-            <a-button
-              v-if="selectedUploadedFiles.length > 0"
-              size="small"
-              status="danger"
-              @click="handleDeleteSelectedUploaded"
-            >
-              <template #icon><IconDelete /></template>
-              删除选中 ({{ selectedUploadedFiles.length }})
-            </a-button>
-          </div>
-        </header>
-
         <TransFileTable
           :files="[]"
           mode="uploaded"
@@ -691,6 +670,7 @@ onMounted(() => {
           @toggle-select-all-uploaded="handleToggleSelectAllUploaded"
           @batch-delete="handleDeleteSelectedUploaded"
           @delete-uploaded-file="handleDeleteUploadedFile"
+          @refresh="handleRefresh"
         />
       </section>
 

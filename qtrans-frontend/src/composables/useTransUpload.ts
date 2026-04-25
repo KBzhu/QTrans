@@ -602,12 +602,27 @@ export function useTransUpload() {
       // 断点续传场景：skip 的分片没有进入 uploadSingleChunk，需要先把它们的数据喂给 fileHasher
       // 否则最终 fileHasher.digest() 只包含 reupload 分片的 hash，导致全文件 hash 错误
       if (fileHasher && skip.length > 0) {
+        // BUG4: 显示 hash 恢复状态提示
+        ri.status = 'hashing'
+        ri.hashState = {
+          clientHash: '',
+          serverHash: '',
+          status: 'calculating',
+          elapsedTime: ri.hashState?.elapsedTime,
+          timeLeft: ri.hashState?.timeLeft,
+        }
+        onProgress?.(ri)
+
         console.log(`[断点续传] 恢复已上传 ${skip.length} 个分片的 hash 累积...`)
         for (const chunkIndex of skip.sort((a, b) => a - b)) {
           const { chunkBuffer } = await readChunkBuffer(file, chunkIndex, CHUNK_SIZE)
           await fileHasher.update(chunkBuffer, chunkIndex)
         }
         console.log(`[断点续传] 已恢复 ${skip.length} 个分片的 hash 累积`)
+
+        // 恢复 uploading 状态继续上传
+        ri.status = 'uploading'
+        onProgress?.(ri)
       }
 
       let uploadedCount = skip.length
@@ -1113,8 +1128,22 @@ export function useTransUpload() {
       // 如有保存的 clientHash，校验文件内容是否一致
       const record = await getUploadRecord(fileId)
       if (record?.clientHash) {
+        // BUG4: 显示 hash 校验状态提示
+        item.status = 'hashing'
+        item.hashState = {
+          clientHash: '',
+          serverHash: '',
+          status: 'calculating',
+        }
+        onProgress?.(item)
+
         console.log('[断点续传] 校验文件 hash 一致性...')
         const restoredHash = await calculateFileHashInWorker(restoredFile)
+
+        // 恢复 paused 状态
+        item.status = 'paused'
+        item.hashState = undefined
+        onProgress?.(item)
 
         if (restoredHash.toUpperCase() !== record.clientHash.toUpperCase()) {
           Message.error('文件内容已变更，无法断点续传，请删除后重新上传')

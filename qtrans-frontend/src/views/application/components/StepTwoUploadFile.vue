@@ -1,6 +1,6 @@
 <!-- StepTwoUploadFile.vue -->
 <script setup lang="ts">
-import { IconCheck, IconDelete, IconFile, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
+import { IconCheck, IconFile, IconUpload } from '@arco-design/web-vue/es/icon'
 import { Message, Modal } from '@arco-design/web-vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useIntervalFn, watchDeep } from '@vueuse/core'
@@ -588,25 +588,6 @@ defineExpose({ validateBeforeSubmit })
 
       <!-- 已上传文件列表 -->
       <section v-if="fileListData?.fileList.length" class="upload-section">
-        <div class="upload-section__header">
-          <h3 class="upload-section__title">已上传文件 ({{ fileListData.totalFileCount }})</h3>
-          <div class="upload-section__toolbar">
-            <a-button type="text" size="small" status="success" @click="handleRefresh">
-              <template #icon><IconRefresh /></template>
-              刷新
-            </a-button>
-            <a-button
-              v-if="selectedUploadedFiles.length > 0"
-              type="text"
-              size="small"
-              status="danger"
-              @click="handleDeleteSelectedUploaded"
-            >
-              <template #icon><IconDelete /></template>
-              删除选中 ({{ selectedUploadedFiles.length }})
-            </a-button>
-          </div>
-        </div>
         <TransFileTable
           :files="[]"
           mode="uploaded"
@@ -618,6 +599,7 @@ defineExpose({ validateBeforeSubmit })
           @toggle-select-all-uploaded="handleToggleSelectAllUploaded"
           @batch-delete="handleDeleteSelectedUploaded"
           @delete-uploaded-file="handleDeleteUploadedFile"
+          @refresh="handleRefresh"
         />
       </section>
     </template>

@@ -24,6 +24,12 @@ The format is based on Keep a Changelog.
 - **retryFileHasher 内存泄漏修复**: `useTransUpload.ts` 重试路径创建的流式 hasher 变量提升至 try 块外层声明，finally 中同步 dispose，修复每次自动重试泄漏 SHA256 实例的问题。
 - **item.file 空安全守卫**: `pauseUpload`/`cancelUpload`/`batchDeleteUploaded` 三处添加 `item.file` null 检查，防止断点续传恢复任务（file=null）触发 `TypeError: Cannot read properties of null (reading 'name')`。
 - **formatFileSize/formatSpeed DRY 违反消除**: 将两函数统一收敛到 `transWebService.ts` 导出并加入 `transApi` 聚合对象，`useTransUpload.ts` 删除本地重复定义改为导入复用。
+- **IndexedDB 重复记录修复（BUG1/BUG2/BUG3）**: `upload-db.ts` 中 `createUploadRecord` 改为先查后更新/添加，避免同一 `fileUUID` 产生多条记录；`updateUploadStatus`/`updateUploadRecord`/`deleteUploadRecord` 改为操作所有匹配记录。根因是 `uploadFile` 每次调用均执行 `createUploadRecord`，resume 场景下重复插入导致上传完成后仅删除一条残留记录，刷新后 `getPendingUploads` 将其恢复为"正在上传"。
+- **断点续传 hash 阶段状态提示（BUG4）**: `useTransUpload.ts` 中两处耗时 hash 操作增加 UI 状态反馈：
+  - `uploadFile` 断点续传 hash 累积阶段：临时将 `status` 设为 `'hashing'`、`hashState.status` 设为 `'calculating'`，恢复后切回 `'uploading'`。
+  - `resumeUpload` 文件一致性校验阶段：临时将 `status` 设为 `'hashing'`，校验完成后恢复 `'paused'`，避免用户面对静止页面无感知。
+- **已上传列表操作栏合并（BUG1）**: 删除 `StepTwoUploadFile.vue` / `TransUploadView.vue` 中已上传区域的外层 `upload-section__header`，统一使用 `TransFileTable` 的 `trans-file-table__toolbar`。已上传 toolbar 文案改为"已上传共 (x) 个文件"，刷新按钮移至 toolbar 最右侧，消除两层操作栏的功能重复。
+- **文件列表滚动条与搜索（问题3）**: `TransFileTable` 增加 `max-height: 400px` + `overflow-y: auto` 滚动条，避免大量文件撑开页面；toolbar 增加 `a-input-search` 搜索框，支持按文件名实时过滤上传中/已上传列表，空状态根据搜索条件展示不同提示。
 
 ### Added
 - 新增 `src/composables/useUploadHashWorker.ts`，作为兼容层衔接新的 `useHashWorker` 双 Worker 架构。

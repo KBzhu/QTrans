@@ -13,7 +13,7 @@ import {
   IconFolder,
   IconLeft,
 } from '@arco-design/web-vue/es/icon'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { TransUploadFileItem } from '@/composables/useTransUpload'
 import type { DirectoryEntity, FileEntity } from '@/api/transWebService'
 import { formatFileSize, formatTransferSpeed } from '@/utils/format'
@@ -105,7 +105,8 @@ const emit = defineEmits<{
   (e: 'toggle-select-uploaded', file: FileEntity): void
   (e: 'toggle-select-all-uploaded', selected: boolean): void
   (e: 'delete-uploaded-file', file: FileEntity): void
-  
+  (e: 'refresh'): void
+
   // 下载模式
   (e: 'enter-directory', dir: DirectoryEntity): void
   (e: 'go-back'): void
@@ -117,19 +118,41 @@ const emit = defineEmits<{
   (e: 'toggle-select-all-download'): void
 }>()
 
+// ============ State ============
+
+const searchKeyword = ref('')
+
 // ============ Computed ============
 
 const isUploadMode = computed(() => props.mode === 'upload')
 const isDownloadMode = computed(() => props.mode === 'download')
 
-const selectedCount = computed(() => 
+/** 上传列表过滤后的文件 */
+const filteredFiles = computed(() => {
+  if (!searchKeyword.value) return props.files
+  const kw = searchKeyword.value.toLowerCase()
+  return props.files.filter((f: TransUploadFileItem) =>
+    (f.file?.name || f.fileName || '').toLowerCase().includes(kw)
+  )
+})
+
+/** 已上传列表过滤后的文件 */
+const filteredUploadedFiles = computed(() => {
+  if (!searchKeyword.value) return props.uploadedFiles
+  const kw = searchKeyword.value.toLowerCase()
+  return props.uploadedFiles.filter((f: FileEntity) =>
+    f.fileName.toLowerCase().includes(kw)
+  )
+})
+
+const selectedCount = computed(() =>
   props.files.filter((f: TransUploadFileItem) => f.selected).length
 )
 
 const hasSelection = computed(() => selectedCount.value > 0)
 
-const completedCount = computed(() =>
-  props.files.filter((f: TransUploadFileItem) => f.status === 'completed').length
+const pendingCount = computed(() =>
+  props.files.filter((f: TransUploadFileItem) => f.status === 'pending').length
 )
 
 const uploadingCount = computed(() =>
@@ -138,6 +161,10 @@ const uploadingCount = computed(() =>
 
 const pausedCount = computed(() =>
   props.files.filter((f: TransUploadFileItem) => f.status === 'paused').length
+)
+
+const completedCount = computed(() =>
+  props.files.filter((f: TransUploadFileItem) => f.status === 'completed').length
 )
 
 const selectedUploadedCount = computed(() =>
@@ -259,8 +286,17 @@ function isUploadedFileSelected(file: FileEntity): boolean {
     <template v-if="isUploadMode">
       <!-- 批量操作工具栏 -->
       <div v-if="showBatchActions && files.length > 0" class="trans-file-table__toolbar">
-        <div class="toolbar-info">
-          共 {{ files.length }} 个文件，已完成 {{ completedCount }} 个
+        <div class="toolbar-left">
+          <div class="toolbar-info">
+            共 {{ files.length }} 个文件（待上传 {{ pendingCount }} | 上传中 {{ uploadingCount }} | 已完成 {{ completedCount }}）
+          </div>
+          <a-input-search
+            v-model="searchKeyword"
+            size="small"
+            placeholder="搜索文件名"
+            allow-clear
+            style="width: 180px"
+          />
         </div>
         <div class="toolbar-actions">
           <template v-if="hasSelection">
@@ -332,9 +368,9 @@ function isUploadedFileSelected(file: FileEntity): boolean {
       </div>
 
       <!-- 文件列表 -->
-      <div v-if="files.length > 0" class="trans-file-table__list">
+      <div v-if="filteredFiles.length > 0" class="trans-file-table__list">
         <div
-          v-for="item in files"
+          v-for="item in filteredFiles"
           :key="item.id"
           class="upload-item"
           :class="{ 'is-selected': item.selected }"
@@ -445,7 +481,7 @@ function isUploadedFileSelected(file: FileEntity): boolean {
 
       <!-- 空状态 -->
       <div v-else class="trans-file-table__empty">
-        <span>暂无上传文件</span>
+        <span>{{ searchKeyword ? '未找到匹配的文件' : '暂无上传文件' }}</span>
       </div>
     </template>
 
@@ -453,8 +489,17 @@ function isUploadedFileSelected(file: FileEntity): boolean {
     <template v-else-if="mode === 'uploaded'">
       <!-- 批量操作工具栏 -->
       <div v-if="showBatchActions && uploadedFiles.length > 0" class="trans-file-table__toolbar">
-        <div class="toolbar-info">
-          共 {{ uploadedFiles.length }} 个文件
+        <div class="toolbar-left">
+          <div class="toolbar-info">
+            已上传共 {{ uploadedFiles.length }} 个文件
+          </div>
+          <a-input-search
+            v-model="searchKeyword"
+            size="small"
+            placeholder="搜索文件名"
+            allow-clear
+            style="width: 180px"
+          />
         </div>
         <div class="toolbar-actions">
           <a-button
@@ -480,13 +525,17 @@ function isUploadedFileSelected(file: FileEntity): boolean {
             <template #icon><IconDelete /></template>
             删除选中 ({{ selectedUploadedCount }})
           </a-button>
+          <a-button size="small" @click="$emit('refresh')">
+            <template #icon><IconRefresh /></template>
+            刷新
+          </a-button>
         </div>
       </div>
 
       <!-- 文件列表 -->
-      <div v-if="uploadedFiles.length > 0" class="trans-file-table__list">
+      <div v-if="filteredUploadedFiles.length > 0" class="trans-file-table__list">
         <div
-          v-for="file in uploadedFiles"
+          v-for="file in filteredUploadedFiles"
           :key="file.fileId"
           class="uploaded-item"
           :class="{ 'is-selected': isUploadedFileSelected(file) }"

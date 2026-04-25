@@ -118,10 +118,18 @@ export async function deleteChunksByFileUUID(fileUUID: string): Promise<void> {
 // ============ 上传记录操作 ============
 
 /**
- * 创建上传记录
+ * 创建上传记录（同一 fileUUID 已存在时更新而非插入，避免重复记录）
  */
 export async function createUploadRecord(record: Omit<UploadRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
   const now = new Date()
+  const existing = await getUploadRecord(record.fileUUID)
+  if (existing?.id) {
+    await db.uploads.update(existing.id, {
+      ...record,
+      updatedAt: now,
+    })
+    return existing.id
+  }
   return db.uploads.add({
     ...record,
     createdAt: now,
@@ -137,47 +145,48 @@ export async function getUploadRecord(fileUUID: string): Promise<UploadRecord | 
 }
 
 /**
- * 更新上传记录状态
+ * 更新上传记录状态（更新所有匹配 fileUUID 的记录，防止重复记录残留）
  */
 export async function updateUploadStatus(
   fileUUID: string,
   status: UploadRecord['status'],
   extra?: Partial<UploadRecord>
 ): Promise<void> {
-  const record = await getUploadRecord(fileUUID)
-  if (record?.id) {
-    await db.uploads.update(record.id, {
-      status,
-      updatedAt: new Date(),
-      ...extra
-    })
+  const records = await db.uploads.where('fileUUID').equals(fileUUID).toArray()
+  for (const record of records) {
+    if (record.id) {
+      await db.uploads.update(record.id, {
+        status,
+        updatedAt: new Date(),
+        ...extra
+      })
+    }
   }
 }
 
 /**
- * 更新上传记录（按 fileUUID）
+ * 更新上传记录（按 fileUUID，更新所有匹配记录）
  */
 export async function updateUploadRecord(
   fileUUID: string,
   changes: Partial<UploadRecord>,
 ): Promise<void> {
-  const record = await getUploadRecord(fileUUID)
-  if (record?.id) {
-    await db.uploads.update(record.id, {
-      updatedAt: new Date(),
-      ...changes,
-    })
+  const records = await db.uploads.where('fileUUID').equals(fileUUID).toArray()
+  for (const record of records) {
+    if (record.id) {
+      await db.uploads.update(record.id, {
+        updatedAt: new Date(),
+        ...changes,
+      })
+    }
   }
 }
 
 /**
- * 删除上传记录
+ * 删除上传记录（删除所有匹配 fileUUID 的记录，防止重复记录残留）
  */
 export async function deleteUploadRecord(fileUUID: string): Promise<void> {
-  const record = await getUploadRecord(fileUUID)
-  if (record?.id) {
-    await db.uploads.delete(record.id)
-  }
+  await db.uploads.where('fileUUID').equals(fileUUID).delete()
 }
 
 /**
