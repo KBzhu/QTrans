@@ -226,7 +226,8 @@ async function handleDrop(e: DragEvent) {
 
 async function handleFiles(files: File[]) {
   const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)
-  if (uploadFileList.value.length + files.length > maxCount)
+  const uploadedCount = fileListData.value?.fileList.length ?? 0
+  if (uploadedCount + uploadFileList.value.length + files.length > maxCount)
     return Message.error(`最多只能上传 ${maxCount} 个文件`)
   const maxSize = (initData.value?.applicationSize || 1024) * 1024 * 1024
   for (const file of files) {
@@ -263,28 +264,24 @@ async function handleFiles(files: File[]) {
   } = detectUploadNameConflicts(files, uploadedFiles, uploadFileList.value, '')
 
   if (selectionDuplicates.length > 0) {
-    const names = Array.from(new Set(selectionDuplicates.map((file: File) => file.name))).join('、')
-    Message.warning(`本次选择中存在重名文件，已自动忽略后续重复项：${names}`)
+    Message.warning(`本次选择的 ${selectionDuplicates.length} 个文件存在重名，已自动忽略重复项。`)
   }
 
   if (queueUploadingDuplicates.length > 0) {
-    const names = Array.from(new Set(queueUploadingDuplicates.map((file: File) => file.name))).join('、')
-    Message.error(`以下文件正在上传中，请勿重复添加：${names}`)
+    Message.error(`您选择的 ${queueUploadingDuplicates.length} 个文件正在上传中，请勿重复添加。`)
   }
 
   if (queueDuplicates.length > 0) {
-    const names = Array.from(new Set(queueDuplicates.map((file: File) => file.name))).join('、')
-    Message.error(`以下文件已在上传队列中，请勿重复添加：${names}`)
+    Message.error(`您选择的 ${queueDuplicates.length} 个文件已在上传队列中，请勿重复添加。`)
   }
 
   let filesToUpload = [...readyFiles]
 
   if (serverDuplicates.length > 0) {
-    const names = Array.from(new Set(serverDuplicates.map((file: File) => file.name))).join('、')
     const confirmed = await new Promise<boolean>((resolve) => {
       Modal.confirm({
         title: '文件已存在',
-        content: `${names} 在服务器上已存在同名文件，是否覆盖上传？`,
+        content: `您选择的 ${serverDuplicates.length} 个文件在服务器上已存在，是否覆盖上传？`,
         okText: '覆盖上传',
         cancelText: '取消',
         onOk: () => resolve(true),
@@ -476,8 +473,7 @@ function validateBeforeSubmit(): boolean {
     f.status === 'pending' || f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
   )
   if (activeFiles.length > 0) {
-    const names = activeFiles.map((f: TransUploadFileItem) => f.file?.name || f.fileName).join('、')
-    Message.error(`以下文件尚未上传完成：${names}`)
+    Message.error(`当前有 ${activeFiles.length} 个文件尚未上传完成，请等待上传结束后再提交。`)
     return false
   }
 
@@ -486,8 +482,7 @@ function validateBeforeSubmit(): boolean {
     (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',
   )
   if (mismatchedUploading.length > 0) {
-    const names = mismatchedUploading.map((f: TransUploadFileItem) => f.file?.name || f.fileName).join('、')
-    Message.error(`以下文件校验未通过，请重新上传：${names}`)
+    Message.error(`上传队列中有 ${mismatchedUploading.length} 个文件校验未通过，请删除后重新上传。`)
     return false
   }
 
@@ -505,8 +500,7 @@ function validateBeforeSubmit(): boolean {
     return false
   })
   if (mismatchedUploaded.length > 0) {
-    const names = mismatchedUploaded.map((f: FileEntity) => f.fileName).join('、')
-    Message.error(`以下文件校验未通过，请删除后重新上传：${names}`)
+    Message.error(`已上传文件中有 ${mismatchedUploaded.length} 个文件校验未通过，请删除后重新上传。`)
     return false
   }
 

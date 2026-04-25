@@ -171,6 +171,10 @@ const selectedUploadedCount = computed(() =>
   props.selectedUploadedFiles.length
 )
 
+const totalUploadedSize = computed(() =>
+  props.uploadedFiles.reduce((sum: number, f: FileEntity) => sum + f.fileSize, 0)
+)
+
 const selectedDownloadCount = computed(() =>
   props.selectedDownloadItems.length
 )
@@ -491,7 +495,7 @@ function isUploadedFileSelected(file: FileEntity): boolean {
       <div v-if="showBatchActions && uploadedFiles.length > 0" class="trans-file-table__toolbar">
         <div class="toolbar-left">
           <div class="toolbar-info">
-            已上传共 {{ uploadedFiles.length }} 个文件
+            已上传共 {{ uploadedFiles.length }} 个文件（{{ formatFileSize(totalUploadedSize) }}）
           </div>
           <a-input-search
             v-model="searchKeyword"

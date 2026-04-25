@@ -1203,8 +1203,9 @@ export function useTransUpload() {
   /**
    * 取消上传（删除文件和记录）
    * P0-2: 对齐老代码 onCancel，通知后端清理临时文件
+   * @param silent 是否静默（批量操作时由上层统一提示）
    */
-  async function cancelUpload(fileId: string, params?: string): Promise<void> {
+  async function cancelUpload(fileId: string, params?: string, silent = false): Promise<void> {
     // 中止上传
     const controller = abortControllers.get(fileId)
     if (controller) {
@@ -1237,7 +1238,9 @@ export function useTransUpload() {
       uploadFileList.value.splice(index, 1)
     }
 
-    Message.success('已取消上传')
+    if (!silent) {
+      Message.success('已取消上传')
+    }
   }
 
   /**
@@ -1309,7 +1312,7 @@ export function useTransUpload() {
   async function batchCancel(params?: string): Promise<void> {
     const targets = uploadFileList.value.filter(f => f.selected && f.status !== 'uploading')
     for (const item of targets) {
-      await cancelUpload(item.id, params)
+      await cancelUpload(item.id, params, true)
     }
     if (targets.length > 0) Message.success(`已取消 ${targets.length} 个文件`)
   }

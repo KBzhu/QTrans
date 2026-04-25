@@ -254,9 +254,10 @@ async function handleFiles(files: File[]) {
     return
   }
 
-  // 检查文件数量限制（BUG5: 优先使用 maxFileCount）
+  // 检查文件数量限制（BUG5: 优先使用 maxFileCount，需累加已上传数量）
   const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)
-  if (uploadFileList.value.length + files.length > maxCount) {
+  const uploadedCount = fileListData.value?.fileList.length ?? 0
+  if (uploadedCount + uploadFileList.value.length + files.length > maxCount) {
     Message.error(`最多只能上传 ${maxCount} 个文件`)
     return
   }
@@ -298,28 +299,24 @@ async function handleFiles(files: File[]) {
   } = detectUploadNameConflicts(files, uploadedFiles, uploadFileList.value, '')
 
   if (selectionDuplicates.length > 0) {
-    const names = Array.from(new Set(selectionDuplicates.map(file => file.name))).join('、')
-    Message.warning(`本次选择中存在重名文件，已自动忽略后续重复项：${names}`)
+    Message.warning(`本次选择的 ${selectionDuplicates.length} 个文件存在重名，已自动忽略重复项。`)
   }
 
   if (queueUploadingDuplicates.length > 0) {
-    const names = Array.from(new Set(queueUploadingDuplicates.map(file => file.name))).join('、')
-    Message.error(`以下文件正在上传中，请勿重复添加：${names}`)
+    Message.error(`您选择的 ${queueUploadingDuplicates.length} 个文件正在上传中，请勿重复添加。`)
   }
 
   if (queueDuplicates.length > 0) {
-    const names = Array.from(new Set(queueDuplicates.map(file => file.name))).join('、')
-    Message.error(`以下文件已在上传队列中，请勿重复添加：${names}`)
+    Message.error(`您选择的 ${queueDuplicates.length} 个文件已在上传队列中，请勿重复添加。`)
   }
 
   let filesToUpload = [...readyFiles]
 
   if (serverDuplicates.length > 0) {
-    const names = Array.from(new Set(serverDuplicates.map(file => file.name))).join('、')
     const confirmed = await new Promise<boolean>((resolve) => {
       Modal.confirm({
         title: '文件已存在',
-        content: `${names} 在服务器上已存在同名文件，是否覆盖上传？`,
+        content: `您选择的 ${serverDuplicates.length} 个文件在服务器上已存在，是否覆盖上传？`,
         okText: '覆盖上传',
         cancelText: '取消',
         onOk: () => resolve(true),
