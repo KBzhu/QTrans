@@ -1,6 +1,6 @@
 <!-- StepTwoUploadFile.vue -->
 <script setup lang="ts">
-import { IconCheck, IconDelete, IconFile, IconFolder, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
+import { IconCheck, IconDelete, IconFile, IconRefresh, IconUpload } from '@arco-design/web-vue/es/icon'
 import { Message, Modal } from '@arco-design/web-vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useIntervalFn, watchDeep } from '@vueuse/core'
@@ -45,6 +45,7 @@ const {
   batchCancel,
   removeFiles,
   checkStorageSpace,
+  toggleSelectAll,
 } = useTransUpload()
 
 const isDragging = ref(false)
@@ -64,11 +65,6 @@ const {
   resume: resumeFileListPolling,
   isActive: isFileListPollingActive,
 } = useIntervalFn(async () => {
-  const hasActiveUpload = uploadFileList.value.some(
-    (f: TransUploadFileItem) => f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
-  )
-  if (hasActiveUpload) return
-
   await debouncedLoadFileList('', props.params)
   console.log('[文件列表轮询] 已刷新文件列表')
 }, FILE_LIST_POLL_INTERVAL, { immediate: false })
@@ -403,9 +399,13 @@ function handleToggleSelect(id: string) {
   if (item) item.selected = !item.selected
 }
 
-function handleBatchPause() { batchPause(props.params) }
+function handleToggleSelectAll(selected: boolean) {
+  toggleSelectAll(selected)
+}
+
+async function handleBatchPause() { await batchPause(props.params) }
 function handleBatchResume() { batchResume(props.params, updateUploadProgress) }
-function handleBatchDelete() { batchCancel(props.params) }
+async function handleBatchDelete() { await batchCancel(props.params) }
 
 // Task 6: 刷新按钮防抖（500ms 避免频繁请求）
 async function handleRefresh() {
@@ -476,7 +476,7 @@ function validateBeforeSubmit(): boolean {
     f.status === 'pending' || f.status === 'uploading' || f.status === 'hashing' || f.status === 'verifying',
   )
   if (activeFiles.length > 0) {
-    const names = activeFiles.map((f: TransUploadFileItem) => f.file.name).join('、')
+    const names = activeFiles.map((f: TransUploadFileItem) => f.file?.name || f.fileName).join('、')
     Message.error(`以下文件尚未上传完成：${names}`)
     return false
   }
@@ -486,7 +486,7 @@ function validateBeforeSubmit(): boolean {
     (f: TransUploadFileItem) => f.hashState?.status === 'mismatched',
   )
   if (mismatchedUploading.length > 0) {
-    const names = mismatchedUploading.map((f: TransUploadFileItem) => f.file.name).join('、')
+    const names = mismatchedUploading.map((f: TransUploadFileItem) => f.file?.name || f.fileName).join('、')
     Message.error(`以下文件校验未通过，请重新上传：${names}`)
     return false
   }
@@ -578,6 +578,7 @@ defineExpose({ validateBeforeSubmit })
           @delete="handleDelete"
           @retry="handleRetry"
           @toggle-select="handleToggleSelect"
+          @toggle-select-all="handleToggleSelectAll"
           @batch-pause="handleBatchPause"
           @batch-resume="handleBatchResume"
           @batch-delete="handleBatchDelete"
@@ -638,7 +639,7 @@ defineExpose({ validateBeforeSubmit })
         <ul class="hash-mismatch-modal__list">
           <li v-for="file in mismatchedFiles" :key="file.id" class="hash-mismatch-modal__item">
             <IconFile />
-            <span class="hash-mismatch-modal__name">{{ file.file.name }}</span>
+            <span class="hash-mismatch-modal__name">{{ file.file?.name || file.fileName }}</span>
             <span class="hash-mismatch-modal__hash">
               客户端: {{ file.hashState?.clientHash?.substring(0, 16) }}...
             </span>

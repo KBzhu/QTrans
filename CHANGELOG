@@ -7,6 +7,19 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Fixed
+- **StepTwoUploadFile.vue & TransUploadView.vue 交叉审查修复**:
+  - 问题1: 上传中列表「全选」按钮点击无效 —— `TransFileTable` 缺少 `@toggle-select-all` 事件监听，补充 `handleToggleSelectAll` 方法并绑定事件。
+  - 问题2/3: `validateBeforeSubmit` 与哈希不匹配弹窗中 `f.file.name` 可能 NPE —— 断点续传恢复任务 `file` 为 `null`，统一改为 `f.file?.name || f.fileName`。
+  - 问题4: `handleBatchPause` / `handleBatchDelete` 未 `await` async 函数，内部异常会成为未处理的 Promise rejection，补全 `async/await`。
+  - 问题5: 移除未使用的 `IconFolder` 导入。
+  - 问题6: 文件列表轮询移除 `hasActiveUpload` 跳过逻辑，上传期间也同步刷新已上传列表。
+- **TransUploadView.vue BUG 同步修复**: 将 StepTwoUploadFile.vue 中已修复的 7 个 BUG 同步到外网独立上传页 `TransUploadView.vue`：
+  - BUG1: `handleToggleSelectUploaded` 改用 `findIndex(f => f.fileId === file.fileId)` 替代 `indexOf` 对象引用比较，修复选中状态错乱。
+  - BUG2/BUG2-1: 批量暂停/继续按钮通过 `useTransUpload` 内部逻辑修复；视图层补充 `toggleSelectAll` 导入与 `handleToggleSelectAll` 事件处理。
+  - BUG3/BUG4/BUG5: `handleFiles` 中增加 `queueUploadingDuplicates` 提示、优先使用 `maxFileCount` 做数量校验。
+  - BUG6: `handleDelete`/`handleDeleteSelectedUploaded`/`handleDeleteUploadedFile` 三处增加 `cancelUploadModalLock` 300ms 防抖锁，避免批量操作时弹框过多。
+  - BUG7: 已上传文件刷新后重复出现的问题在 `useTransUpload.ts` 中修复（上传完成后清理 IndexedDB），视图层无需改动。
+  - 交互体验统一: 已上传列表开启 `:show-batch-actions="true"`、增加 `@toggle-select-all-uploaded` 事件与 `handleToggleSelectAllUploaded` 方法；上传中列表增加 `@toggle-select-all` 事件。
 - **CHUNK_SIZE 数据源统一修复**: `transWebService.ts` 的 `getChunkSize()` 作为唯一分片大小数据源（支持 `VITE_UPLOAD_CHUNK_SIZE` 环境变量覆盖，预留接口动态获取扩展点），移除 `constants.ts` 中的重复定义，`useFileChunk.ts` 改为调用 `getChunkSize()` 而非从 constants 导入，消除 4MB/5MB 不一致导致的分片索引越界与断点续传状态错乱。
 - **retryFileHasher 内存泄漏修复**: `useTransUpload.ts` 重试路径创建的流式 hasher 变量提升至 try 块外层声明，finally 中同步 dispose，修复每次自动重试泄漏 SHA256 实例的问题。
 - **item.file 空安全守卫**: `pauseUpload`/`cancelUpload`/`batchDeleteUploaded` 三处添加 `item.file` null 检查，防止断点续传恢复任务（file=null）触发 `TypeError: Cannot read properties of null (reading 'name')`。
