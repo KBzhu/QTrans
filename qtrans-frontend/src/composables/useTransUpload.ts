@@ -206,7 +206,6 @@ export function useTransUpload() {
   const {
     pause: pauseSessionKeepAliveTimer,
     resume: resumeSessionKeepAliveTimer,
-    isActive: isSessionKeepAliveActive,
   } = useIntervalFn(async () => {
     if (!sessionKeepAliveParams.value) return
 
@@ -222,7 +221,6 @@ export function useTransUpload() {
   const {
     pause: pauseTransTokenRefreshTimer,
     resume: resumeTransTokenRefreshTimer,
-    isActive: isTransTokenRefreshActive,
   } = useIntervalFn(async () => {
     if (!transTokenRefreshParams.value) return
 
@@ -289,8 +287,6 @@ export function useTransUpload() {
    */
   function stopSessionKeepAlive() {
     sessionKeepAliveParams.value = ''
-    if (!isSessionKeepAliveActive.value) return
-
     pauseSessionKeepAliveTimer()
     console.log('[Session保活] 定时器已停止')
   }
@@ -316,8 +312,6 @@ export function useTransUpload() {
    */
   function stopTransTokenRefresh() {
     transTokenRefreshParams.value = ''
-    if (!isTransTokenRefreshActive.value) return
-
     pauseTransTokenRefreshTimer()
     console.log('[Token刷新] 定时器已停止')
   }

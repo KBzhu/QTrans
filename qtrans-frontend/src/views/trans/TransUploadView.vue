@@ -48,6 +48,8 @@ const {
   removeFiles,
   checkStorageSpace,
   toggleSelectAll,
+  stopSessionKeepAlive,
+  stopTransTokenRefresh,
 } = useTransUpload()
 
 // 获取路由参数
@@ -229,6 +231,8 @@ async function initPage() {
 
 onUnmounted(() => {
   stopFileListPolling()
+  stopSessionKeepAlive()
+  stopTransTokenRefresh()
 })
 
 /**

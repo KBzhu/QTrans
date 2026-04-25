@@ -48,6 +48,8 @@ const {
   removeFiles,
   checkStorageSpace,
   toggleSelectAll,
+  stopSessionKeepAlive,
+  stopTransTokenRefresh,
 } = useTransUpload()
 
 const isDragging = ref(false)
@@ -97,13 +99,9 @@ watchDeep(uploadFileList, (list: TransUploadFileItem[]) => {
 })
 
 async function handleAutoSubmit() {
-  const ok = await confirmUpload(props.params)
-  if (ok) {
-    Message.success('自动提交成功')
-    emit('confirmed')
-  } else {
-    autoSubmitTriggered.value = false
-  }
+  // 自动提交只触发 confirmed 事件，由父组件统一调用 confirmUpload / handleSubmitReal
+  // 避免子组件和父组件重复提交
+  emit('confirmed')
 }
 
 /**
@@ -198,6 +196,8 @@ async function initPage() {
 
 onUnmounted(() => {
   stopFileListPolling()
+  stopSessionKeepAlive()
+  stopTransTokenRefresh()
 })
 
 /**

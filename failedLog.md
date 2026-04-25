@@ -51,3 +51,11 @@
 - 将 `[...new Set(...)]` 替换为 `Array.from(new Set(...))` 以兼容当前 tsconfig target。
 - 为多个 `.map`/`.filter` 回调参数补充显式类型注解，消除 `implicit any` 报错。
 - **文件**：`src/views/application/components/StepTwoUploadFile.vue`
+
+---
+
+### 2026-04-25 useIntervalFn 定时器卸载后仍轮询
+
+- **根因**：`stopSessionKeepAlive` / `stopTransTokenRefresh` 中通过 `if (!isActive.value) return` 守卫判断后才调用 `pause()`。组件卸载时 `useIntervalFn` 内部状态与实际 interval 可能不同步，`isActive` 已为 `false`，导致 `pause()` 被跳过，轮询请求继续发送。
+- **修复**：移除两个停止函数中的 `isActive` 守卫，确保 `pause()` 一定被调用；同时移除未使用的 `isSessionKeepAliveActive` 和 `isTransTokenRefreshActive` 变量解构，消除编译警告。
+- **文件**：`src/composables/useTransUpload.ts`
