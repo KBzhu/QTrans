@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-04-27
+
+#### 上传总量超限拦截修复
+
+- 修复 `StepTwoUploadFile.vue` `handleFiles` 中仅校验单个文件大小、未校验已上传总量的场景
+  - 新增 `applicationSize` 总量校验：已上传文件总大小 + 新上传文件总大小超过 `applicationSize` 时拦截上传
+  - 错误提示展示当前总大小和最大限制，示例：`上传后总大小 6.00GB 超过最大限制 5.00GB`
+
 ### Fixed - 2026-04-22
 
 #### 大文件上传 Hash 计算内存溢出修复

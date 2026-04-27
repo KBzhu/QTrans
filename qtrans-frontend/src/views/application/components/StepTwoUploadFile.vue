@@ -250,6 +250,15 @@ async function handleFiles(files: File[]) {
       return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
 
+  // 校验总容量：已上传文件 + 新上传文件不能超过 applicationSize
+  const uploadedTotalSize = fileListData.value?.totalFileSize ?? 0
+  const newTotalSize = files.reduce((sum, f) => sum + f.size, 0)
+  if (uploadedTotalSize + newTotalSize > maxSize) {
+    return Message.error(
+      `上传后总大小 ${formatFileSize(uploadedTotalSize + newTotalSize)} 超过最大限制 ${formatFileSize(maxSize)}`
+    )
+  }
+
   // P0-3: 对齐老代码 onSubmit，校验文件名/路径合法性
   const blackList = initData.value?.blackList || ''
   const maxLength4Name = initData.value?.maxLength4Name || 256
