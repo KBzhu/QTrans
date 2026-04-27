@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - 2026-04-27
 
+#### 申请列表“驳回重提”与查询布局优化
+
+- `ApplicationListView.vue` 当前流程列：`currentStatus === '创建申请单'` 时显示为"驳回重提"
+- 去掉高级搜索区域，将"查询"/"重置"按钮移至搜索框同一行
+
+#### 详情页“继续上传文件”隔离 canOperate 状态
+
+- `ApplicationDetailView.vue` 移除底部"继续上传文件"按钮对 `canOperate` 的 `disabled` 绑定
+  - `canOperate` 为资产检测 Tab 内部状态，不应跨 Tab 控制上传操作按钮
+
+#### 驳回重提完整交互流程
+
+- `useApplicationDetail.ts` `handleContinueUpload` 区分流程状态：
+  - `applicationStatus === '创建申请单'`（驳回重提）：跳转 `/application/create?applicationId=xxx&step=1`
+  - `applicationStatus === '文件上传'`（继续上传）：保持跳转 `/application/create?applicationId=xxx&step=2`
+- `CreateApplicationView.vue` `onMounted` 识别 `step=1` 为驳回重提模式，调用 `loadApplicationById(applicationId, true)`
+- `useApplicationForm.ts` 支持驳回重提模式：
+  - 新增 `resubmitApplicationId` ref
+  - `loadApplicationById` 增加 `isResubmit` 参数：为 true 时回填表单、设置 `resubmitApplicationId`、回到第一步
+  - `handleNextWithSubmit`：当 `resubmitApplicationId` 存在时，即使 `isApplicationCreated` 为 true 也强制重新调用 `createReal`
+- `CreateApplicationView.vue` 向 `StepOneBasicInfo` 传入 `resubmit-mode`，`readonly` 在驳回重提时降为 `false`，使大部分字段可编辑
+- `StepOneBasicInfo.vue` 增加 `resubmitMode` prop，直接主管字段在驳回重提模式下仍保持 `:disabled="readonly || resubmitMode"`；源区域/目标区域本身为 readonly 输入，不受此影响
+- `payloadConverter.ts` `buildCreatePayload` 增加可选 `applicationId` 参数，传入后写入 `appBaseInfo.applicationId`，后端据此更新原申请单
+
 #### 申请列表跳转文件列表 Tab
 
 - `ApplicationListView.vue` `onFileList` 完善 TODO：点击"文件列表"时跳转到申请详情页并默认选中"文件列表" Tab

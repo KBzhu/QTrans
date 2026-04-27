@@ -249,7 +249,6 @@ watch(
       <a-button
         v-if="canContinueUpload"
         type="primary"
-        :disabled="!canOperate"
         @click="handleContinueUpload"
       >
         继续上传文件

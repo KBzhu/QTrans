@@ -37,6 +37,10 @@ function onViewDetail(record: ApprovalListItem) {
   if (activeTab.value === 'pending') {
     query.currentHandler = record.currentHandler
   }
+  // "我已审批" tab 传入 viewMode，用于详情页屏蔽操作按钮和审批意见
+  if (activeTab.value === 'approved') {
+    query.viewMode = 'approved'
+  }
   router.push({ path: `/approvals/${record.id}`, query })
 }
 

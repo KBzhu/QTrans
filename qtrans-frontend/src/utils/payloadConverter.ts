@@ -27,9 +27,10 @@ function convertNotifyOptions(channels: string[]): string {
 /**
  * 构建后端接口请求体
  * @param formData 前端表单数据
+ * @param applicationId 驳回重提时传入原申请单ID，后端据此更新而非创建新单
  * @returns 后端接口请求体
  */
-export function buildCreatePayload(formData: ApplicationFormData): Record<string, any> {
+export function buildCreatePayload(formData: ApplicationFormData, applicationId?: string): Record<string, any> {
   const authStore = useAuthStore()
   const regionMetadataStore = useRegionMetadataStore()
   const user = authStore.currentUser
@@ -92,7 +93,7 @@ export function buildCreatePayload(formData: ApplicationFormData): Record<string
       procType: '0',    // 流程类型: 0=正常传输, 1=例行通道, 5=紧急传输
       applicantW3Account: currentW3Account,
       isHttps: 0,
-      applicationId: '',
+      applicationId: applicationId || '',
       emailNotification: false,
       externalCode: formData.srNumber || '',
       uploadNotification: convertNotifyOptions(formData.applicantNotifyOptions),

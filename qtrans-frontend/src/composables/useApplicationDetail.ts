@@ -152,12 +152,17 @@ export function useApplicationDetail() {
     if (!detailData.value)
       return
 
+    const status = processDetailData.value?.applicationStatus
+    const isRejectedResubmit = status === '创建申请单'
+
     // 跳转到上传页面，带上申请单ID
+    // 驳回重提（状态为"创建申请单"）回到第一步，可修改表单后重新创单
+    // 其他状态（如"文件上传"）直接进入第二步继续上传
     router.push({
       path: '/application/create',
       query: {
         applicationId: detailData.value.appBaseInfo.applicationId,
-        step: '2',
+        step: isRejectedResubmit ? '1' : '2',
       },
     })
   }

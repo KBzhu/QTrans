@@ -41,6 +41,7 @@ const {
   currentStep,
   submittedApplication,
   isApplicationCreated,
+  resubmitApplicationId,
   submitting,
   uploadingFiles,
   uploadedFiles,
@@ -70,6 +71,9 @@ const {
 } = useApplicationForm(typeFromQuery, fromZone, toZone)
 
 const pageLoading = ref(false)
+
+// 是否为驳回重提模式
+const isResubmitMode = computed(() => !!resubmitApplicationId.value)
 
 const submittedFileCount = ref(0)
 
@@ -152,7 +156,8 @@ onMounted(async () => {
     // 从已有申请单继续上传
     pageLoading.value = true
     try {
-      await loadApplicationById(applicationId)
+      const isResubmit = route.query.step === '1'
+      await loadApplicationById(applicationId, isResubmit)
     }
     finally {
       pageLoading.value = false
@@ -233,7 +238,8 @@ onBeforeRouteLeave(() => {
           :transfer-type-label="transferTypeLabel"
           :show-customer-data-fields="showCustomerDataFields"
           :submitted-application="submittedApplication"
-          :readonly="isApplicationCreated"
+          :readonly="isApplicationCreated && !isResubmitMode"
+          :resubmit-mode="isResubmitMode"
           @copy-template="onCopyRecentTemplate"
         />
 

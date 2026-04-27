@@ -19,6 +19,12 @@ interface Props {
   showCustomerDataFields: boolean
   submittedApplication: any
   readonly?: boolean
+  /**
+   * 驳回重提模式：
+   * - readonly 仍为 false，大部分字段可编辑
+   * - 但源区域/目标区域/直接主管等核心字段仍保持禁用
+   */
+  resubmitMode?: boolean
 }
 
 const props = defineProps<Props>()
@@ -396,7 +402,7 @@ defineExpose({ validate })
             >
               <UserSuggestSelect
                 :model-value="formData.directSupervisor"
-                :disabled="readonly"
+                :disabled="readonly || resubmitMode"
                 placeholder="请输入至少3个字符搜索直接主管"
                 @change="onDirectSupervisorChange"
               />

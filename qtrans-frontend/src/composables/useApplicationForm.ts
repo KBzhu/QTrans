@@ -191,6 +191,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
   const currentDraftId = ref('')
   const submittedApplication = ref<Application | null>(null)
   const isApplicationCreated = ref(false) // 标记申请单是否已在第一步创建
+  const resubmitApplicationId = ref('') // 驳回重提模式：记录原申请单ID，强制重新调用创单接口
   const submitting = ref(false) // 提交/创建接口请求中
   const uploadUrl = ref<string>('') // 真实后端返回的上传地址
   const uploadParams = ref<string>('') // 从 uploadUrl 中提取的 params 参数
@@ -416,8 +417,8 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
    * 第一步点击"下一步"时调用 - 先验证表单，再调用创建接口
    */
   async function handleNextWithSubmit(validateCurrentStep?: () => Promise<boolean>) {
-    // 如果申请单已创建，直接进入下一步
-    if (isApplicationCreated.value) {
+    // 如果申请单已创建且不是驳回重提模式，直接进入下一步
+    if (isApplicationCreated.value && !resubmitApplicationId.value) {
       currentStep.value = 1
       return true
     }
@@ -439,9 +440,12 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     try {
       submitting.value = true
       const { buildCreatePayload } = await import('@/utils/payloadConverter')
-      const payload = buildCreatePayload(formData.value)
+      const payload = buildCreatePayload(formData.value, resubmitApplicationId.value)
 
       const result = await applicationApi.createReal(payload)
+
+      // 清除驳回重提标记
+      resubmitApplicationId.value = ''
 
       // 真实后端响应格式: { applicationId, isRedirectToUploadServer, uploadUrl, ftpAddress, ftpUserName, ftpPassword }
       // 错误响应已被 rawClient 拦截器处理，这里只需处理成功响应
@@ -580,9 +584,11 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
   }
 
   /**
-   * 从后端加载已存在的申请单数据（用于"继续上传文件"场景）
+   * 从后端加载已存在的申请单数据
+   * @param applicationId 申请单ID
+   * @param isResubmit 是否为驳回重提模式（true 时回到第一步，表单可修改，点击下一步重新创单）
    */
-  async function loadApplicationById(applicationId: number | string) {
+  async function loadApplicationById(applicationId: number | string, isResubmit = false) {
     try {
       const detail = await applicationApi.getApplicationDetail(applicationId)
       if (!detail)
@@ -625,7 +631,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       formData.value = cloneFormData({
         transferType,
         department: appBaseApprovalRoute.selectedDeptName || '',
-        departmentId: appBaseApprovalRoute.deptId,
+        departmentId: appBaseApprovalRoute.userDeptId || appBaseApprovalRoute.deptId || '',
         sourceArea,
         targetArea,
         sourceCity: [appBaseCountryCityRegionRelation.fromCityName || ''],
@@ -637,8 +643,12 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         ccAccounts: appBaseApprovalRoute.managerCopyW3Account ? [appBaseApprovalRoute.managerCopyW3Account] : [],
         containsCustomerData: appBaseApprovalRoute.isCustomerData ? 'yes' : 'no',
         srNumber: '',
-        minDeptSupervisor: '',
+        minDeptSupervisor: appBaseApprovalRoute.managerMinW3Account || '',
         securityLevel: String(appBaseApprovalRoute.securityLevel || ''),
+        directSupervisor: appBaseApprovalRoute.managerW3Account || '',
+        approverLevel2: appBaseApprovalRoute.manager2W3Account || '',
+        approverLevel3: appBaseApprovalRoute.manager3W3Account || '',
+        approverLevel4: appBaseApprovalRoute.manager4W3Account || '',
         applyReason: appBaseInfo.reason || '',
         applicantNotifyOptions: parseNotification(appBaseInfo.uploadNotification),
         downloaderNotifyOptions: parseNotification(appBaseInfo.downloadNotification),
@@ -665,9 +675,18 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         uploadParams.value = extractParamsFromUrl(appBaseUploadDownloadInfo.uploadUrl)
       }
 
-      // 标记申请单已创建，进入第二步
+      // 标记申请单已创建
       isApplicationCreated.value = true
-      currentStep.value = 1
+
+      if (isResubmit) {
+        // 驳回重提：回到第一步，记录原申请单ID，点击下一步时重新创单
+        resubmitApplicationId.value = String(applicationId)
+        currentStep.value = 0
+      }
+      else {
+        // 正常继续上传：进入第二步
+        currentStep.value = 1
+      }
 
       updateSnapshot()
       return true
@@ -690,6 +709,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
     currentDraftId,
     submittedApplication,
     isApplicationCreated,
+    resubmitApplicationId,
     submitting,
     uploadUrl,
     uploadParams,

@@ -18,9 +18,8 @@ const selectedRowKeys = ref<string[]>([])
 const closeModalVisible = ref(false)
 const closeApplicationId = ref<number | string>('')
 
-const {
+  const {
   loading,
-  advancedVisible,
   filters,
   pagination,
   listData,
@@ -37,10 +36,6 @@ const tableRowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
   showCheckedAll: true,
 }))
-
-function onToggleAdvanced() {
-  advancedVisible.value = !advancedVisible.value
-}
 
 function onCreateApplication() {
   router.push('/application/select-type')
@@ -126,17 +121,6 @@ onMounted(async () => {
           </template>
         </a-input>
 
-        <a-button class="filter-advanced-btn" @click="onToggleAdvanced">
-          <template #icon>
-            <img :src="assetPath('/figma/3961_3234/3.svg')" alt="高级" class="filter-icon" />
-          </template>
-          高级搜索
-          <img :src="assetPath('/figma/3961_3234/2.svg')" alt="展开" class="filter-arrow" :class="{ 'is-expanded': advancedVisible }" />
-
-        </a-button>
-      </div>
-
-      <div v-if="advancedVisible" class="application-filter-card__advanced">
         <a-button type="primary" @click="handleSearch">查询</a-button>
         <a-button @click="handleReset">重置</a-button>
       </div>
@@ -182,7 +166,7 @@ onMounted(async () => {
             </a-table-column>
 
             <a-table-column title="当前流程" :width="120" ellipsis tooltip>
-              <template #cell="{ record }">{{ record.currentStatus || '-' }}</template>
+              <template #cell="{ record }">{{ record.currentStatus === '创建申请单' ? '驳回重提' : (record.currentStatus || '-') }}</template>
             </a-table-column>
 
             <a-table-column title="申请单状态" :width="120" ellipsis tooltip>
