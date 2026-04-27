@@ -69,3 +69,14 @@
   - `authApi.refreshToken` 接口地址改为 `/api/usercenter/service/v1/userCenter/user/getUserAuthority`，请求方式由 POST 改为 GET，返回类型由 `Promise<LoginResponse>` 改为 `Promise<void>`（新接口不返回 token）。
   - `stores/auth.ts` 中同步移除 `token.value = result.token` 和 `currentUser.value = result.user` 赋值逻辑，避免接口不返回 token 时被空值覆盖导致用户被登出。
 - **文件**：`src/api/auth.ts`、`src/stores/auth.ts`
+
+---
+
+### 2026-04-27 StepThreeSubmitSuccess 单号与文件数量缺失
+
+- **根因1（单号）**：`useApplicationForm.ts` 的 `handleSubmitReal` 中 `applicationNo` 被硬编码为空字符串 `''`，即使第一步创建申请单时已正确赋值也会被覆盖。
+- **根因2（文件数量）**：`CreateApplicationView.vue` 的 `fileCount` 基于 `useApplicationForm` 的 `uploadedFiles` + `uploadingFiles`，但 `StepTwoUploadFile.vue` 内部通过 `useTransUpload` 独立管理真实文件上传，父组件未同步该状态。尤其在"继续上传"场景下父组件列表为空，正常创单流程下也因 `StepTwoUploadFile.vue` 直接触发自身文件选择器而未同步到父组件的 `addUploadFiles`，导致 `fileCount` 始终为 0。
+- **修复**：
+  - 单号：`handleSubmitReal` 中改为 `applicationNo: submittedApplication.value?.applicationNo || ''`，保留第一步创建时的单号。
+  - 文件数量：`StepTwoUploadFile.vue` 中 `defineExpose` 新增 `getFileCount()`，返回 `uploadFileList.length + fileListData.fileList.length`；`CreateApplicationView.vue` 提交前调用并保存到 `submittedFileCount` ref，再传给 `StepThreeSubmitSuccess`；同时移除父组件中不再使用的 `fileCount` computed，消除编译警告。
+- **文件**：`src/composables/useApplicationForm.ts`、`src/views/application/components/StepTwoUploadFile.vue`、`src/views/application/CreateApplicationView.vue`

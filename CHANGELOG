@@ -10,6 +10,11 @@ The format is based on Keep a Changelog.
 - **Token 刷新接口替换**：`authApi.refreshToken` 从 `/service/v1/userCenter/authentication/login`（POST）改为 `/api/usercenter/service/v1/userCenter/user/getUserAuthority`（GET）。该接口不返回 token，仅通过调用触发后端延长 token 过期时间；同步移除 `stores/auth.ts` 中基于返回值的 token/user 更新逻辑，避免空 token 覆盖导致意外登出。
 
 ### Fixed
+- **StepThreeSubmitSuccess 单号与文件数量缺失修复**：
+  - 单号：修复 `useApplicationForm.ts` 的 `handleSubmitReal` 中 `applicationNo` 被硬编码为空字符串的问题，改为保留第一步创建时已有的 `applicationNo`。
+  - 文件数量：由于真实文件上传在 `StepTwoUploadFile.vue` 内部通过 `useTransUpload` 管理，父组件的 `uploadedFiles` / `uploadingFiles` 未同步真实状态。改为在 `StepTwoUploadFile.vue` 中 expose `getFileCount()` 方法，父组件 `CreateApplicationView.vue` 在提交前读取真实文件数量并保存到 `submittedFileCount`，再传给 `StepThreeSubmitSuccess`。同时移除父组件中不再使用的 `fileCount` computed。
+
+### Fixed
 - **useIntervalFn 定时器卸载清理失效修复**：`stopSessionKeepAlive` / `stopTransTokenRefresh` 移除 `isActive` 状态守卫，确保组件 `onUnmounted` 时 `pause()` 一定被调用，避免 Session 保活和 Token 刷新轮询在页面跳转后继续执行。同时清理未使用的 `isSessionKeepAliveActive` / `isTransTokenRefreshActive` 变量，消除编译警告。
 - **StepTwoUploadFile.vue & TransUploadView.vue 交叉审查修复**:
   - 问题1: 上传中列表「全选」按钮点击无效 —— `TransFileTable` 缺少 `@toggle-select-all` 事件监听，补充 `handleToggleSelectAll` 方法并绑定事件。

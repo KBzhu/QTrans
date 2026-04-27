@@ -517,8 +517,8 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         applicationStore.deleteDraft(currentDraftId.value)
 
       submittedApplication.value = {
-        id: `real-${Date.now()}`,
-        applicationNo: '',
+        id: submittedApplication.value?.id || `real-${Date.now()}`,
+        applicationNo: submittedApplication.value?.applicationNo || '',
         ...formData.value,
         containsCustomerData: formData.value.containsCustomerData === 'yes',
         status: 'pending_approval',

@@ -71,7 +71,7 @@ const {
 
 const pageLoading = ref(false)
 
-const fileCount = computed(() => uploadedFiles.value.length + uploadingFiles.value.length)
+const submittedFileCount = ref(0)
 
 const basicInfoApplicant = computed(() => {
   const user = authStore.currentUser
@@ -101,6 +101,7 @@ async function onClickSubmit() {
   if (stepTwoRef.value && !stepTwoRef.value.validateBeforeSubmit()) {
     return
   }
+  submittedFileCount.value = stepTwoRef.value?.getFileCount() ?? 0
   await handleSubmitReal()
 }
 
@@ -268,7 +269,7 @@ onBeforeRouteLeave(() => {
         <StepThreeSubmitSuccess
           :submitted-application="submittedApplication"
           :transfer-type-label="transferTypeLabel"
-          :file-count="fileCount"
+          :file-count="submittedFileCount"
           :form-data="formData"
           :basic-info-applicant="basicInfoApplicant"
           @go-home="goHome"

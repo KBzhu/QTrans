@@ -522,7 +522,13 @@ function validateBeforeSubmit(): boolean {
   return true
 }
 
-defineExpose({ validateBeforeSubmit })
+function getFileCount(): number {
+  const uploadingCount = uploadFileList.value.length
+  const uploadedCount = fileListData.value?.fileList?.length ?? 0
+  return uploadingCount + uploadedCount
+}
+
+defineExpose({ validateBeforeSubmit, getFileCount })
 </script>
 
 <template>
