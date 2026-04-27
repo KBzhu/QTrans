@@ -4,7 +4,7 @@ import { applicationApi } from '@/api/application'
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useFileList } from '@/composables/useFileList'
 import { useFileDownload } from '@/composables/useFileDownload'
 import { useRegionConfigStore } from '@/stores'
@@ -35,12 +35,15 @@ function parseNotification(notification: string): string {
 }
 
 export function useApplicationDetail() {
+  const route = useRoute()
   const router = useRouter()
 
   const loading = ref(false)
   const detailData = ref<ApplicationDetailResponse | null>(null)
   const processDetailData = ref<ProcessDetailsResponse | null>(null)
-  const activeTab = ref<'info' | 'files' | 'detection'>('info')
+  const activeTab = ref<'info' | 'files' | 'detection'>(
+    (route.query.tab as 'info' | 'files' | 'detection') || 'info',
+  )
 
   // 文件列表
   const {

@@ -51,8 +51,10 @@ function onViewDetail(record: MyApplicationItem) {
 }
 
 function onFileList(record: MyApplicationItem) {
-  // TODO: 跳转到文件列表页
-  router.push(`/application/${record.applicationId}/files`)
+  router.push({
+    path: `/application/${record.applicationId}`,
+    query: { tab: 'files' },
+  })
 }
 
 function onCopyApplication(record: MyApplicationItem) {

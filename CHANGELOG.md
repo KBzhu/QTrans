@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-04-27
+
+#### 申请列表跳转文件列表 Tab
+
+- `ApplicationListView.vue` `onFileList` 完善 TODO：点击"文件列表"时跳转到申请详情页并默认选中"文件列表" Tab
+  - 路由跳转改为 `router.push({ path, query: { tab: 'files' } })`
+  - `useApplicationDetail.ts` `activeTab` 初始值从 `route.query.tab` 读取，支持 `info` / `files` / `detection`
+
 ### Fixed - 2026-04-27
 
 #### 上传总量超限拦截修复
