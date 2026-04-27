@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- **Token 刷新接口替换**：`authApi.refreshToken` 从 `/service/v1/userCenter/authentication/login`（POST）改为 `/api/usercenter/service/v1/userCenter/user/getUserAuthority`（GET）。该接口不返回 token，仅通过调用触发后端延长 token 过期时间；同步移除 `stores/auth.ts` 中基于返回值的 token/user 更新逻辑，避免空 token 覆盖导致意外登出。
+
 ### Fixed
 - **useIntervalFn 定时器卸载清理失效修复**：`stopSessionKeepAlive` / `stopTransTokenRefresh` 移除 `isActive` 状态守卫，确保组件 `onUnmounted` 时 `pause()` 一定被调用，避免 Session 保活和 Token 刷新轮询在页面跳转后继续执行。同时清理未使用的 `isSessionKeepAliveActive` / `isTransTokenRefreshActive` 变量，消除编译警告。
 - **StepTwoUploadFile.vue & TransUploadView.vue 交叉审查修复**:

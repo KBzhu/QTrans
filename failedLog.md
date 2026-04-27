@@ -59,3 +59,13 @@
 - **根因**：`stopSessionKeepAlive` / `stopTransTokenRefresh` 中通过 `if (!isActive.value) return` 守卫判断后才调用 `pause()`。组件卸载时 `useIntervalFn` 内部状态与实际 interval 可能不同步，`isActive` 已为 `false`，导致 `pause()` 被跳过，轮询请求继续发送。
 - **修复**：移除两个停止函数中的 `isActive` 守卫，确保 `pause()` 一定被调用；同时移除未使用的 `isSessionKeepAliveActive` 和 `isTransTokenRefreshActive` 变量解构，消除编译警告。
 - **文件**：`src/composables/useTransUpload.ts`
+
+---
+
+### 2026-04-27 Token 刷新接口变更
+
+- **根因**：原刷新 token 接口 `/service/v1/userCenter/authentication/login` 复用 SSO 登录接口，存在语义不清及潜在安全问题；后端提供了专门用于保活的 `/api/usercenter/service/v1/userCenter/user/getUserAuthority` 接口。
+- **修复**：
+  - `authApi.refreshToken` 接口地址改为 `/api/usercenter/service/v1/userCenter/user/getUserAuthority`，请求方式由 POST 改为 GET，返回类型由 `Promise<LoginResponse>` 改为 `Promise<void>`（新接口不返回 token）。
+  - `stores/auth.ts` 中同步移除 `token.value = result.token` 和 `currentUser.value = result.user` 赋值逻辑，避免接口不返回 token 时被空值覆盖导致用户被登出。
+- **文件**：`src/api/auth.ts`、`src/stores/auth.ts`

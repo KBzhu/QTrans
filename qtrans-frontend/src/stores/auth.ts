@@ -87,15 +87,12 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * 刷新 Token
    * 文件传输可能持续很久，需定时刷新避免 token 过期中断用户操作
-   * 响应格式已统一为 SSO 格式，同时更新 token 和用户信息
+   * 调用 getUserAuthority 接口延长后端 token 过期时间，接口不返回新 token
    */
   async function refreshToken() {
     if (!token.value) return
     try {
-      const result = await authApi.refreshToken()
-      token.value = result.token
-      if (result.user)
-        currentUser.value = result.user
+      await authApi.refreshToken()
     }
     catch {
       await logout()

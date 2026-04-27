@@ -108,19 +108,16 @@ export const authApi = {
   logout(): Promise<null> {
     return request.post<null>('/auth/logout')
   },
+  
   /**
    * 刷新 Token
-   * 复用 SSO 登录接口 /service/v1/userCenter/authentication/login 刷新 token
+   * 调用 /api/usercenter/service/v1/userCenter/user/getUserAuthority 延长后端 token 过期时间
+   * 该接口不返回 token，仅通过调用触发后端刷新 token 有效期
    */
-  async refreshToken(): Promise<LoginResponse> {
-    const res = await request.raw<SsoLoginResponse>(
-      '/service/v1/userCenter/authentication/login',
-    )
-    return {
-      token: res.token || '',
-      user: mapSsoUserToUser(res.userDO, res.userDO?.account || ''),
-    }
+  async refreshToken(): Promise<void> {
+    await request.rawGet('/api/usercenter/service/v1/userCenter/user/getUserAuthority')
   },
+
   getProfile(): Promise<User> {
     return request.get<User>('/auth/profile')
   },
