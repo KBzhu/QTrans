@@ -317,19 +317,38 @@ export function useTransUpload() {
   }
 
 
+  let fileListAbortController: AbortController | null = null
+
   /**
    * 加载文件列表
    */
   async function loadFileList(relativeDir: string, params: string): Promise<FileListData | null> {
+    fileListAbortController?.abort()
+    fileListAbortController = new AbortController()
+    const signal = fileListAbortController.signal
     try {
-      const data = await getFileList(relativeDir, params)
+      const data = await getFileList(relativeDir, params, signal)
       fileListData.value = data
       return data
     }
     catch (error: any) {
+      if (error.name === 'AbortError' || error.message === 'canceled' || error.code === 'ERR_CANCELED') {
+        console.log('[loadFileList] 请求已取消')
+        return null
+      }
       Message.error(`获取文件列表失败: ${error.message || '未知错误'}`)
       return null
     }
+    finally {
+      if (fileListAbortController?.signal === signal) {
+        fileListAbortController = null
+      }
+    }
+  }
+
+  function abortFileListRequest() {
+    fileListAbortController?.abort()
+    fileListAbortController = null
   }
 
   /** 防抖刷新（Task 6）：避免频繁刷新请求击垮后端 */
@@ -1483,6 +1502,7 @@ export function useTransUpload() {
     stopSessionKeepAlive,
     startTransTokenRefresh,
     stopTransTokenRefresh,
+    abortFileListRequest,
 
     // 批量操作
     toggleSelectAll,

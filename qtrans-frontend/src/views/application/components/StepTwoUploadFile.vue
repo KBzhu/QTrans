@@ -50,6 +50,7 @@ const {
   toggleSelectAll,
   stopSessionKeepAlive,
   stopTransTokenRefresh,
+  abortFileListRequest,
 } = useTransUpload()
 
 const isDragging = ref(false)
@@ -194,10 +195,15 @@ async function initPage() {
   startFileListPolling()
 }
 
+const isMountedRef = ref(true)
+
 onUnmounted(() => {
+  isMountedRef.value = false
   stopFileListPolling()
   stopSessionKeepAlive()
   stopTransTokenRefresh()
+  abortFileListRequest()
+  debouncedLoadFileList.cancel()
 })
 
 /**
@@ -331,13 +337,17 @@ async function handleFiles(files: File[]) {
  * 对齐老代码逻辑：如果 hashCode 为 null，延迟再刷新一次
  */
 async function refreshFileListWithRetry(relativeDir: string, params: string, maxRetries = 3) {
+  if (!isMountedRef.value) return
   // Task 6: 先防抖延迟，等 uploadFile 完成状态稳定后再刷新
   const doRefresh = async (attempt = 0) => {
+    if (!isMountedRef.value) return
     if (attempt > 0) {
       // 重试时给后端计算哈希的时间
       await new Promise(resolve => setTimeout(resolve, 3000))
+      if (!isMountedRef.value) return
     }
     await loadFileList(relativeDir, params)
+    if (!isMountedRef.value) return
     // 检查新上传的文件是否已有 hashCode
     const hasNullHash = fileListData.value?.fileList.some(
       (f: FileEntity) => f.clientFileHashCode && f.clientFileHashCode !== 'null' && f.clientFileHashCode !== '' && (!f.hashCode || f.hashCode === 'null'),
@@ -350,6 +360,7 @@ async function refreshFileListWithRetry(relativeDir: string, params: string, max
   }
   // 防抖延迟 500ms 后执行刷新
   await new Promise(resolve => setTimeout(resolve, 500))
+  if (!isMountedRef.value) return
   await doRefresh(0)
 }
 
@@ -525,6 +536,20 @@ function validateBeforeSubmit(): boolean {
   })
   if (mismatchedUploaded.length > 0) {
     Message.error(`已上传文件中有 ${mismatchedUploaded.length} 个文件校验未通过，请删除后重新上传。`)
+    return false
+  }
+
+  // 3. 检查已上传文件列表中是否有正在等待服务端哈希的文件
+  const pendingHashes = uploadedFiles.filter((f: FileEntity) => {
+    const clientHash = f.clientFileHashCode
+    const serverHash = f.hashCode
+    const validClientHash = clientHash && clientHash !== 'null' && clientHash !== '' && clientHash.length === 64
+    const validServerHash = serverHash && serverHash !== 'null' && serverHash !== ''
+    // 客户端哈希已计算但服务端哈希还没回来 → 等待中
+    return validClientHash && !validServerHash
+  })
+  if (pendingHashes.length > 0) {
+    Message.error(`有 ${pendingHashes.length} 个文件正在等待服务端哈希校验结果，请稍后再提交。`)
     return false
   }
 

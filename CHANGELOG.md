@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增 `applicationSize` 总量校验：已上传文件总大小 + 新上传文件总大小超过 `applicationSize` 时拦截上传
   - 错误提示展示当前总大小和最大限制，示例：`上传后总大小 6.00GB 超过最大限制 5.00GB`
 
+#### 提交前 hash pending 拦截与组件卸载后报错气泡修复
+
+- 修复 `validateBeforeSubmit` 未拦截服务端 hash 未返回（"等待服务端结果"/"未校验"）的场景
+  - 新增第 3 道检查：已上传文件中 `clientFileHashCode` 有效但 `hashCode` 无效时，禁止提交并提示用户等待
+- 修复组件卸载后 `refreshFileListWithRetry` 递归链与 `fileListPolling` 请求仍继续执行导致的报错气泡
+  - `StepTwoUploadFile.vue` / `TransUploadView.vue` 引入 `isMountedRef`，`refreshFileListWithRetry` 在每次 `loadFileList` / `setTimeout` 前后检查存活状态
+  - `onUnmounted` 中增加 `abortFileListRequest()` 和 `debouncedLoadFileList.cancel()`，取消 pending 请求与 debounce
+  - `useTransUpload.ts` `loadFileList` 增加 `AbortController`，新请求自动 abort 上一次 pending 请求
+  - `transWebService.ts` `getFileList` 增加 `signal` 参数透传至 axios
+  - `TransUploadView.vue` `handleManualConfirmSubmit` 同步增加完整的提交前校验（active 文件 / hash mismatched / hash pending）
+
 ### Fixed - 2026-04-22
 
 #### 大文件上传 Hash 计算内存溢出修复

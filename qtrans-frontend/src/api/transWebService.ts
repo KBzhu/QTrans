@@ -267,12 +267,14 @@ export async function initDownload(
 export async function getFileList(
   relativeDir: string,
   params: string,
+  signal?: AbortSignal,
 ): Promise<FileListData> {
   const response = await transClient.post('/Handler/FileListHandler', null, {
     params: {
       RelativeDir: encodeURIComponent(relativeDir),
       params: params,
     },
+    signal,
   })
 
   if (response.data.ret === 'success') {
