@@ -581,7 +581,7 @@ function isUploadedFileSelected(file: FileEntity): boolean {
               <span
                 v-else
                 class="hash-status-tag hash-status--pending"
-              >未校验</span>
+              >等待服务端结果</span>
             </div>
           </div>
           <div class="uploaded-item__actions" @click.stop>

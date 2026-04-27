@@ -51,6 +51,7 @@ const {
   stopSessionKeepAlive,
   stopTransTokenRefresh,
   abortFileListRequest,
+  cancelDebouncedLoadFileList,
 } = useTransUpload()
 
 const isDragging = ref(false)
@@ -203,7 +204,7 @@ onUnmounted(() => {
   stopSessionKeepAlive()
   stopTransTokenRefresh()
   abortFileListRequest()
-  debouncedLoadFileList.cancel()
+  cancelDebouncedLoadFileList()
 })
 
 /**

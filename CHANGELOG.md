@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增第 3 道检查：已上传文件中 `clientFileHashCode` 有效但 `hashCode` 无效时，禁止提交并提示用户等待
 - 修复组件卸载后 `refreshFileListWithRetry` 递归链与 `fileListPolling` 请求仍继续执行导致的报错气泡
   - `StepTwoUploadFile.vue` / `TransUploadView.vue` 引入 `isMountedRef`，`refreshFileListWithRetry` 在每次 `loadFileList` / `setTimeout` 前后检查存活状态
-  - `onUnmounted` 中增加 `abortFileListRequest()` 和 `debouncedLoadFileList.cancel()`，取消 pending 请求与 debounce
+  - `onUnmounted` 中增加 `abortFileListRequest()` 和 `cancelDebouncedLoadFileList()`，取消 pending 请求与 debounce timer
   - `useTransUpload.ts` `loadFileList` 增加 `AbortController`，新请求自动 abort 上一次 pending 请求
+  - `useTransUpload.ts` 将 `debouncedLoadFileList` 从 `useDebounceFn` 改为自定义防抖实现，暴露 `cancelDebouncedLoadFileList`（VueUse 14 的 `useDebounceFn` 不返回 `cancel`）
   - `transWebService.ts` `getFileList` 增加 `signal` 参数透传至 axios
   - `TransUploadView.vue` `handleManualConfirmSubmit` 同步增加完整的提交前校验（active 文件 / hash mismatched / hash pending）
 

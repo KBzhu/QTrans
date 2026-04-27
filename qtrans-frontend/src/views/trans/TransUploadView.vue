@@ -51,6 +51,7 @@ const {
   stopSessionKeepAlive,
   stopTransTokenRefresh,
   abortFileListRequest,
+  cancelDebouncedLoadFileList,
 } = useTransUpload()
 
 // 获取路由参数
@@ -277,7 +278,7 @@ onUnmounted(() => {
   stopSessionKeepAlive()
   stopTransTokenRefresh()
   abortFileListRequest()
-  debouncedLoadFileList.cancel()
+  cancelDebouncedLoadFileList()
 })
 
 /**

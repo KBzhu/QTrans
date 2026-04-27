@@ -4,7 +4,7 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { ref, shallowRef, computed } from 'vue'
-import { useDebounceFn, useIntervalFn } from '@vueuse/core'
+import { useIntervalFn } from '@vueuse/core'
 import {
   type FileListData,
   type UploadInitResponse,
@@ -352,7 +352,28 @@ export function useTransUpload() {
   }
 
   /** 防抖刷新（Task 6）：避免频繁刷新请求击垮后端 */
-  const debouncedLoadFileList = useDebounceFn(loadFileList, 500)
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  function debouncedLoadFileList(relativeDir: string, params: string): Promise<FileListData | null> {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+    return new Promise((resolve) => {
+      debounceTimer = setTimeout(async () => {
+        debounceTimer = null
+        const result = await loadFileList(relativeDir, params)
+        resolve(result)
+      }, 500)
+    })
+  }
+
+  function cancelDebouncedLoadFileList() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+  }
 
   /**
    * 恢复未完成的上传
@@ -1487,6 +1508,7 @@ export function useTransUpload() {
     initialize,
     loadFileList,
     debouncedLoadFileList,
+    cancelDebouncedLoadFileList,
     uploadFile,
     uploadFiles,
     confirmUpload,
