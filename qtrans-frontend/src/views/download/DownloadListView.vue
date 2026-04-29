@@ -25,23 +25,7 @@ const {
   getDownloadRoute,
 } = useDownloadList()
 
-// 申请状态筛选 - 对应真实接口 currentStatus 英文值
-const statusOptions = [
-  { label: '全部状态', value: 'all' },
-  { label: '通知下载', value: 'Notification Download' },
-  { label: '待审批', value: 'Pending Approval' },
-  { label: '已批准', value: 'Approved' },
-  { label: '已驳回', value: 'Rejected' },
-  { label: '传输中', value: 'Transferring' },
-  { label: '已完成', value: 'Completed' },
-]
 
-const downloadStatusOptions = [
-  { label: '全部下载状态', value: 'all' },
-  { label: '未下载', value: 'not_started' },
-  { label: '部分下载', value: 'partial' },
-  { label: '已下载', value: 'completed' },
-]
 
 // currentStatus -> CSS class 后缀（真实字段转为 kebab-case）
 function getStatusClass(currentStatus: string) {
@@ -86,7 +70,7 @@ onMounted(async () => {
         <a-input
           v-model="filters.keyword"
           class="filter-keyword"
-          placeholder="搜索申请单号或申请原因..."
+          placeholder="搜索申请单号"
           allow-clear
           @press-enter="handleSearch"
         >
@@ -95,20 +79,7 @@ onMounted(async () => {
           </template>
         </a-input>
 
-        <a-select
-          v-model="filters.status"
-          class="filter-select"
-          :options="statusOptions"
-          @change="handleSearch"
-        />
-
-        <a-select
-          v-model="filters.downloadStatus"
-          class="filter-select"
-          :options="downloadStatusOptions"
-          @change="handleSearch"
-        />
-
+        <a-button type="primary" @click="handleSearch">查询</a-button>
         <a-button class="filter-reset-btn" @click="handleReset">重置</a-button>
       </div>
     </section>

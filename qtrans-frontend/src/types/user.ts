@@ -22,6 +22,7 @@ export interface User {
   departmentName: string
   roles: UserRole[]
   status: UserStatus
+  loginType: number
   createdAt?: string
   updatedAt?: string
 }

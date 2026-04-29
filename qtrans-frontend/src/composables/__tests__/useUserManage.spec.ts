@@ -52,6 +52,7 @@ function createUser(overrides: Partial<User> = {}): User {
     departmentName: overrides.departmentName || 'IT部',
     roles: overrides.roles || ['submitter'],
     status: overrides.status || 'enabled',
+    loginType: overrides.loginType ?? 2,
     createdAt: overrides.createdAt || '2026-03-10T10:00:00.000Z',
     updatedAt: overrides.updatedAt || '2026-03-10T10:00:00.000Z',
   }

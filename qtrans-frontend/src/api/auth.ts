@@ -4,8 +4,14 @@ import { request } from '@/utils'
 /**
  * 登录用户类型（usertype）
  * 与后端 loginType 保持一致，Number 格式供其他接口使用
+ * 初始默认值，登录时会被 localStorage 中的 LOGIN_TYPE 覆盖
  */
-export const LOGIN_USER_TYPE = 2
+export let LOGIN_USER_TYPE = 2
+
+/** 设置登录用户类型 */
+export function setLoginUserType(value: number) {
+  LOGIN_USER_TYPE = value
+}
 
 /** 人员搜索结果项 */
 export interface SuggestUserItem {
@@ -40,6 +46,7 @@ export const SSO_USER_PARAMS = {
   deptCode: 'deptCode',
   groupName: 'groupName',
   isActive: 'isActive',
+  loginType: 'loginType',
 } as const
 
 /**
@@ -65,6 +72,7 @@ function mapSsoUserToUser(userDO: SsoLoginResponse['userDO'], account: string): 
     // SSO 不返回角色信息，默认赋予 submitter，角色由后端接口控制
     roles: ['admin'],
     status: userDO.isActive !== false ? 'enabled' : 'disabled',
+    loginType: userDO.loginType ?? 2,
   }
 }
 
@@ -90,6 +98,7 @@ export const authApi = {
    */
   parseSsoCallback(query: Record<string, string | undefined>): LoginResponse {
     const token = query[SSO_TOKEN_PARAM] || ''
+    const rawLoginType = query[SSO_USER_PARAMS.loginType]
     const user: User = {
       id: query[SSO_USER_PARAMS.userId] || '',
       username: query[SSO_USER_PARAMS.account] || '',
@@ -101,6 +110,7 @@ export const authApi = {
       // SSO 不返回角色信息，后端角色接口未就绪前临时赋予 admin
       roles: ['admin'],
       status: query[SSO_USER_PARAMS.isActive] === '0' ? 'disabled' : 'enabled',
+      loginType: rawLoginType ? Number(rawLoginType) : 2,
     }
     return { token, user }
   },

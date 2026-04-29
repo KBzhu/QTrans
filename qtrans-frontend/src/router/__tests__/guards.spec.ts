@@ -76,6 +76,7 @@ describe('RouterGuards', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     await router.push('/users')

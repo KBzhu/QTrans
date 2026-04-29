@@ -49,6 +49,7 @@ describe('useApplicationList', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     applicationStore.applications = [

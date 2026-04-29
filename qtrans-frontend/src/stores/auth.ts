@@ -2,7 +2,7 @@ import type { User, UserRole } from '@/types'
 import { useIntervalFn } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { authApi, buildSsoRedirectUrl } from '@/api/auth'
+import { authApi, buildSsoRedirectUrl, setLoginUserType } from '@/api/auth'
 import { getDefaultHome } from '@/router/routes'
 import { STORAGE_KEYS } from '@/utils/constants'
 
@@ -37,6 +37,13 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser.value = null
   }
 
+  /** 从当前登录用户信息同步 loginType 到 LOGIN_USER_TYPE */
+  function syncLoginUserType(loginType?: number) {
+    if (typeof loginType === 'number' && !Number.isNaN(loginType)) {
+      setLoginUserType(loginType)
+    }
+  }
+
   /**
    * 跳转到统一登录系统
    * @param redirectPath 登录成功后回调到本系统的路径，默认取当前页面完整 URL
@@ -53,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     const result = await authApi.login(params)
     token.value = result.token
     currentUser.value = result.user
+    syncLoginUserType(result.user.loginType)
     return result.user
   }
 
@@ -64,6 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
     const result = authApi.parseSsoCallback(query)
     token.value = result.token
     currentUser.value = result.user
+    syncLoginUserType(result.user.loginType)
     return result.user
   }
 

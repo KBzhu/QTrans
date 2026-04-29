@@ -58,9 +58,7 @@ function getMockFileCount(_applicationId: string): number {
 }
 
 export interface DownloadListFilters {
-  keyword: string
-  status: string // 对应 currentStatus 英文值，或 'all'
-  downloadStatus: 'all' | DownloadStatus
+  keyword: string // 申请单号搜索，对应后端 applicationId 参数
 }
 
 export interface DownloadListPagination {
@@ -74,8 +72,6 @@ export function useDownloadList() {
 
   const filters = reactive<DownloadListFilters>({
     keyword: '',
-    status: 'all',
-    downloadStatus: 'all',
   })
 
   const pagination = reactive<DownloadListPagination>({
@@ -90,35 +86,8 @@ export function useDownloadList() {
   const listData = ref<WaitingDownloadItem[]>([])
 
   function applyFilters() {
-    const keyword = filters.keyword.trim().toLowerCase()
-    let result = rawList.value
-
-    if (filters.status !== 'all') {
-      result = result.filter(item => item.currentStatus === filters.status)
-    }
-
-    if (filters.downloadStatus !== 'all') {
-      result = result.filter(item => {
-        const mapped = downloadStatusMap[item.downloadStatus] || 'not_started'
-        return mapped === filters.downloadStatus
-      })
-    }
-
-    if (keyword) {
-      result = result.filter(item =>
-        [
-          item.applicationId,
-          item.reason,
-          item.applicantW3Account,
-          formatTransWay(item.transWay),
-        ].join(' ').toLowerCase().includes(keyword)
-      )
-    }
-
-    // 注意：真实接口已经分页，前端过滤在当前页数据上进行
-    // 若需要跨页过滤，需改为每次过滤后重新请求（当前仅在已加载数据中过滤）
-    listData.value = result
-    pagination.total = result.length
+    // 后端已按 applicationId 过滤并返回分页结果，前端直接使用
+    listData.value = rawList.value
   }
 
   async function fetchList() {
@@ -127,6 +96,7 @@ export function useDownloadList() {
       const res = await applicationApi.getWaitingDownloadList(
         pagination.pageSize,
         pagination.current,
+        filters.keyword.trim() || undefined,
       )
       rawList.value = res.result || []
       pagination.total = res.pageVO?.totalRows ?? rawList.value.length
@@ -147,8 +117,6 @@ export function useDownloadList() {
 
   async function handleReset() {
     filters.keyword = ''
-    filters.status = 'all'
-    filters.downloadStatus = 'all'
     pagination.current = 1
     await fetchList()
   }

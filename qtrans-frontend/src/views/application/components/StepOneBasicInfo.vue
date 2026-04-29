@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NotifyChannel } from '@/types/application'
+
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
 import { computed, ref } from 'vue'
 import { useAuthStore, useRegionMetadataStore } from '@/stores'
@@ -113,8 +113,17 @@ const {
 /* ===== Computed ===== */
 const { getOptionsByType, getItemsByType } = useApplicationConfig()
 
-const applicantNotifyOptions = computed(() => getOptionsByType('applicantNotifyOptions'))
-const downloaderNotifyOptions = computed(() => getOptionsByType('downloaderNotifyOptions'))
+const applicantNotifyOptions = [
+  { label: '应用号消息', value: 'in_app' },
+  { label: '邮件', value: 'email' },
+  { label: '下载邮件的发送通知', value: 'download_email' },
+]
+
+const downloaderNotifyOptions = [
+  { label: '应用号消息', value: 'in_app' },
+  { label: 'W3待办', value: 'w3_todo' },
+  { label: '邮件', value: 'email' },
+]
 const recentTransferTemplates = computed(() => getItemsByType('recentTransferTemplates'))
 const noticeItems = computed(() => getItemsByType('noticeItems'))
 
@@ -161,16 +170,7 @@ function onCcAccountsChange(val: string | string[] | undefined) {
   formRef.value?.clearValidate?.('ccAccounts')
 }
 
-function onContainsCustomerDataChange(val: 'yes' | 'no') {
-  updateFormData({ containsCustomerData: val })
-}
-
-function onSrNumberChange(val: string) {
-  updateFormData({ srNumber: val })
-}
-
-function onSecurityLevelChange(val: string) {
-  updateFormData({ securityLevel: val })
+function onSecurityLevelChange() {
   formRef.value?.clearValidate?.('securityLevel')
 }
 
@@ -179,36 +179,16 @@ function onDirectSupervisorChange(val: string | string[] | undefined) {
   formRef.value?.clearValidate?.('directSupervisor')
 }
 
-function onApproverLevel2Change(val: string) {
-  updateFormData({ approverLevel2: val })
+function onApproverLevel2Change() {
   formRef.value?.clearValidate?.('approverLevel2')
 }
 
-function onApproverLevel3Change(val: string) {
-  updateFormData({ approverLevel3: val })
+function onApproverLevel3Change() {
   formRef.value?.clearValidate?.('approverLevel3')
 }
 
-function onApproverLevel4Change(val: string) {
-  updateFormData({ approverLevel4: val })
+function onApproverLevel4Change() {
   formRef.value?.clearValidate?.('approverLevel4')
-}
-
-function onApplyReasonChange(val: string) {
-  updateFormData({ applyReason: val })
-}
-
-function onUploaderEmailChange(val: string) {
-  updateFormData({ uploaderEmail: val })
-  formRef.value?.clearValidate?.('uploaderEmail')
-}
-
-function onApplicantNotifyChange(val: NotifyChannel[]) {
-  updateFormData({ applicantNotifyOptions: val })
-}
-
-function onDownloaderNotifyChange(val: NotifyChannel[]) {
-  updateFormData({ downloaderNotifyOptions: val })
 }
 
 function onCopyRecentTemplate(text: string) {
@@ -294,18 +274,17 @@ defineExpose({ validate })
           <template v-if="isTargetExternal">
             <a-form-item field="vendorName" label="下载方名称（单位）" required>
               <a-input
-                :model-value="formData.vendorName"
+                v-model="formData.vendorName"
                 :disabled="readonly"
                 placeholder="请输入下载方名称（单位）"
-                @input="(val: string) => updateFormData({ vendorName: val })"
               />
             </a-form-item>
-            <a-form-item field="downloadEmail" label="下载方邮箱地址" required>
+            <a-form-item field="downloadEmail" label="下载方邮箱地址" required
+            validate-trigger="blur">
               <a-input
-                :model-value="formData.downloadEmail"
+                v-model="formData.downloadEmail"
                 :disabled="readonly"
                 placeholder="请输入下载方邮箱地址"
-                @input="(val: string) => updateFormData({ downloadEmail: val })"
               />
             </a-form-item>
           </template>
@@ -314,18 +293,17 @@ defineExpose({ validate })
           <template v-if="isSourceExternal">
             <a-form-item field="vendorName" label="上传方名称（单位/人）" required>
               <a-input
-                :model-value="formData.vendorName"
+                v-model="formData.vendorName"
                 :disabled="readonly"
                 placeholder="请输入上传方名称（单位/人）"
-                @input="(val: string) => updateFormData({ vendorName: val })"
               />
             </a-form-item>
-            <a-form-item field="uploaderEmail" label="上传方邮箱地址" required>
+            <a-form-item field="uploaderEmail" label="上传方邮箱地址" required
+            validate-trigger="blur">
               <a-input
-                :model-value="formData.uploaderEmail"
+                v-model="formData.uploaderEmail"
                 :disabled="readonly"
                 placeholder="请输入上传方邮箱地址"
-                @input="onUploaderEmailChange"
               />
             </a-form-item>
           </template>
@@ -353,11 +331,10 @@ defineExpose({ validate })
           </a-form-item>
 
           <!-- 包含客户网络数据 -->
-          <a-form-item label="包含客户网络数据" required>
+          <a-form-item field="containsCustomerData" label="包含客户网络数据" required>
             <a-radio-group
-              :model-value="formData.containsCustomerData"
+              v-model="formData.containsCustomerData"
               :disabled="readonly"
-              @change="onContainsCustomerDataChange"
             >
               <a-radio value="yes">是</a-radio>
               <a-radio value="no">否</a-radio>
@@ -368,10 +345,9 @@ defineExpose({ validate })
           <template v-if="showCustomerDataFields">
             <a-form-item field="srNumber" label="SR单号" required>
               <a-input
-                :model-value="formData.srNumber"
+                v-model="formData.srNumber"
                 :disabled="readonly"
                 placeholder="请输入 SR 单号"
-                @input="onSrNumberChange"
               />
             </a-form-item>
             <a-form-item field="minDeptSupervisor" label="最小部门主管">
@@ -382,7 +358,7 @@ defineExpose({ validate })
           <!-- 文件最高密级（后端通过 isDisplaySecretLevelControl 控制） -->
           <a-form-item v-if="displaySecretLevel" field="securityLevel" label="文件最高密级" required>
             <a-select
-              :model-value="formData.securityLevel"
+              v-model="formData.securityLevel"
               :options="securityLevelOptions"
               :loading="securityLevelLoading"
               :disabled="readonly"
@@ -415,7 +391,7 @@ defineExpose({ validate })
               required
             >
               <a-select
-                :model-value="formData.approverLevel2"
+                v-model="formData.approverLevel2"
                 :options="approverOptions.level2"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
@@ -431,7 +407,7 @@ defineExpose({ validate })
               required
             >
               <a-select
-                :model-value="formData.approverLevel3"
+                v-model="formData.approverLevel3"
                 :options="approverOptions.level3"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
@@ -447,7 +423,7 @@ defineExpose({ validate })
               required
             >
               <a-select
-                :model-value="formData.approverLevel4"
+                v-model="formData.approverLevel4"
                 :options="approverOptions.level4"
                 :loading="approvalRouteLoading"
                 :disabled="readonly"
@@ -460,31 +436,28 @@ defineExpose({ validate })
           <!-- 申请原因 -->
           <a-form-item field="applyReason" label="申请原因" required>
             <a-textarea
-              :model-value="formData.applyReason"
+              v-model="formData.applyReason"
               :max-length="1000"
               :disabled="readonly"
               show-word-limit
               placeholder="请填写申请原因"
-              @input="onApplyReasonChange"
             />
           </a-form-item>
 
           <!-- 通知选项 -->
           <div class="form-grid form-grid--notify">
-            <a-form-item label="申请人通知选项" required>
+            <a-form-item field="applicantNotifyOptions" label="申请人通知选项" required>
               <a-checkbox-group
-                :model-value="formData.applicantNotifyOptions"
+                v-model="formData.applicantNotifyOptions"
                 :options="applicantNotifyOptions"
                 :disabled="readonly"
-                @change="onApplicantNotifyChange"
               />
             </a-form-item>
-            <a-form-item label="下载人通知选项" required>
+            <a-form-item field="downloaderNotifyOptions" label="下载人通知选项" required>
               <a-checkbox-group
-                :model-value="formData.downloaderNotifyOptions"
+                v-model="formData.downloaderNotifyOptions"
                 :options="downloaderNotifyOptions"
                 :disabled="readonly"
-                @change="onDownloaderNotifyChange"
               />
             </a-form-item>
           </div>

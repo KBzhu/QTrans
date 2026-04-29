@@ -89,9 +89,10 @@ export const applicationApi = {
    * 待我下载列表 - 真实后端接口
    * GET /workflowService/services/frontendService/frontend/waitingForDownload/page/{pageSize}/{pageNum}
    */
-  getWaitingDownloadList(pageSize: number, pageNum: number): Promise<WaitingDownloadResponse> {
+  getWaitingDownloadList(pageSize: number, pageNum: number, applicationId?: string): Promise<WaitingDownloadResponse> {
     return request.rawGet<WaitingDownloadResponse>(
-      `/workflowService/services/frontendService/frontend/waitingForDownload/page/${pageSize}/${pageNum}`
+      `/workflowService/services/frontendService/frontend/waitingForDownload/page/${pageSize}/${pageNum}`,
+      { params: applicationId ? { applicationId } : undefined }
     )
   },
     /**

@@ -63,6 +63,7 @@ describe('useDownloadList', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     applicationStore.applications = [
@@ -91,6 +92,7 @@ describe('useDownloadList', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     applicationStore.applications = [
@@ -143,6 +145,7 @@ describe('useDownloadList', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     applicationStore.applications = [createApplication({ id: 'app-1', downloaderAccounts: ['submitter'] })]

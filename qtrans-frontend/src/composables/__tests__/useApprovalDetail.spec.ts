@@ -56,6 +56,7 @@ describe('useApprovalDetail', () => {
       departmentName: '安全部',
       roles: ['approver1'],
       status: 'enabled',
+      loginType: 2,
     }
     authStore.token = 'mock-token-u_approver1-1'
   })

@@ -15,6 +15,7 @@ function createUser(id = 'u1'): User {
     departmentName: '研发部',
     roles: ['submitter'],
     status: 'enabled',
+    loginType: 2,
   }
 }
 

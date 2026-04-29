@@ -221,19 +221,36 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       sourceCity: [{ required: true, type: 'array', min: 1, message: '请选择源省份/城市' }],
       targetCity: [{ required: true, type: 'array', min: 1, message: '请选择目标省份/城市' }],
       downloaderAccounts: [{ required: true, type: 'array', min: 1, message: '请选择下载人账号' }],
-      // ccAccounts 不再必填
-      srNumber: [{ required: true, message: '请输入 SR 单号' }],
-      securityLevel: [{ required: true, message: '请选择文件最高密级' }],
+      containsCustomerData: [{ required: true, message: '请选择是否包含客户网络数据' }],
       applyReason: [{ required: true, message: '请输入申请原因' }, { maxLength: 1000, message: '申请原因不能超过 1000 字' }],
+      applicantNotifyOptions: [{ required: true, type: 'array', min: 1, message: '请选择申请人通知选项' }],
+      downloaderNotifyOptions: [{ required: true, type: 'array', min: 1, message: '请选择下载人通知选项' }],
+    }
+
+    if (showCustomerDataFields.value) {
+      rules.srNumber = [{ required: true, message: '请输入 SR 单号' }]
+    }
+
+    // 审批人及密级字段规则（组件内通过 v-if 控制显示，未显示的字段不会参与校验）
+    if (formData.value.securityLevel) {
+      rules.securityLevel = [{ required: true, message: '请选择文件最高密级' }]
+      rules.directSupervisor = [{ required: true, message: '请选择直接主管' }]
+      rules.approverLevel2 = [{ required: true, message: '请选择二层审批人' }]
+      rules.approverLevel3 = [{ required: true, message: '请选择三层审批人' }]
+      rules.approverLevel4 = [{ required: true, message: '请选择四层审批人' }]
     }
 
     // 外网场景：添加必填验证（目标=外网 和 源=外网 互斥）
+    const emailRule = {
+      type: 'email',
+      message: '请输入正确的邮箱格式',
+    }
     if (formData.value.targetArea === 'external') {
       // 目标=外网：下载方名称 + 下载方邮箱
       rules.vendorName = [{ required: true, message: '请输入下载方名称' }]
       rules.downloadEmail = [
         { required: true, message: '请输入下载方邮箱地址' },
-        { type: 'email', message: '请输入正确的邮箱格式' },
+        emailRule,
       ]
     }
     else if (formData.value.sourceArea === 'external') {
@@ -241,7 +258,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       rules.vendorName = [{ required: true, message: '请输入上传方名称' }]
       rules.uploaderEmail = [
         { required: true, message: '请输入上传方邮箱地址' },
-        { type: 'email', message: '请输入正确的邮箱格式' },
+        emailRule,
       ]
     }
 

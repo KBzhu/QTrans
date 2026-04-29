@@ -37,6 +37,7 @@ describe('useAuthStore', () => {
         departmentName: '研发部',
         roles: ['submitter'],
         status: 'enabled',
+        loginType: 2,
       },
     })
 
@@ -63,6 +64,7 @@ describe('useAuthStore', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     await store.logout()
@@ -83,6 +85,7 @@ describe('useAuthStore', () => {
       departmentName: '研发部',
       roles: ['submitter'],
       status: 'enabled',
+      loginType: 2,
     }
 
     expect(store.hasRole('submitter')).toBe(true)
