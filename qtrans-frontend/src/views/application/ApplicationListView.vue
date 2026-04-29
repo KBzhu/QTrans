@@ -70,6 +70,11 @@ function onCloseApplication(record: MyApplicationItem) {
   closeModalVisible.value = true
 }
 
+function canCloseApplication(record: MyApplicationItem): boolean {
+  const status = record.taskStatus || ''
+  return !status.includes('撤销') && !status.includes('关闭')
+}
+
 function onCloseSuccess() {
   fetchList()
 }
@@ -209,6 +214,7 @@ onMounted(async () => {
                   </a-button>
 
                   <a-button
+                    v-if="canCloseApplication(record)"
                     type="text"
                     size="small"
                     class="table-action-btn"

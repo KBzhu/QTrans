@@ -621,8 +621,7 @@ export function useTransUpload() {
     let retryFileHasher: StreamFileHasher | null = null
 
     try {
-      // [Bug1修复] 状态切换为 uploading，并异步执行准备操作
-      ri.status = 'uploading'
+      // 状态保持 pending，在并发等待期间不占用上传槽位
 
       if (file.size <= SMALL_FILE_THRESHOLD) {
         try {
@@ -639,6 +638,7 @@ export function useTransUpload() {
       }
 
       // 创建上传记录到 IndexedDB（移到此处，不阻塞进度条显示）
+      // 状态保持 pending，等到真正开始上传时再更新为 uploading
       await createUploadRecord({
         fileUUID,
         fileName: file.name,
@@ -646,7 +646,7 @@ export function useTransUpload() {
         totalChunks,
         uploadParams: params,
         relativeDir,
-        status: 'uploading',
+        status: 'pending',
       })
 
       // 查询已上传分片（断点续传）
@@ -689,6 +689,13 @@ export function useTransUpload() {
       }
       activeUploads.value++
       uploading.value = true
+
+      // 真正开始上传分片前，状态切换为 uploading
+      ri.status = 'uploading'
+      onProgress?.(ri)
+
+      // 同步更新 IndexedDB 中的状态
+      await updateUploadRecord(fileUUID, { status: 'uploading' })
 
       // 上传缺失的分片（0KB文件需调用一次add接口完成空文件上传）
       if (file.size === 0) {

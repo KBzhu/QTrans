@@ -332,7 +332,10 @@ function getRowClassName(record: any) {
         @page-size-change="handlePageSizeChange"
       >
         <template #fileType="{ record }">
-          <span class="file-type-tag">{{ record.fileTypeName }}</span>
+          <span
+            class="file-type-tag"
+            :class="{ 'is-critical': record.fileTypeName === '关键资产' }"
+          >{{ record.fileTypeName }}</span>
         </template>
         
         <template #unzipLevel="{ record }">

@@ -57,7 +57,7 @@ function emitFilter(fileType?: number, fileName?: string) {
 
 // 处理搜索（回车或点击搜索按钮）
 function handleSearch() {
-  emitFilter()
+  emitFilter(localFileType.value, localSearchKeyword.value)
 }
 
 // 处理重置

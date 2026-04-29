@@ -39,8 +39,8 @@ const roleTag = computed(() => {
   return roleNameMap[role] || '普通用户（申请者）'
 })
 
-async function goProfile() {
-  await router.push('/profile')
+function goProfile() {
+  window.open('/usercenter', '_blank')
 }
 
 async function goNotifications() {
@@ -96,7 +96,7 @@ watch(
               <div class="user-dropdown__role">{{ roleTag }}</div>
             </div>
             <button class="user-dropdown__action" @click="goProfile">
-              个人中心
+              系统管理
             </button>
             <button class="user-dropdown__action user-dropdown__action--logout" @click="handleLogout">
               <img :src="assetPath('/figma/3971_1105/29.svg')" alt="退出" class="logout-icon" />
