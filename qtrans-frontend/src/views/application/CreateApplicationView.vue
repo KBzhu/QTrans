@@ -92,7 +92,22 @@ async function validateStepOne() {
 async function onClickNext() {
   // 第一步：验证表单并调用创建接口
   if (currentStep.value === 0) {
-    await handleNextWithSubmit(validateStepOne)
+    const success = await handleNextWithSubmit(validateStepOne)
+    if (success && submittedApplication.value?.applicationNo) {
+      // 目标区域为外网时，第一步完成后直接跳转申请单列表页
+      if (formData.value.targetArea === 'external') {
+        Message.success('申请单已创建，请等待审批')
+        router.replace('/applications')
+        return
+      }
+      router.replace({
+        query: {
+          ...route.query,
+          applicationId: submittedApplication.value.applicationNo,
+          curStep: '1',
+        },
+      })
+    }
   }
   else {
     // 第二步：进入第三步
@@ -107,6 +122,18 @@ async function onClickSubmit() {
   }
   submittedFileCount.value = stepTwoRef.value?.getFileCount() ?? 0
   await handleSubmitReal()
+  if (currentStep.value === 2) {
+    router.replace({ query: { ...route.query, curStep: '2' } })
+  }
+}
+
+function onClickPrev() {
+  handlePrev()
+  if (route.query.curStep) {
+    const query = { ...route.query }
+    delete query.curStep
+    router.replace({ query })
+  }
 }
 
 function onCancel() {
@@ -151,11 +178,19 @@ function goMyApplications() {
 onMounted(async () => {
   const draftId = String(route.query.draftId || '')
   const applicationId = String(route.query.applicationId || '')
+  const curStepFromQuery = Number(route.query.curStep) || 0
+
+  // 第三步刷新：直接跳转申请列表（提交成功状态无法恢复）
+  if (curStepFromQuery === 2) {
+    router.replace('/applications')
+    return
+  }
 
   if (applicationId) {
     // 从已有申请单继续上传
     pageLoading.value = true
     try {
+      // step 参数用于驳回重提模式，curStep 用于记录当前步骤，二者语义独立
       const isResubmit = route.query.step === '1'
       await loadApplicationById(applicationId, isResubmit)
     }
@@ -286,7 +321,7 @@ onBeforeRouteLeave(() => {
     </div>
 
     <div v-if="currentStep < 2" class="create-application-page__actions">
-      <a-button v-if="currentStep > 0" :disabled="submitting" @click="handlePrev">上一步</a-button>
+      <a-button v-if="currentStep > 0" :disabled="submitting" @click="onClickPrev">上一步</a-button>
       <a-button v-if="currentStep === 0" type="primary" :loading="submitting" @click="onClickNext">
         下一步
       </a-button>

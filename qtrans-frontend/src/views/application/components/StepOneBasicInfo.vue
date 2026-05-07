@@ -113,6 +113,12 @@ const {
 /* ===== Computed ===== */
 const { getOptionsByType, getItemsByType } = useApplicationConfig()
 
+// 是否显示文件传输方式（源或目标为外网时）
+const isExternalScene = computed(() => isSourceExternal.value || isTargetExternal.value)
+
+// FTP 字段标签前缀（根据传输方向决定是"上传方"还是"下载方"）
+const ftpLabelPrefix = computed(() => isSourceExternal.value ? '上传方' : '下载方')
+
 const applicantNotifyOptions = [
   { label: '应用号消息', value: 'in_app' },
   { label: '邮件', value: 'email' },
@@ -142,7 +148,7 @@ const basicInfoRows = computed(() => {
 /* ===== 区域只读显示 ===== */
 const fromRegionName = computed(() => regionMetadataStore.getFromName() || formData.value.sourceArea)
 const toRegionName = computed(() => regionMetadataStore.getToName() || formData.value.targetArea)
-const isTargetExternal = computed(() => regionMetadataStore.getToCode() === 'external' || formData.value.targetArea === 'external')
+const isTargetExternal = computed(() => regionMetadataStore.getToCode() === 'external' || formData.value.targetArea === 'Internet')
 const isSourceExternal = computed(() => regionMetadataStore.getFromCode() === 'external' || formData.value.sourceArea === 'external')
 
 /* ===== Event Handlers ===== */
@@ -239,6 +245,62 @@ defineExpose({ validate })
               @change="onDepartmentChange"
             />
           </a-form-item>
+
+          <!-- 文件传输方式（源或目标为外网时显示） -->
+          <template v-if="isExternalScene">
+            <a-form-item field="transferMode" label="文件传输方式" required>
+              <a-radio-group v-model="formData.transferMode" :disabled="readonly">
+                <a-radio :value="0">我司提供服务器</a-radio>
+                <a-radio :value="1">对方提供服务器</a-radio>
+              </a-radio-group>
+            </a-form-item>
+
+            <!-- 对方提供服务器时的 FTP 字段 -->
+            <template v-if="formData.transferMode === 1">
+              <a-form-item field="vendorFtpAddress" :label="`${ftpLabelPrefix}FTP地址`" required>
+                <a-input
+                  v-model="formData.vendorFtpAddress"
+                  :disabled="readonly"
+                  placeholder="例如：ftp://xxxx或者ftps://xxxx"
+                />
+              </a-form-item>
+              <a-form-item field="vendorFtpUserName" :label="`${ftpLabelPrefix}FTP账号`" required>
+                <a-input
+                  v-model="formData.vendorFtpUserName"
+                  :disabled="readonly"
+                  placeholder="请输入FTP账号"
+                />
+              </a-form-item>
+              <a-form-item field="vendorFtpPassword" :label="`${ftpLabelPrefix}FTP密码`" required>
+                <a-input-password
+                  v-model="formData.vendorFtpPassword"
+                  :disabled="readonly"
+                  placeholder="请输入FTP密码"
+                  allow-show-password
+                />
+              </a-form-item>
+              <a-form-item field="vendorFtpVirtualPath" :label="`${ftpLabelPrefix}文件存放目录`" required>
+                <a-input
+                  v-model="formData.vendorFtpVirtualPath"
+                  :disabled="readonly"
+                  placeholder="请输入文件存放目录"
+                />
+              </a-form-item>
+              <!-- 外网传入时显示：获取文件名称 -->
+              <a-form-item
+                v-if="isSourceExternal"
+                field="vendorFtpFiles"
+                label="获取文件名称"
+                required
+              >
+                <a-input
+                  v-model="formData.vendorFtpFiles"
+                  :disabled="readonly"
+                  placeholder="请输入获取文件名称"
+                />
+              </a-form-item>
+            </template>
+          </template>
 
           <!-- 区域选择（只读回显，从首页传输场景确定） -->
           <div class="form-grid">
@@ -477,7 +539,7 @@ defineExpose({ validate })
         <header class="side-card__header">最近传输选择</header>
         <ul class="recent-list">
           <li v-for="(item, index) in recentTransferTemplates" :key="item" class="recent-list__item">
-            <span>{{ index + 1 }}. {{ item }}</span>
+            <span>{{ Number(index) + 1 }}. {{ item }}</span>
             <button type="button" @click="onCopyRecentTemplate(item)">一键复制</button>
           </li>
         </ul>

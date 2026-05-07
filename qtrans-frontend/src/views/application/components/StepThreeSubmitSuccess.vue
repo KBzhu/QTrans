@@ -10,6 +10,8 @@ interface Props {
   formData: {
     department: string
     downloaderAccounts: string[]
+    downloaderEmails: string[]
+    transferType: string
   }
   basicInfoApplicant: string
 }
@@ -23,14 +25,24 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
+// 是否为"内部往外部"场景（目标区域为 external 且源区域不为 external）
+const isInsideToOutside = computed(() => {
+  const type = props.formData.transferType || ''
+  return type.endsWith('-external') && !type.startsWith('external-to')
+})
+
 const summaryRows = computed(() => {
+  const downloaderLabel = isInsideToOutside.value ? '下载人邮箱' : '下载人'
+  const downloaderValue = isInsideToOutside.value
+    ? props.formData.downloadEmail  || '--'    : props.formData.downloaderAccounts.join('、') || '--'
+
   return [
     { label: '申请类型', value: props.transferTypeLabel },
     { label: '申请人', value: props.basicInfoApplicant || '--' },
     { label: '所属部门', value: props.formData.department || '--' },
     { label: '文件数量', value: `${props.fileCount} 个` },
     { label: '审批人', value: 'zhaodan' },
-    { label: '下载人', value: props.formData.downloaderAccounts.join('、') || '--' },
+    { label: downloaderLabel, value: downloaderValue },
   ]
 })
 </script>

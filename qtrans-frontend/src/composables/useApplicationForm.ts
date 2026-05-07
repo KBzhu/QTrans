@@ -65,8 +65,16 @@ export interface ApplicationFormData {
   vendorName?: string         // 外网方名称：目标=外网时"下载方名称"，源=外网时"上传方名称"
   downloadEmail?: string      // 下载方邮箱地址（目标=外网时显示）
   uploaderEmail?: string      // 上传方邮箱地址（源=外网时显示）
-  // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
-}
+    // 文件传输方式（源或目标为外网时显示）
+    transferMode?: 0 | 1        // 0=我司提供服务器, 1=对方提供服务器
+    // 对方提供服务器时的 FTP 字段
+    vendorFtpAddress?: string
+    vendorFtpUserName?: string
+    vendorFtpPassword?: string
+    vendorFtpVirtualPath?: string
+    vendorFtpFiles?: string
+    // 移除废弃字段: storageSize, uploadExpireTime, downloadExpireTime, customerAuthFile
+  }
 
 /**
  * 传输类型别名映射
@@ -165,6 +173,12 @@ function defaultFormData(transferTypeRaw?: string, fromZone?: string, toZone?: s
     vendorName: '',
     downloadEmail: '',
     uploaderEmail: '',
+    transferMode: 0,
+    vendorFtpAddress: '',
+    vendorFtpUserName: '',
+    vendorFtpPassword: '',
+    vendorFtpVirtualPath: '',
+    vendorFtpFiles: '',
   }
 }
 
@@ -260,6 +274,22 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         { required: true, message: '请输入上传方邮箱地址' },
         emailRule,
       ]
+    }
+
+    // 文件传输方式及 FTP 字段校验（源或目标为外网时）
+    const isExternalScene = formData.value.sourceArea === 'external' || formData.value.targetArea === 'external'
+    if (isExternalScene) {
+      rules.transferMode = [{ required: true, message: '请选择文件传输方式' }]
+      if (formData.value.transferMode === 1) {
+        rules.vendorFtpAddress = [{ required: true, message: '请输入FTP地址' }]
+        rules.vendorFtpUserName = [{ required: true, message: '请输入FTP账号' }]
+        rules.vendorFtpPassword = [{ required: true, message: '请输入FTP密码' }]
+        rules.vendorFtpVirtualPath = [{ required: true, message: '请输入文件存放目录' }]
+        if (formData.value.sourceArea === 'external') {
+          // 外网传入：多一个获取文件名称
+          rules.vendorFtpFiles = [{ required: true, message: '请输入获取文件名称' }]
+        }
+      }
     }
 
     return rules
@@ -594,6 +624,12 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
       vendorName: (draft as any).vendorName || '',
       downloadEmail: (draft as any).downloadEmail || '',
       uploaderEmail: (draft as any).uploaderEmail || '',
+      transferMode: (draft as any).transferMode ?? 0,
+      vendorFtpAddress: (draft as any).vendorFtpAddress || '',
+      vendorFtpUserName: (draft as any).vendorFtpUserName || '',
+      vendorFtpPassword: (draft as any).vendorFtpPassword || '',
+      vendorFtpVirtualPath: (draft as any).vendorFtpVirtualPath || '',
+      vendorFtpFiles: (draft as any).vendorFtpFiles || '',
     })
 
     updateSnapshot()
@@ -617,6 +653,7 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         appBaseCountryCityRegionRelation,
         appBaseUploadDownloadInfo,
         appBaseExternalInfo,
+        appTransInfo,
       } = detail
 
       // 推断 transferType
@@ -672,6 +709,12 @@ export function useApplicationForm(initialTransferType?: string, fromZone?: stri
         vendorName: appBaseExternalInfo?.vendorName || '',
         downloadEmail: appBaseUploadDownloadInfo.downloadEmail || '',
         uploaderEmail: appBaseUploadDownloadInfo.uploaderEmail || '',
+        transferMode: (appBaseUploadDownloadInfo.transferMode === 1 || appTransInfo?.transferMode === 1) ? 1 : 0,
+        vendorFtpAddress: appBaseExternalInfo?.vendorFtpAddress || '',
+        vendorFtpUserName: appBaseExternalInfo?.vendorFtpUserName || '',
+        vendorFtpPassword: '', // 后端不返回密码，回显时清空
+        vendorFtpVirtualPath: appBaseExternalInfo?.vendorFtpVirtualPath || '',
+        vendorFtpFiles: appBaseExternalInfo?.vendorFtpFiles || '',
       })
 
       // 设置已提交的申请单信息

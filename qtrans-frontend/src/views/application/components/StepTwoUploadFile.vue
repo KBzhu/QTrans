@@ -243,8 +243,8 @@ async function handleDrop(e: DragEvent) {
 }
 
 async function handleFiles(files: File[]) {
-  // 先尝试批量断点续传匹配
-  files = await batchResumeFromFiles(files, props.params, updateUploadProgress)
+  // 先尝试批量断点续传匹配（同步返回，不阻塞新文件进入队列）
+  files = batchResumeFromFiles(files, props.params, updateUploadProgress)
   if (files.length === 0) return
 
   const maxCount = initData.value?.maxFileCount ?? (initData.value?.maxLength4Name ? 1000 : 20)
@@ -257,12 +257,14 @@ async function handleFiles(files: File[]) {
       return Message.error(`文件 ${file.name} 超过最大限制 ${formatFileSize(maxSize)}`)
   }
 
-  // 校验总容量：已上传文件 + 新上传文件不能超过 applicationSize
+  // 校验总容量：已上传文件 + 上传队列中文件 + 新上传文件不能超过 applicationSize
   const uploadedTotalSize = fileListData.value?.totalFileSize ?? 0
+  const queueTotalSize = uploadFileList.value.reduce((sum: number, f: TransUploadFileItem) => sum + (f.fileSize ?? f.file?.size ?? 0), 0)
   const newTotalSize = files.reduce((sum, f) => sum + f.size, 0)
-  if (uploadedTotalSize + newTotalSize > maxSize) {
+  const totalSize = uploadedTotalSize + queueTotalSize + newTotalSize
+  if (totalSize > maxSize) {
     return Message.error(
-      `上传后总大小 ${formatFileSize(uploadedTotalSize + newTotalSize)} 超过最大限制 ${formatFileSize(maxSize)}`
+      `上传后总大小 ${formatFileSize(totalSize)} 超过最大限制 ${formatFileSize(maxSize)}`
     )
   }
 
@@ -455,18 +457,28 @@ function handleToggleSelectUploaded(file: FileEntity) {
   }
 }
 
-function handleToggleSelectAllUploaded(selected: boolean) {
+function handleToggleSelectAllUploaded(payload: { selected: boolean; searchKeyword: string }) {
+  const { selected, searchKeyword } = payload
+  const allFiles = fileListData.value?.fileList ?? []
+  // 根据搜索关键词过滤，模拟 TransFileTable 内部同样的过滤逻辑
+  const targetFiles = searchKeyword
+    ? allFiles.filter((f: FileEntity) => f.fileName.toLowerCase().includes(searchKeyword.toLowerCase()))
+    : allFiles
+
   if (selected) {
-    const currentList = fileListData.value?.fileList ?? []
-    // 去重合并
+    // 只选中当前筛选后的文件（去重合并）
     const existingIds = new Set(selectedUploadedFiles.value.map((f: FileEntity) => f.fileId))
-    currentList.forEach((file: FileEntity) => {
+    targetFiles.forEach((file: FileEntity) => {
       if (!existingIds.has(file.fileId)) {
         selectedUploadedFiles.value.push(file)
       }
     })
   } else {
-    selectedUploadedFiles.value = []
+    // 取消全选时，只取消当前筛选范围内文件的选中状态
+    const filteredIds = new Set(targetFiles.map((f: FileEntity) => f.fileId))
+    selectedUploadedFiles.value = selectedUploadedFiles.value.filter(
+      (f: FileEntity) => !filteredIds.has(f.fileId),
+    )
   }
 }
 

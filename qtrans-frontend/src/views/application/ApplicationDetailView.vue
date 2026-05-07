@@ -77,6 +77,12 @@ const canContinueUpload = computed(() => {
   return status === '创建申请单' || status === '文件上传'
 })
 
+// 是否可以关闭申请单（状态不包含"关闭/结束/到期"等字样）
+const canCloseApplication = computed(() => {
+  const status = currentStatus.value
+  return !status.includes('关闭') && !status.includes('结束') && !status.includes('到期')
+})
+
 // 资产检测加载状态
 const assetLoading = computed(() => countLoading.value || listLoading.value)
 
@@ -253,7 +259,7 @@ watch(
       >
         继续上传文件
       </a-button>
-      <a-button type="outline" status="danger" @click="onCloseApplication">关闭申请单</a-button>
+      <a-button v-if="canCloseApplication" type="outline" status="danger" @click="onCloseApplication">关闭申请单</a-button>
     </footer>
 
     <!-- 关闭申请单确认弹窗 -->

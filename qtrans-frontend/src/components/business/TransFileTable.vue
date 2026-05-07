@@ -103,7 +103,7 @@ const emit = defineEmits<{
   
   // 已上传模式
   (e: 'toggle-select-uploaded', file: FileEntity): void
-  (e: 'toggle-select-all-uploaded', selected: boolean): void
+  (e: 'toggle-select-all-uploaded', payload: { selected: boolean; searchKeyword: string }): void
   (e: 'delete-uploaded-file', file: FileEntity): void
   (e: 'refresh'): void
 
@@ -169,6 +169,12 @@ const completedCount = computed(() =>
 
 const selectedUploadedCount = computed(() =>
   props.selectedUploadedFiles.length
+)
+
+/** 当前筛选后的文件是否全部已选中（用于全选按钮状态判断） */
+const isAllFilteredUploadedSelected = computed(() =>
+  filteredUploadedFiles.value.length > 0 &&
+  filteredUploadedFiles.value.every(f => isUploadedFileSelected(f))
 )
 
 const totalUploadedSize = computed(() =>
@@ -281,6 +287,11 @@ function getHashVerifyStatus(file: FileEntity): 'matched' | 'mismatched' | 'pend
 /** 判断文件是否在已选中列表中 */
 function isUploadedFileSelected(file: FileEntity): boolean {
   return props.selectedUploadedFiles.some(f => f.fileId === file.fileId)
+}
+
+  /** 已上传列表全选/取消全选 */
+function handleToggleSelectAllUploaded(selected: boolean) {
+  emit('toggle-select-all-uploaded', { selected, searchKeyword: searchKeyword.value })
 }
 </script>
 
@@ -507,16 +518,16 @@ function isUploadedFileSelected(file: FileEntity): boolean {
         </div>
         <div class="toolbar-actions">
           <a-button
-            v-if="selectedUploadedCount === uploadedFiles.length"
+            v-if="isAllFilteredUploadedSelected"
             size="small"
-            @click="$emit('toggle-select-all-uploaded', false)"
+            @click="handleToggleSelectAllUploaded(false)"
           >
             取消全选
           </a-button>
           <a-button
             v-else
             size="small"
-            @click="$emit('toggle-select-all-uploaded', true)"
+            @click="handleToggleSelectAllUploaded(true)"
           >
             全选
           </a-button>

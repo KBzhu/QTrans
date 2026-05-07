@@ -621,11 +621,12 @@ function handleToggleSelectUploaded(file: FileEntity) {
 /**
  * 全选/取消全选已上传文件
  */
-function handleToggleSelectAllUploaded(selected: boolean) {
+function handleToggleSelectAllUploaded(payload: { selected: boolean; files: FileEntity[] }) {
+  const { selected, files } = payload
   if (selected) {
-    const currentList = fileListData.value?.fileList ?? []
+    const targetFiles = files ?? fileListData.value?.fileList ?? []
     const existingIds = new Set(selectedUploadedFiles.value.map((f: FileEntity) => f.fileId))
-    currentList.forEach((file: FileEntity) => {
+    targetFiles.forEach((file: FileEntity) => {
       if (!existingIds.has(file.fileId)) {
         selectedUploadedFiles.value.push(file)
       }

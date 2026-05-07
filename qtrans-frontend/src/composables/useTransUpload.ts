@@ -166,6 +166,9 @@ export function useTransUpload() {
   /** 当前活跃的上传队列 */
   const activeUploads = ref(0)
 
+  /** 被批量暂停标记的文件 ID 集合（pending 任务拿到槽位前检查此集合） */
+  const batchPausedIds = new Set<string>()
+
   /** 最大并发上传数（支持用户调整并持久化到 localStorage） */
   const maxConcurrentUploads = ref(DEFAULT_MAX_CONCURRENT)
   try {
@@ -655,7 +658,7 @@ export function useTransUpload() {
       // 断点续传场景：skip 的分片没有进入 uploadSingleChunk，需要先把它们的数据喂给 fileHasher
       // 否则最终 fileHasher.digest() 只包含 reupload 分片的 hash，导致全文件 hash 错误
       if (fileHasher && skip.length > 0) {
-        // BUG4: 显示 hash 恢复状态提示
+        // 显示 hash 恢复状态提示
         ri.status = 'hashing'
         ri.hashState = {
           clientHash: '',
@@ -668,13 +671,24 @@ export function useTransUpload() {
 
         console.log(`[断点续传] 恢复已上传 ${skip.length} 个分片的 hash 累积...`)
         for (const chunkIndex of skip.sort((a, b) => a - b)) {
+          // 检查是否被批量暂停
+          if (batchPausedIds.has(fileUUID)) {
+            batchPausedIds.delete(fileUUID)
+            ri.status = 'paused'
+            ri.speed = 0
+            ri.hashState = undefined
+            await updateUploadStatus(fileUUID, 'paused')
+            onProgress?.(ri)
+            return false
+          }
           const { chunkBuffer } = await readChunkBuffer(file, chunkIndex, CHUNK_SIZE)
           await fileHasher.update(chunkBuffer, chunkIndex)
         }
         console.log(`[断点续传] 已恢复 ${skip.length} 个分片的 hash 累积`)
 
-        // 恢复 uploading 状态继续上传
-        ri.status = 'uploading'
+        // hash 恢复完成，但还未拿到并发槽位，保持 pending 状态
+        // 等 while 循环结束、activeUploads.value++ 后再设为 uploading
+        ri.status = 'pending'
         onProgress?.(ri)
       }
 
@@ -683,12 +697,40 @@ export function useTransUpload() {
       ri.progress = calcChunkProgress(uploadedCount, totalChunks)
       onProgress?.(ri)
 
-      // 等待并发队列有空位
+      // 等待并发队列有空位，期间定期检查是否被批量暂停
       while (activeUploads.value >= maxConcurrentUploads.value) {
+        if (batchPausedIds.has(fileUUID)) {
+          batchPausedIds.delete(fileUUID)
+          ri.status = 'paused'
+          ri.speed = 0
+          await updateUploadStatus(fileUUID, 'paused')
+          onProgress?.(ri)
+          return false
+        }
         await new Promise(resolve => setTimeout(resolve, 100))
       }
+
+      // 再次检查批量暂停标记（拿到槽位前最后一刻）
+      if (batchPausedIds.has(fileUUID)) {
+        batchPausedIds.delete(fileUUID)
+        ri.status = 'paused'
+        ri.speed = 0
+        await updateUploadStatus(fileUUID, 'paused')
+        onProgress?.(ri)
+        return false
+      }
+
       activeUploads.value++
       uploading.value = true
+
+      // 断点续传场景：开始上传分片前先刷新服务端缓存，保持 session 活跃
+      try {
+        await cacheRefresh(params)
+        console.log('[断点续传] session 缓存已刷新')
+      } catch (e) {
+        // 静默处理，不影响上传流程
+        console.warn('[断点续传] session 缓存刷新失败（继续上传）:', e)
+      }
 
       // 真正开始上传分片前，状态切换为 uploading
       ri.status = 'uploading'
@@ -1128,6 +1170,9 @@ export function useTransUpload() {
    * @param silent 是否静默（不弹出提示），用于批量暂停场景
    */
   async function pauseUpload(fileId: string, params: string, silent = false): Promise<void> {
+    // 清除批量暂停标记（如果存在），避免单点暂停和批量暂停冲突
+    batchPausedIds.delete(fileId)
+
     const controller = abortControllers.get(fileId)
     if (controller) {
       controller.abort()
@@ -1345,13 +1390,38 @@ export function useTransUpload() {
 
   /**
    * 批量暂停
+   * 暂停所有 uploading、hashing 和 pending 状态的任务。
+   * uploading 任务直接 abort；pending/hash 恢复中的任务加入 batchPausedIds，
+   * 让它们在 uploadFile 内部等待并发槽位或 hash 计算时自动退出。
    */
   async function batchPause(params: string): Promise<void> {
-    const targets = uploadFileList.value.filter((f: TransUploadFileItem) => f.status === 'uploading')
-    for (const item of targets) {
+    const uploadingTargets = uploadFileList.value.filter((f: TransUploadFileItem) => f.status === 'uploading')
+    const hashingTargets = uploadFileList.value.filter((f: TransUploadFileItem) => f.status === 'hashing')
+    const pendingTargets = uploadFileList.value.filter((f: TransUploadFileItem) => f.status === 'pending')
+
+    // 1. 先标记所有 pending/hash 恢复中的任务为批量暂停
+    //    它们在 uploadFile 内部的 while 循环或 hash 恢复循环中会检查此标记并退出
+    for (const item of pendingTargets) {
+      batchPausedIds.add(item.id)
+      item.status = 'paused'
+      item.speed = 0
+      await updateUploadStatus(item.id, 'paused')
+    }
+    for (const item of hashingTargets) {
+      batchPausedIds.add(item.id)
+      item.status = 'paused'
+      item.speed = 0
+      item.hashState = undefined
+      await updateUploadStatus(item.id, 'paused')
+    }
+
+    // 2. 再暂停所有正在上传的任务（abort 会释放槽位，pending 任务会检查 batchPausedIds）
+    for (const item of uploadingTargets) {
       await pauseUpload(item.id, params, true)
     }
-    if (targets.length > 0) Message.success(`已暂停 ${targets.length} 个文件`)
+
+    const total = uploadingTargets.length + hashingTargets.length + pendingTargets.length
+    if (total > 0) Message.success(`已暂停 ${total} 个文件`)
   }
 
   /**
@@ -1382,12 +1452,15 @@ export function useTransUpload() {
   /**
    * 批量断点续传：通过拖拽/选择文件自动匹配恢复任务
    * 按 fileName + fileSize 匹配，匹配上的自动 resumeUpload，未匹配上的返回继续正常上传
+   *
+   * 注意：resumeUpload 是**异步启动**的（不 await），让 uploadFile 内部的并发控制逻辑自行排队，
+   * 避免阻塞上层 handleFiles 流程，确保新文件能立即进入上传队列。
    */
-  async function batchResumeFromFiles(
+  function batchResumeFromFiles(
     files: File[],
     params: string,
     onProgress?: (item: TransUploadFileItem) => void,
-  ): Promise<File[]> {
+  ): File[] {
     const restoreTasks = uploadFileList.value.filter(
       f => !f.file && (f.status === 'paused' || f.status === 'error'),
     )
@@ -1405,7 +1478,10 @@ export function useTransUpload() {
           remaining.push(file)
           continue
         }
-        await resumeUpload(task.id, params, onProgress, file)
+        // 异步启动，不阻塞，让 uploadFile 内部并发控制自行排队
+        resumeUpload(task.id, params, onProgress, file).catch((e) => {
+          console.warn(`[断点续传] 任务 ${task.fileName} 启动失败:`, e)
+        })
         matchedCount++
       } else {
         remaining.push(file)

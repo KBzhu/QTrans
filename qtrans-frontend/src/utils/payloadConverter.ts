@@ -117,9 +117,16 @@ export function buildCreatePayload(formData: ApplicationFormData, applicationId?
       applicationType: 0,
       abc: false,
       vendorName: formData.vendorName || '',  // 外网方名称（下载方/上传方，取决于传输方向）
+      ...(formData.transferMode === 1 ? {
+        vendorFtpAddress: formData.vendorFtpAddress || '',
+        vendorFtpUserName: formData.vendorFtpUserName || '',
+        vendorFtpPassword: formData.vendorFtpPassword || '',
+        vendorFtpVirtualPath: formData.vendorFtpVirtualPath || '',
+        vendorFtpFiles: formData.vendorFtpFiles || '',
+      } : {}),
     },
     appTransInfo: {
-      transferMode: 0,
+      transferMode: formData.transferMode ?? 0,
     },
     appCustomerNetworkFiles: null,
     edsInfo: {},
