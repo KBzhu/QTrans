@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-05-07
+
+#### LOGIN_USER_TYPE 页面刷新后重置为默认值
+
+- `api/auth.ts` `LOGIN_USER_TYPE` 初始化值从硬编码 `2` 改为 `Number(localStorage.getItem('LOGIN_TYPE')) || 2`，页面刷新时优先从 localStorage 读取已保存的值
+- `setLoginUserType` 新增 `localStorage.setItem('LOGIN_TYPE', String(value))`，设置时同步持久化，保证下次刷新能取到正确值
+
+#### 详情页"当前处理人"在流程结束后隐藏
+
+- `useApplicationDetail.ts` `basicInfoRows`：`applicationStatusId >= 81` 时不再显示"当前处理人"行
+- `useApprovalDetail.ts` `basicInfoRows`：同上，逻辑一致
+
+### Changed - 2026-05-07
+
+#### "最近传输选择"对接真实后端接口
+
+- 新增 `api/application.ts` 类型：`RecentApplicationItem`、`RecentDownloadUser`、`RecentApplicationParams`
+- 新增 `api/application.ts` 方法：`getMyRecentApplication` — POST `/workflowService/services/frontendService/frontend/myRecentApplication`
+- 新增 `useRecentApplication.ts` composable：根据源/目标区域 ID 自动请求最近传输列表，区域变化时自动重新请求
+- `StepOneBasicInfo.vue`：
+  - 移除 mock 的 `recentTransferTemplates` computed（来自 `useApplicationConfig`），改用 `useRecentApplication` 获取真实数据
+  - 列表展示格式改为 `申请单号 | 下载人账号 | 状态 | 备注`
+  - emit 从 `copyTemplate(text: string)` 改为 `copyTemplate(item: RecentApplicationItem)`
+  - 增加 loading spin 和空状态提示
+- `CreateApplicationView.vue`：
+  - `onCopyRecentTemplate` 接收完整 `RecentApplicationItem` 对象
+  - 回填逻辑：`reason` → `applyReason`，`downloadUsers[].w3Account` → `downloaderAccounts`
+  - 不回填传输路由、直接主管等不可修改字段
+
 ### Fixed - 2026-05-06
 
 #### 已上传文件列表全选功能修复
