@@ -621,10 +621,14 @@ function handleToggleSelectUploaded(file: FileEntity) {
 /**
  * 全选/取消全选已上传文件
  */
-function handleToggleSelectAllUploaded(payload: { selected: boolean; files: FileEntity[] }) {
-  const { selected, files } = payload
+function handleToggleSelectAllUploaded(payload: { selected: boolean; searchKeyword: string }) {
+  const { selected, searchKeyword } = payload
+  const allFiles = fileListData.value?.fileList ?? []
+  const targetFiles = searchKeyword
+    ? allFiles.filter((f: FileEntity) => f.fileName.toLowerCase().includes(searchKeyword.toLowerCase()))
+    : allFiles
+
   if (selected) {
-    const targetFiles = files ?? fileListData.value?.fileList ?? []
     const existingIds = new Set(selectedUploadedFiles.value.map((f: FileEntity) => f.fileId))
     targetFiles.forEach((file: FileEntity) => {
       if (!existingIds.has(file.fileId)) {

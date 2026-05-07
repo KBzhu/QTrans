@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2026-05-06
+
+#### 已上传文件列表全选功能修复
+
+- `TransFileTable.vue`：`toggle-select-all-uploaded` 事件改为只传递元信息 `{ selected, searchKeyword }`，不再传递 `files` 数组，避免 Vite HMR 缓存导致 emit 参数丢失
+- `StepTwoUploadFile.vue`：全选 handler 基于接收到的 `searchKeyword` 在本地过滤 `fileListData`，实现筛选后全选；修复 `:selected-uploaded-files` 多余 `.value` 导致传入 RefImpl 而非数组的问题
+- `TransUploadView.vue`：同步适配新的 emit 载荷格式
+
 ### Added - 2026-04-27
 
 #### 申请列表“驳回重提”与查询布局优化

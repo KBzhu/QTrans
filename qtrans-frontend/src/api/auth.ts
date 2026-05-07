@@ -4,13 +4,14 @@ import { request } from '@/utils'
 /**
  * 登录用户类型（usertype）
  * 与后端 loginType 保持一致，Number 格式供其他接口使用
- * 初始默认值，登录时会被 localStorage 中的 LOGIN_TYPE 覆盖
+ * 初始化时从 localStorage 读取，取不到则默认 2
  */
-export let LOGIN_USER_TYPE = 2
+export let LOGIN_USER_TYPE = Number(localStorage.getItem('LOGIN_TYPE')) || 2
 
-/** 设置登录用户类型 */
+/** 设置登录用户类型，同时持久化到 localStorage */
 export function setLoginUserType(value: number) {
   LOGIN_USER_TYPE = value
+  localStorage.setItem('LOGIN_TYPE', String(value))
 }
 
 /** 人员搜索结果项 */
