@@ -45,6 +45,7 @@ const {
   batchResume,
   batchResumeFromFiles,
   batchCancel,
+  batchDeleteUploaded,
   removeFiles,
   checkStorageSpace,
   toggleSelectAll,
@@ -440,7 +441,9 @@ function handleToggleSelectAll(selected: boolean) {
 
 async function handleBatchPause() { await batchPause(props.params) }
 function handleBatchResume() { batchResume(props.params, updateUploadProgress) }
-async function handleBatchDelete() { await batchCancel(props.params) }
+async function handleBatchDelete() {
+  await batchCancel(props.params)
+}
 
 // Task 6: 刷新按钮防抖（500ms 避免频繁请求）
 async function handleRefresh() {
@@ -487,11 +490,11 @@ async function handleDeleteSelectedUploaded() {
   if (cancelUploadModalLock.value) return
   cancelUploadModalLock.value = true
   try {
-    await removeFiles(
-      selectedUploadedFiles.value.map((f: FileEntity) => ({ fileName: f.fileName, relativeDir: f.relativeDir })),
-      props.params,
-    )
-    selectedUploadedFiles.value = []
+    const files = selectedUploadedFiles.value.map((f: FileEntity) => ({ fileName: f.fileName, relativeDir: f.relativeDir }))
+    const success = await batchDeleteUploaded(props.params, files)
+    if (success) {
+      selectedUploadedFiles.value = []
+    }
   } finally {
     setTimeout(() => { cancelUploadModalLock.value = false }, 300)
   }

@@ -1511,26 +1511,57 @@ export function useTransUpload() {
 
   /**
    * 批量删除已上传文件
+   * 分批调用避免参数超长（每批最多 DELETE_BATCH_SIZE 个文件）
+   * @param params 传输参数
+   * @param externalFiles 外部传入的文件列表（用于已上传列表场景），不传则从 uploadFileList 中取已选已完成的
    */
-  async function batchDeleteUploaded(params: string): Promise<void> {
-    const selected = uploadFileList.value.filter(f => f.selected && f.status === 'completed')
-    if (selected.length === 0) {
-      Message.warning('请选择已完成的文件')
-      return
+  const DELETE_BATCH_SIZE = 50
+
+  async function batchDeleteUploaded(
+    params: string,
+    externalFiles?: Array<{ fileName: string; relativeDir: string }>,
+  ): Promise<boolean> {
+    let allFiles: Array<{ fileName: string; relativeDir: string }>
+    let cleanUpUploadList = false
+
+    if (externalFiles && externalFiles.length > 0) {
+      allFiles = externalFiles
+    } else {
+      const selected = uploadFileList.value.filter(f => f.selected && f.status === 'completed')
+      if (selected.length === 0) {
+        Message.warning('请选择已完成的文件')
+        return false
+      }
+      allFiles = selected
+        .filter(item => item.file != null)
+        .map(item => ({
+          fileName: item!.file!.name,
+          relativeDir: item.relativeDir,
+        }))
+      cleanUpUploadList = true
     }
 
-    const files = selected
-      .filter(item => item.file != null)
-      .map(item => ({
-        fileName: item!.file!.name,
-        relativeDir: item.relativeDir,
-      }))
+    if (allFiles.length === 0) return false
 
-    const success = await removeFiles(files, params)
-    if (success) {
-      // 从列表中移除
+    // 分批删除
+    const totalBatches = Math.ceil(allFiles.length / DELETE_BATCH_SIZE)
+    let allSuccess = true
+
+    for (let i = 0; i < totalBatches; i++) {
+      const batch = allFiles.slice(i * DELETE_BATCH_SIZE, (i + 1) * DELETE_BATCH_SIZE)
+      const success = await removeFiles(batch, params)
+      if (!success) {
+        allSuccess = false
+        break
+      }
+    }
+
+    if (allSuccess && cleanUpUploadList) {
+      // 从上传列表中移除
       uploadFileList.value = uploadFileList.value.filter(f => !f.selected || f.status !== 'completed')
     }
+
+    return allSuccess
   }
 
   /**

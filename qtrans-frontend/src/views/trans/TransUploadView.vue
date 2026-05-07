@@ -45,6 +45,7 @@ const {
   batchResume,
   batchResumeFromFiles,
   batchCancel,
+  batchDeleteUploaded,
   removeFiles,
   checkStorageSpace,
   toggleSelectAll,
@@ -556,7 +557,7 @@ function handleBatchResume() {
 }
 
 /**
- * 批量删除
+ * 批量删除：取消未完成的
  */
 async function handleBatchDelete() {
   await batchCancel(params.value)
@@ -584,7 +585,7 @@ async function handleRefresh() {
 }
 
 /**
- * 删除选中的已上传文件（BUG6: 带防抖）
+ * 删除选中的已上传文件（BUG6: 带防抖，分批删除避免参数超长）
  */
 async function handleDeleteSelectedUploaded() {
   if (selectedUploadedFiles.value.length === 0) {
@@ -598,9 +599,10 @@ async function handleDeleteSelectedUploaded() {
       fileName: f.fileName,
       relativeDir: f.relativeDir,
     }))
-
-    await removeFiles(files, params.value)
-    selectedUploadedFiles.value = []
+    const success = await batchDeleteUploaded(params.value, files)
+    if (success) {
+      selectedUploadedFiles.value = []
+    }
   } finally {
     setTimeout(() => { cancelUploadModalLock.value = false }, 300)
   }

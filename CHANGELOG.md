@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - 2026-05-07
+
+#### 批量删除文件参数超长优化
+
+- `useTransUpload.ts` `batchDeleteUploaded`：新增分批删除逻辑（每批最多 50 个文件），支持外部传入文件列表，避免文件过多时 URL 参数超长
+- `TransUploadView.vue` `handleDeleteSelectedUploaded`：改用 `batchDeleteUploaded` 替代直接调 `removeFiles`，获得分批删除能力
+- `StepTwoUploadFile.vue` `handleDeleteSelectedUploaded`：同上
+
 ### Fixed - 2026-05-07
 
 #### LOGIN_USER_TYPE 页面刷新后重置为默认值
