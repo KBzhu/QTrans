@@ -241,6 +241,16 @@ findSecurityLevelList(params: {
     )
   },
   /**
+   * 最近传输选择
+   * POST /workflowService/services/frontendService/frontend/myRecentApplication
+   */
+  getMyRecentApplication(params: RecentApplicationParams): Promise<RecentApplicationItem[]> {
+    return request.raw<RecentApplicationItem[]>(
+      '/workflowService/services/frontendService/frontend/myRecentApplication',
+      params,
+    )
+  },
+  /**
    * 导出我的申请列表 - 真实后端接口
    * POST /workflowService/services/frontendService/frontend/findMyApplicationExport
    * 响应: Excel 文件流 (blob)
@@ -654,6 +664,58 @@ export interface ProcessDetailsResponse {
   viewData: any | null
   nodeInfos: any | null
   listSteps: ProcessStepItem[]
+}
+
+/** 最近传输选择 - 下载人信息 */
+export interface RecentDownloadUser {
+  w3Account: string
+  fullName: string
+}
+
+/** 最近传输选择 - 单条记录 */
+export interface RecentApplicationItem {
+  applicationId: number
+  applicationIdList: number[] | null
+  procType: string
+  procTypes: string[] | null
+  transWay: string
+  currentHandler: string
+  currentStatus: string
+  applicationStatus: number
+  toAreaId: number | null
+  formAreaId: number | null
+  applicantW3Account: string
+  taskStatus: string
+  downloadUsers: RecentDownloadUser[]
+  downloadW3Account: string
+  createdBy: string | null
+  creationDate: string
+  lastUpdateDate: string
+  reason: string
+  keyword: string | null
+  targetName: string | null
+  downloadStatus: number | null
+  applicationStartTime: string | null
+  applicationEndTime: string | null
+  abc: boolean
+  externalCode: string | null
+  publishServiceWhitelist: string | null
+  creationDates: string[] | null
+  toAreaIdList: number[] | null
+  formAreaIdList: number[] | null
+  toRedAreaId: number | null
+  formRedAreaId: number | null
+  isCrossTransfer: string | null
+  dirManagerConfirm: string | null
+  managerW3Account: string | null
+}
+
+/** 最近传输选择 - 请求参数 */
+export interface RecentApplicationParams {
+  abc: boolean
+  formAreaId: string
+  toAreaId: string
+  procTypes: string[]
 }
 
 

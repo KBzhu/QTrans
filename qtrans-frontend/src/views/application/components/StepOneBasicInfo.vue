@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import type { ApplicationFormData } from '@/composables/useApplicationForm'
+import type { RecentApplicationItem } from '@/api/application'
 import { computed, ref } from 'vue'
 import { useAuthStore, useRegionMetadataStore } from '@/stores'
 import { useApplicationConfig } from '@/composables/useApplicationConfig'
@@ -11,6 +12,7 @@ import type { UserSuggestOption } from '@/composables/useUserSuggest'
 import { useApprovalRoute } from './useApprovalRoute'
 import { useCitySelection } from './useCitySelection'
 import { useSecurityLevel } from './useSecurityLevel'
+import { useRecentApplication } from './useRecentApplication'
 
 /* ===== Props & Emits ===== */
 interface Props {
@@ -31,7 +33,7 @@ const props = defineProps<Props>()
 const formData = defineModel<ApplicationFormData>('formData', { required: true })
 
 const emit = defineEmits<{
-  (e: 'copyTemplate', text: string): void
+  (e: 'copyTemplate', item: RecentApplicationItem): void
 }>()
 
 
@@ -111,7 +113,7 @@ const {
 
 
 /* ===== Computed ===== */
-const { getOptionsByType, getItemsByType } = useApplicationConfig()
+const { getItemsByType } = useApplicationConfig()
 
 // 是否显示文件传输方式（源或目标为外网时）
 const isExternalScene = computed(() => isSourceExternal.value || isTargetExternal.value)
@@ -130,8 +132,24 @@ const downloaderNotifyOptions = [
   { label: 'W3待办', value: 'w3_todo' },
   { label: '邮件', value: 'email' },
 ]
-const recentTransferTemplates = computed(() => getItemsByType('recentTransferTemplates'))
 const noticeItems = computed(() => getItemsByType('noticeItems'))
+
+/* ===== 最近传输选择 ===== */
+const {
+  loading: recentLoading,
+  recentList,
+} = useRecentApplication(
+  () => regionMetadataStore.getFromId(),
+  () => regionMetadataStore.getToId(),
+)
+
+/** 格式化最近传输列表展示文本：申请单号 | 下载人账号 | 状态 | 备注 */
+function formatRecentLabel(item: RecentApplicationItem): string {
+  const downloadAccounts = item.downloadUsers?.map(u => u.w3Account).join('、') || '-'
+  const status = item.currentStatus || '-'
+  const reason = item.reason || '-'
+  return `${item.applicationId} | ${downloadAccounts} | ${status} | ${reason}`
+}
 
 const basicInfoRows = computed(() => {
   const user = authStore.currentUser
@@ -197,8 +215,8 @@ function onApproverLevel4Change() {
   formRef.value?.clearValidate?.('approverLevel4')
 }
 
-function onCopyRecentTemplate(text: string) {
-  emit('copyTemplate', text)
+function onCopyRecentTemplate(item: RecentApplicationItem) {
+  emit('copyTemplate', item)
 }
 
 /* ===== Form Validation ===== */
@@ -537,12 +555,15 @@ defineExpose({ validate })
       </section>
       <section class="side-card side-card--recent">
         <header class="side-card__header">最近传输选择</header>
-        <ul class="recent-list">
-          <li v-for="(item, index) in recentTransferTemplates" :key="item" class="recent-list__item">
-            <span>{{ Number(index) + 1 }}. {{ item }}</span>
-            <button type="button" @click="onCopyRecentTemplate(item)">一键复制</button>
-          </li>
-        </ul>
+        <a-spin :loading="recentLoading" style="width: 100%">
+          <ul v-if="recentList.length" class="recent-list">
+            <li v-for="(item, index) in recentList" :key="item.applicationId" class="recent-list__item">
+              <span :title="formatRecentLabel(item)">{{ Number(index) + 1 }}. {{ formatRecentLabel(item) }}</span>
+              <button type="button" @click="onCopyRecentTemplate(item)">一键复制</button>
+            </li>
+          </ul>
+          <div v-else class="recent-list__empty">暂无最近传输记录</div>
+        </a-spin>
       </section>
     </aside>
   </div>

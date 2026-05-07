@@ -120,14 +120,23 @@ export function useApprovalDetail() {
     const { appBaseInfo, appBpmWorkFlow } = detailData.value
     const creationDate = dayjs(appBaseInfo.creationDate)
 
-    return [
+    const rows: DetailFieldItem[] = [
       { label: '申请人', value: appBaseInfo.applicantW3Account },
       { label: '申请单号', value: String(appBaseInfo.applicationId) },
-      { label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' },
+    ]
+
+    // applicationStatusId >= 81 时不显示当前处理人
+    if ((processDetailData.value?.applicationStatusId ?? 0) < 81) {
+      rows.push({ label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' })
+    }
+
+    rows.push(
       { label: '当前状态', value: statusLabel.value },
       { label: '申请时间', value: creationDate.format('YYYY/MM/DD HH:mm:ss') },
       { label: '更新时间', value: dayjs(appBaseInfo.lastUpdateDate || appBaseInfo.creationDate).format('YYYY/MM/DD HH:mm:ss') },
-    ]
+    )
+
+    return rows
   })
 
   // 申请信息

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Message, Modal } from '@arco-design/web-vue'
+import type { RecentApplicationItem } from '@/api/application'
 import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useApplicationForm } from '@/composables/useApplicationForm'
@@ -154,16 +155,16 @@ function onUploadFilesChange(event: Event) {
   input.value = ''
 }
 
-async function onCopyRecentTemplate(text: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    formData.value.applyReason = text
-    Message.success('已复制并填入申请原因')
+function onCopyRecentTemplate(item: RecentApplicationItem) {
+  // 回填申请原因
+  if (item.reason) {
+    formData.value.applyReason = item.reason
   }
-  catch {
-    formData.value.applyReason = text
-    Message.warning('浏览器不支持剪贴板，已直接填入申请原因')
+  // 回填下载人账号
+  if (item.downloadUsers?.length) {
+    formData.value.downloaderAccounts = item.downloadUsers.map(u => u.w3Account)
   }
+  Message.success('已将最近传输信息填入表单')
 }
 
 function goHome() {

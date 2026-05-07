@@ -74,13 +74,22 @@ export function useApplicationDetail() {
     const uploadEndDate = dayjs(appBaseUploadDownloadInfo.uploadEndDate)
     const downloadEndDate = dayjs(appBaseUploadDownloadInfo.downloadEndDate)
 
-    return [
+    const rows: DetailFieldItem[] = [
       { label: '申请人', value: appBaseInfo.applicantW3Account },
       { label: '申请单号', value: String(appBaseInfo.applicationId) },
-      { label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' },
+    ]
+
+    // applicationStatusId >= 81 时不显示当前处理人
+    if ((processDetailData.value?.applicationStatusId ?? 0) < 81) {
+      rows.push({ label: '当前处理人', value: appBpmWorkFlow.currentHandler || '-' })
+    }
+
+    rows.push(
       { label: '上传有效期间', value: `${uploadEndDate.diff(creationDate, 'day')}天` },
       { label: '下载有效期间', value: `${downloadEndDate.diff(creationDate, 'day')}天` },
-    ]
+    )
+
+    return rows
   })
 
   // 申请信息
