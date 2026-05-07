@@ -22,12 +22,20 @@ const props = withDefaults(defineProps<Props>(), {
 
 interface Emits {
   (e: 'download', file: DetailFileItem): void
-  (e: 'batchDownload', fileIds: string[]): void
+  (e: 'batchDownload', files: DetailFileItem[]): void
   (e: 'pageChange', page: number, pageSize?: number): void
 }
 
 const emit = defineEmits<Emits>()
 const selectedRowKeys = ref<string[]>([])
+
+/** 行唯一 key 字段名，用于 row-key */
+const ROW_KEY_FIELD = '_rowKey'
+
+// 为每条数据注入唯一 key（id + fileName 组合，解决 hash 相同文件名不同时选中冲突）
+const processedFiles = computed(() =>
+  props.files.map((f) => ({ ...f, [ROW_KEY_FIELD]: `${f.id}::${f.fileName}` })),
+)
 
 // 数据或分页变更时清空选中
 watch([() => props.files, () => props.pagination], () => {
@@ -47,8 +55,8 @@ function onSelectChange(keys: (string | number)[]) {
 function onBatchDownload() {
   if (selectedRowKeys.value.length === 0)
     return
-
-  emit('batchDownload', selectedRowKeys.value)
+  const selected = processedFiles.value.filter(f => selectedRowKeys.value.includes(f[ROW_KEY_FIELD]))
+  emit('batchDownload', selected)
 }
 
 function handlePageChange(page: number, pageSize?: number) {
@@ -59,13 +67,13 @@ function handlePageChange(page: number, pageSize?: number) {
 <template>
   <section class="detail-file-table">
     <a-table
-      :data="props.files"
+      :data="processedFiles"
       :loading="props.loading"
-      row-key="id"
+      :row-key="ROW_KEY_FIELD"
       :pagination="props.pagination"
       :row-selection="rowSelection"
       @select="onSelectChange"
-      @select-all="(checked: boolean) => selectedRowKeys = checked ? files.map(item => item.id) : []"
+      @select-all="(checked: boolean) => selectedRowKeys = checked ? processedFiles.map(f => f[ROW_KEY_FIELD]) : []"
       @page-change="handlePageChange"
       @page-size-change="(pageSize: number) => handlePageChange(1, pageSize)"
     >

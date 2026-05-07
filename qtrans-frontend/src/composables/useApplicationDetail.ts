@@ -193,13 +193,12 @@ export function useApplicationDetail() {
     downloadSingleFile(file, downloadUrl)
   }
 
-  function handleBatchDownload(fileIds: string[]) {
+  function handleBatchDownload(selectedFiles: DetailFileItem[]) {
     const downloadUrl = detailData.value?.appBaseUploadDownloadInfo?.downloadUrl
     if (!downloadUrl) {
       Message.error('当前申请单暂无下载链接')
       return
     }
-    const selectedFiles = files.value.filter((f: DetailFileItem) => fileIds.includes(f.id))
     downloadBatchFiles(selectedFiles, downloadUrl)
   }
 

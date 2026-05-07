@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TransUploadView.vue` `handleDeleteSelectedUploaded`：改用 `batchDeleteUploaded` 替代直接调 `removeFiles`，获得分批删除能力
 - `StepTwoUploadFile.vue` `handleDeleteSelectedUploaded`：同上
 
+#### DetailFileTable hash 相同文件选中修复
+
+- `DetailFileTable.vue`：`row-key` 从 `"id"` 改为 `"_rowKey"` 字段（值 `${id}::${fileName}`），因为 Arco Table 的 `row-key` 只支持字符串字段名不支持函数
+- `batchDownload` 事件改为传出 `DetailFileItem[]` 替代 `string[]`，精确匹配选中行
+- `useApplicationDetail.ts` / `useApprovalDetail.ts` `handleBatchDownload`：参数从 `fileIds: string[]` 改为 `selectedFiles: DetailFileItem[]`
+
 ### Fixed - 2026-05-07
 
 #### LOGIN_USER_TYPE 页面刷新后重置为默认值
